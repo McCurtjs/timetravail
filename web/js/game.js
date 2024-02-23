@@ -64,7 +64,7 @@ class Game {
     await WebAssembly.instantiateStreaming(response, { env: imports })
     .then((obj) => {
       this.wasm = obj.instance;
-      if (!this.wasm) return null;
+      if (!this.wasm) return;
       this.initialized = true;
       this.wasm.exports.canary(2);
     });
@@ -88,58 +88,6 @@ class Game {
 
     this.gl = gl;
   }
-
-  //async initialize_game() {
-    ///////////////////////////////
-    /*
-    await fetch("./res/shaders/basic.vert")
-      .then((res) => res.text())
-      .then((text) => {
-        game.shader_vertex = text;
-      }).catch((e) => console.log(e));
-
-    await fetch("./res/shaders/basic.frag")
-      .then((res) => res.text())
-      .then((text) => {
-        game.shader_fragment = text;
-      }).catch((e) => console.log(e));
-
-    function loadShader(type, src) {
-      const shader = gl.createShader(type);
-
-      gl.shaderSource(shader, src);
-      gl.compileShader(shader);
-
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        alert('Error compiling shaders: ' + gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-      }
-
-      return shader;
-    }
-
-    function initShaderProgram() {
-      const vert = loadShader(gl.VERTEX_SHADER, game.shader_vertex);
-      const frag = loadShader(gl.FRAGMENT_SHADER, game.shader_fragment);
-
-      const program = gl.createProgram();
-      gl.attachShader(program, vert);
-      gl.attachShader(program, frag);
-      gl.linkProgram(program);
-
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        alert('Unable to initialize shader: ' + gl.getProgramInfoLog(program));
-        return null;
-      }
-
-      return program;
-    }
-
-    this.shader = initShaderProgram();
-    //*/
-    ///////////////////////////////
-  //}
 }
 
 export { Game };

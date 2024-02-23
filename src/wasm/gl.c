@@ -24,6 +24,7 @@ void          glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
   *params = js_glGetProgramParameter(program, pname);
 }
 extern void   glUseProgram(GLuint program);
+extern void   glDeleteProgram(GLuint program);
 
 extern GLuint js_glCreateBuffer();
 void          glGenBuffers(GLsizei n, GLuint* buffers

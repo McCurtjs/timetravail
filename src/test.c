@@ -13,10 +13,12 @@ int export(canary) (int a) {
   return a * a;
 }
 
+
+File file_vert;
+File file_frag;
 Shader test_vert;
 Shader test_frag;
 ShaderProgram test_shader;
-File test_file;
 
 typedef struct {
   float x;
@@ -55,19 +57,18 @@ GLuint pos_buffer;
 GLuint color_buffer;
 
 void export(wasm_preload) () {
-  shader_new(&test_vert, "./res/shaders/basic.vert");
-  shader_new(&test_frag, "./res/shaders/basic.frag");
-  file_open_async(&test_file, "./res/shaders/basic.frag");
+  file_open_async(&file_vert, "./res/shaders/basic.vert");
+  file_open_async(&file_frag, "./res/shaders/basic.frag");
 }
 
 int export(wasm_load) (int await_count) {
   if (await_count) return 0;
 
-  shader_load(&test_vert);
-  shader_load(&test_frag);
+  shader_build_from_file(&test_vert, &file_vert);
+  shader_build_from_file(&test_frag, &file_frag);
 
-  shader_build(&test_vert);
-  shader_build(&test_frag);
+  file_delete(&file_vert);
+  file_delete(&file_frag);
 
   shader_program_build(&test_shader, &test_vert, &test_frag);
 
@@ -83,10 +84,6 @@ int export(wasm_load) (int await_count) {
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(1);
 
-  file_read(&test_file);
-  print(test_file.text);
-  //file_delete(&test_file);
-
   return 1;
 }
 
@@ -100,11 +97,7 @@ void export(wasm_render) () {
 }
 
 // todo:
-// make geneic buffer type for transferring data and using for VAOs
-// bind model positions from wasm (using buffers)
-// split out generic file_ functionality from shaders
 // update aspect ratio on window size change
-// add error handling (glShaderiv)
 // (window event handler?)
 // maek cube
 //

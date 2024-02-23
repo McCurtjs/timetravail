@@ -3,32 +3,18 @@
 #define _SHADER_H_
 
 #include "types.h"
+#include "file.h"
 
-typedef struct {
-  void* handle; // standin for FILE*
-  const char* filename; // remove?
-  char* text;
-  int length;
-} File;
-
-void file_new(File* file);
-void file_open_async(File* file, const char* filename);
-uint file_get_length(File* file);
-uint file_read(File* file);
-void file_delete(File* file);
+#define SHADER_VERTEX   0x8B31
+#define SHADER_PIXEL    0x8B30
 
 typedef struct {
   int   handle;
-  void* file; // FILE*
-  const char* filename;
-  char* text;
-  int   len;
   int   ready;
 } Shader;
 
-void shader_new(Shader* s, const char* filename);
-int  shader_load(Shader* s);
-int  shader_build(Shader* s);
+int  shader_build(Shader* s, int type, const char* buffer, uint buffer_length);
+int  shader_build_from_file(Shader* s, File* f);
 void shader_delete(Shader* s);
 
 typedef struct {
@@ -36,8 +22,9 @@ typedef struct {
   int ready;
 } ShaderProgram;
 
-void shader_program_new(ShaderProgram* sprog);
-int  shader_program_build(ShaderProgram* p, Shader* vert, Shader* frag);
-void shader_program_use(ShaderProgram* p);
+void shader_program_new(ShaderProgram* program);
+int  shader_program_build(ShaderProgram* program, Shader* vert, Shader* frag);
+void shader_program_use(ShaderProgram* program);
+void shdaer_program_delete(ShaderProgram* program);
 
 #endif

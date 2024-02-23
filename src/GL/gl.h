@@ -57,12 +57,13 @@ void    glShaderSource(
           GLuint shader, GLsizei count, const GLchar** str, const GLint *len);
 void    glCompileShader(GLuint shader);
 void    glGetShaderiv(GLuint shader, GLenum pname, GLint* params);
-void    glDeleteShader(GLuint data_id);
+void    glDeleteShader(GLuint program);
 GLuint  glCreateProgram();
 void    glAttachShader(GLuint program, GLuint shader);
 void    glLinkProgram(GLuint program);
 void    glGetProgramiv(GLuint program, GLenum pname, GLint* params);
 void    glUseProgram(GLuint program);
+void    glDeleteProgram(GLuint program);
 
 void    glGenBuffers(GLsizei n, GLuint* buffers);
 void    glBindBuffer(GLenum target, GLuint buffer);
