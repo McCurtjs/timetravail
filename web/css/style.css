@@ -1,0 +1,31 @@
+body {
+  margin: 5px;
+  /*height: 100%;*/
+  /*width: 100%;*/
+  background-color: black;
+}
+
+.game_frame {
+  position: absolute;
+  /*width: 100%;*/
+  /*height: 100%;*/
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  z-index: -1;
+}
+
+.game {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+}
+
+.console {
+  color: bisque;
+  font-family: courier;
+  pointer-events: none;
+  user-select: none;
+}
