@@ -13,6 +13,10 @@ function wasm_import_base(imports, game) {
   imports['js_log_int'] = (i) => {
     console.log(i);
   }
+
+  imports['js_log_num'] = (i) => {
+    console.log(i);
+  }
 }
 
 export { wasm_import_base };

@@ -9,6 +9,7 @@ clang -O0 --target=wasm32-wasi --no-standard-libraries -Wl,--no-entry \
   -o build/test.wasm \
   src/*.c \
   src/wasm/*.c \
+  src/sdl/*.c \
   lib/wasi-libc/sysroot/lib/wasm32-wasi/libc.a
 
 #clang -O0 --target=wasm32 --no-standard-libraries -Wl,--no-entry \

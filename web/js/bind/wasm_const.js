@@ -7,10 +7,15 @@ export const
   },
 
   types = {
-    none:   0,
-    file:   1,
-    shader: 2,
-    sprog:  3,
-    buffer: 4,
+    none:     0,
+    file:     1,
+    shader:   2,
+    sprog:    3,
+    buffer:   4,
+    uniform:  5,
+  },
+
+  sdl = {
+    window_resize: 0x206,
   }
 ;

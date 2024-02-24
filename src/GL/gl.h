@@ -52,6 +52,7 @@ typedef double GLclampd;
 
 GLenum  glGetError();
 
+void    glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
 GLuint  glCreateShader(GLenum shaderType);
 void    glShaderSource(
           GLuint shader, GLsizei count, const GLchar** str, const GLint *len);
@@ -74,6 +75,10 @@ void    glVertexAttribPointer(
 void    glEnableVertexAttribArray(	GLuint index);
 void    glDisableVertexAttribArray(	GLuint index);
 void    glDrawArrays(GLenum mode, GLint first, GLsizei count);
+
+GLint   glGetUniformLocation(GLuint program, const GLchar* name);
+void    glUniformMatrix4fv(
+          GLint loc, GLsizei count, GLboolean transpose, const GLfloat* value);
 
 #endif
 #endif

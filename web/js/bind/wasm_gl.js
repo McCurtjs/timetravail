@@ -6,6 +6,10 @@ function wasm_import_gl(imports, game) {
     return game.gl.getError();
   }
 
+  imports["glViewport"] = (x, y, width, height) => {
+    game.gl.viewport(x, y, width, height);
+  }
+
   // Shaders
 
   imports["glCreateShader"] = (shader_type) => {
@@ -109,6 +113,24 @@ function wasm_import_gl(imports, game) {
 
   imports["glDrawArrays"] = (mode, first, count) => {
     game.gl.drawArrays(mode, first, count);
+  }
+
+  imports["js_glGetUniformLocation"] = (program_id, name, len) => {
+    let data = game.data[program_id];
+    if (!data || data.type != types.sprog) return 0;
+    // TODO: also store ref in program data so we can delete them later
+    return game.store({
+      type: types.uniform,
+      ready: true,
+      location: game.gl.getUniformLocation(data.program, game.str(name, len))
+    });
+  }
+
+  imports["glUniformMatrix4fv"] = (loc_id, count, transpose, ptr) => {
+    let data = game.data[loc_id];
+    if (!data || data.type != types.uniform) return 0;
+    let bytes = game.memory_f(ptr, count * 16);
+    game.gl.uniformMatrix4fv(data.location, transpose != 0, bytes);
   }
 }
 

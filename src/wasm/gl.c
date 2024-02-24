@@ -1,7 +1,10 @@
 #include "../GL/gl.h"
 
+#include <string.h>
+
 extern GLenum glGetError();
 
+extern void   glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
 extern GLuint glCreateShader(GLuint shaderType);
 extern void   js_glShaderSource(GLuint data_id, const char* src, GLint length);
 void          glShaderSource(
@@ -43,3 +46,11 @@ extern void   glVertexAttribPointer(
 extern void   glEnableVertexAttribArray(GLuint index);
 extern void   glDisableVertexAttribArray(GLuint index);
 extern void   glDrawArrays(GLenum mode, GLint first, GLsizei count);
+
+extern GLint  js_glGetUniformLocation(GLuint data_id, const char* nam, int len);
+GLint         glGetUniformLocation(GLuint program, const GLchar* name) {
+  int length = strlen(name);
+  return js_glGetUniformLocation(program, name, length);
+}
+extern void   glUniformMatrix4fv(
+                GLint loc, GLsizei count, GLboolean tpose, const GLfloat* mat);
