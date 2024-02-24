@@ -1,6 +1,7 @@
 #include "wasm.h"
 #include "shader.h"
 #include "mat.h"
+#include "model.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -80,6 +81,12 @@ void export(wasm_preload) () {
 
 int projViewMod_loc = 0;
 
+Model_Cube cube;
+Model_CubeColor ccube;
+
+void model_render_cube(Model_Cube* cube);
+void model_render_cube_color(Model_CubeColor* cube);
+
 int export(wasm_load) (int await_count) {
   if (await_count) return 0;
 
@@ -93,15 +100,21 @@ int export(wasm_load) (int await_count) {
   shader_program_use(&test_shader);
   projViewMod_loc = glGetUniformLocation(test_shader.handle, "projViewMod");
 
+  cube.type = MODEL_CUBE;
+  ccube.type = MODEL_CUBE_COLOR;
+  model_build((Model*)&ccube);
+
+  GLsizeiptr sizep = 14 * sizeof(*positions);
   glGenBuffers(1, &pos_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-  glBufferData(GL_ARRAY_BUFFER, 14 * sizeof(*positions), positions, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizep, positions, GL_STATIC_DRAW);
   glVertexAttribPointer(0, sizeof(*positions) / 4, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
 
+  GLsizeiptr sizec = 14 * sizeof(*colors);
   glGenBuffers(1, &color_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
-  glBufferData(GL_ARRAY_BUFFER, 14 * sizeof(vec4), colors, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizec, colors, GL_STATIC_DRAW);
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(1);
 
@@ -138,11 +151,15 @@ void export(wasm_render) () {
 
   shader_program_use(&test_shader);
   glUniformMatrix4fv(projViewMod_loc, 1, 0, PVM.f);
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
+  //glEnableVertexAttribArray(1);
+  //glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
+
+  //model_render_cube(&cube);
+  model_render_cube_color(&ccube);
 }
 
 // todo:
-// make model class
+// make different type of primitive to test loading with
 // load model from file
 // textures
 // camera class
