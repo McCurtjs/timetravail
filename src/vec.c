@@ -2,7 +2,16 @@
 
 #include <math.h>
 
-const vec4 v4zero = {0, 0, 0, 0};
+const vec3b v3bzero = {0, 0, 0};
+const vec3i v3izero = {0, 0, 0};
+const vec3 v3zero =   {0, 0, 0};
+const vec3 v3x =      {1, 0, 0};
+const vec3 v3y =      {0, 1, 0};
+const vec3 v3z =      {0, 0, 1};
+const vec4 v4zero =   {0, 0, 0, 0};
+const vec4 v4x =      {1, 0, 0, 0};
+const vec4 v4y =      {0, 1, 0, 0};
+const vec4 v4z =      {0, 0, 1, 0};
 const vec4 v4origin = {0, 0, 0, 1};
 
 // shamelessly lifted from

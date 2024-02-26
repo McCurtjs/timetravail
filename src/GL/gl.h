@@ -51,8 +51,8 @@ typedef double GLclampd;
 #define GL_STATIC_DRAW      0x88e4
 
 GLenum  glGetError();
-
 void    glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+
 GLuint  glCreateShader(GLenum shaderType);
 void    glShaderSource(
           GLuint shader, GLsizei count, const GLchar** str, const GLint *len);
@@ -64,11 +64,18 @@ void    glAttachShader(GLuint program, GLuint shader);
 void    glLinkProgram(GLuint program);
 void    glGetProgramiv(GLuint program, GLenum pname, GLint* params);
 void    glUseProgram(GLuint program);
+void    glUniformMatrix4fv(
+          GLint loc, GLsizei count, GLboolean transpose, const GLfloat* value);
 void    glDeleteProgram(GLuint program);
 
 void    glGenBuffers(GLsizei n, GLuint* buffers);
 void    glBindBuffer(GLenum target, GLuint buffer);
 void    glBufferData(GLenum tgt, GLsizeiptr size, const void* src, GLenum use);
+void    glDeleteBuffers(GLsizei n, const GLuint* buffers);
+
+void    glGenVertexArrays(GLsizei n, GLuint* arrays);
+void    glBindVertexArray(GLuint array);
+void    glDeleteVertexArrays(GLsizei n, const GLuint* arrays);
 void    glVertexAttribPointer(
           GLuint index, GLint size, GLenum type, GLboolean normalized,
           GLsizei stride, const void* pointer);
@@ -77,8 +84,6 @@ void    glDisableVertexAttribArray(	GLuint index);
 void    glDrawArrays(GLenum mode, GLint first, GLsizei count);
 
 GLint   glGetUniformLocation(GLuint program, const GLchar* name);
-void    glUniformMatrix4fv(
-          GLint loc, GLsizei count, GLboolean transpose, const GLfloat* value);
 
 #endif
 #endif

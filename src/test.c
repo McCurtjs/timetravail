@@ -31,8 +31,9 @@ mat4 model2;
 
 float cubespin = 0;
 
-Model_Cube cube;
-Model_CubeColor ccube;
+Model cube;
+Model ccube;
+Model grid;
 
 void model_render_cube(Model_Cube* cube);
 void model_render_cube_color(Model_CubeColor* cube);
@@ -42,10 +43,10 @@ void export(wasm_preload) () {
   file_open_async(&file_frag, "./res/shaders/basic.frag");
 
   model = m4identity;
-
-  view = m4translation((vec3){0, 0, 2});
+  view = m4rotation(v3y, d2r(-20));
+  view = m4mul(view, m4rotation(v3x, d2r(-45)));
+  view = m4mul(view, m4translation((vec3){0, 0, 6}));
   view = m4inverse(view);
-
   projection = m4identity;
 }
 
@@ -64,8 +65,11 @@ int export(wasm_load) (int await_count) {
 
   cube.type = MODEL_CUBE;
   ccube.type = MODEL_CUBE_COLOR;
-  model_build((Model*)&cube);
-  model_build((Model*)&ccube);
+  grid.type = MODEL_GRID;
+  grid.grid.extent = 5;
+  model_build(&cube);
+  model_build(&ccube);
+  model_build(&grid);
 
   return 1;
 }
@@ -80,7 +84,7 @@ void handle_events() {
         window.h = event.window.data2;
         glViewport(0, 0, window.w, window.h);
         float camera_aspect = window.w / (float)window.h;
-        projection = m4perspective(TAU / 4.0, camera_aspect, 0, 999);
+        projection = m4perspective(d2r(70), camera_aspect, 0.1, 50);
        } break;
     }
   }
@@ -104,17 +108,20 @@ void export(wasm_render) () {
 
   shader_program_use(&test_shader);
 
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
-  model_render_cube_color(&ccube);
+  vec4 v;
 
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
+  model_render(&ccube);
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model2).f);
-  model_render_cube(&cube);
+  model_render(&cube);
+
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, projview.f);
+  model_render(&grid);
 }
 
 // todo:
-// make different type of primitive to test loading with
+// camera class
 // load model from file
 // textures
-// camera class
 // game objects???

@@ -43,7 +43,7 @@ mat4 m4perspective(float fov_rads, float aspect, float near, float far) {
   ret.m[0][0] = S / aspect;
   ret.m[1][1] = S;
   ret.m[2][2] = -far / fmn;
-  ret.m[3][2] = (2 * far * near) / fmn;
+  ret.m[3][2] = (-far * near) / fmn;
   ret.m[2][3] = -1;
 
   return ret;

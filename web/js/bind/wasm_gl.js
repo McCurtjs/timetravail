@@ -79,7 +79,7 @@ function wasm_import_gl(imports, game) {
     game.gl.useProgram(data.program);
   }
 
-  // Buffers
+  // Buffers and VAO
 
   imports["js_glCreateBuffer"] = () => {
     return game.store({
@@ -97,6 +97,34 @@ function wasm_import_gl(imports, game) {
 
   imports["glBufferData"] = (target, size, src, usage) => {
     game.gl.bufferData(target, game.memory(src, size), usage);
+  }
+
+  imports["glDeleteBuffer"] = (data_id) => {
+    let data = game.data[data_id];
+    if (!data || data.type != types.buffer) return;
+    game.gl.deleteBuffer(data.buffer);
+    game.free(data_id);
+  }
+
+  imports["js_glCreateVertexArray"] = () => {
+    return game.store({
+      type: types.vao,
+      ready: true,
+      vao: game.gl.createVertexArray(),
+    })
+  }
+
+  imports["glBindVertexArray"] = (data_id) => {
+    let data = game.data[data_id];
+    if (!data || data.type != types.vao) return;
+    game.gl.bindVertexArray(data.vao);
+  }
+
+  imports["glDeleteVertexArray"] = (data_id) => {
+    let data = game.data[data_id];
+    if (!data || data.type != types.vao) return;
+    game.gl.deleteVertexArray(data.vao);
+    game.free(data_id);
   }
 
   imports["glVertexAttribPointer"] = (index, size, type, norm, stride, ptr) => {

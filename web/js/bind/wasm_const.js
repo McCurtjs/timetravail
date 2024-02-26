@@ -11,8 +11,9 @@ export const
     file:     1,
     shader:   2,
     sprog:    3,
-    buffer:   4,
-    uniform:  5,
+    vao:      4,
+    buffer:   5,
+    uniform:  6,
   },
 
   sdl = {

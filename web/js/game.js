@@ -90,7 +90,7 @@ class Game {
     }
 
     gl.clearColor(0.05, 0.15, 0.25, 1);
-    gl.clearDepth(1);
+    //gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
@@ -106,8 +106,6 @@ class Game {
       let pr = window.devicePixelRatio;
       let width = (window.innerWidth * pr) | 0;
       let height = (window.innerHeight * pr) | 0;
-      // gl.canvas.style.width = w + "px";
-      // gl.canvas.style.height = h + "px";
       game.gl.canvas.width = width;
       game.gl.canvas.height = height;
       game.wasm.exports.wasm_push_window_event(0x206, width, height);

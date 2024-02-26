@@ -15,13 +15,4 @@ void print_int(int i);
 void print_float(float f);
 void alert(const char* str);
 
-#ifndef SQRT2
-#define SQRT2 1.41421356237
-#endif
-
-#ifndef PI
-#define PI 3.14159265358979323846264338
-#endif
-#define TAU (2 * PI)
-
 #endif

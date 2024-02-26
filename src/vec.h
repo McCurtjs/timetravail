@@ -1,7 +1,9 @@
 #ifndef _MATH_VECTOR_H_
 #define _MATH_VECTOR_H_
 
-typedef struct {
+#include "types.h"
+
+typedef struct vec2i {
   union {
     int i[2];
     struct {
@@ -11,7 +13,7 @@ typedef struct {
   };
 } vec2i;
 
-typedef struct {
+typedef struct vec3i {
   union {
     int i[3];
     struct {
@@ -29,7 +31,34 @@ typedef struct {
 } vec3i;
 typedef vec3i color3i;
 
-typedef struct {
+typedef struct vec3b {
+  union {
+    byte i[3];
+    struct {
+      union { byte x; byte r; };
+      union { byte y; byte g; };
+      union { byte z; byte b; };
+    };
+  };
+} vec3b;
+typedef vec3b color3b;
+
+typedef struct vec4b {
+  union {
+    byte i[4];
+    struct {
+      union { byte x; byte r; };
+      union { byte y; byte g; };
+      union { byte z; byte b; };
+      union { byte w; byte a; };
+    };
+    vec3b xyz;
+    vec3b rgb;
+  };
+} vec4b;
+typedef vec4b color4b;
+
+typedef struct vec2 {
   union {
     float f[2];
     struct {
@@ -39,7 +68,7 @@ typedef struct {
   };
 } vec2;
 
-typedef struct {
+typedef struct vec3 {
   union {
     float f[3];
     struct {
@@ -57,7 +86,7 @@ typedef struct {
 } vec3;
 typedef vec3 color3;
 
-typedef struct {
+typedef struct vec4 {
   union {
     float f[4];
     float row[4];
@@ -86,21 +115,19 @@ typedef struct {
 typedef vec4 quat;
 typedef vec4 color4;
 
-//const vec2 v2origin;
-//const vec2 v2zero;
-//const vec2 v2x;
-//const vec2 v2y;
-//const vec3 v3origin;
-//const vec3 v3zero;
-//const vec3 v3x;
-//const vec3 v3y;
-//const vec3 v3z;
-extern const vec4 v4origin;
+  //     c d e f   h       l   n o p q   s t
+
+extern const vec3b v3bzero;
+extern const vec3i v3izero;
+extern const vec3 v3zero;
+extern const vec3 v3x;
+extern const vec3 v3y;
+extern const vec3 v3z;
 extern const vec4 v4zero;
-//const vec4 v4x;
-//const vec4 v4y;
-//const vec4 v4z;
-//const vec4 v4w;
+extern const vec4 v4x;
+extern const vec4 v4y;
+extern const vec4 v4z;
+extern const vec4 v4origin;
 
 //float v2dot(vec2 a, vec2 b);
 
@@ -115,5 +142,6 @@ vec3  v3scale(vec3 a, float f);
 vec3  v3wedge(vec3 a, vec3 b);
 float v3dot(vec3 a, vec3 b);
 vec3  v3cross(vec3 a, vec3 b);
+//quat  v3mul(vec3 a, vec3 b);
 
 #endif
