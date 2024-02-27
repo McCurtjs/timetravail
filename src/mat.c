@@ -49,17 +49,34 @@ mat4 m4perspective(float fov_rads, float aspect, float near, float far) {
   return ret;
 }
 
+mat4 m4basis(vec3 x, vec3 y, vec3 z, vec3 origin) {
+  return (mat4){
+    x.x, y.x, z.x, 0,
+    x.y, y.y, z.y, 0,
+    x.z, y.z, z.z, 0,
+    -v3dot(x, origin), -v3dot(y, origin), -v3dot(z, origin), 1
+  };
+}
+
+mat4 m4look(vec3 pos, vec3 target, vec3 up) {
+  vec3 cz = v3norm(v3sub(target, pos)); // front
+  vec3 cx = v3norm(v3cross(up, cz)); // left
+  vec3 cy = v3cross(cz, cx); // up
+
+  return m4inverse(m4basis(cx, cy, cz, pos));
+}
+
 mat4 m4translation(vec3 vec) {
   mat4 ret = m4identity;
   ret.col[3].xyz = vec;
   return ret;
 }
 
-mat4 m4scalar(mat4 mat, vec3 scaler) {
+mat4 m4scalar(mat4 mat, vec3 scalar) {
   mat4 ret = m4identity;
-  ret.m[0][0] = scaler.x;
-  ret.m[1][1] = scaler.y;
-  ret.m[2][2] = scaler.z;
+  ret.m[0][0] = scalar.x;
+  ret.m[1][1] = scalar.y;
+  ret.m[2][2] = scalar.z;
   return ret;
 }
 

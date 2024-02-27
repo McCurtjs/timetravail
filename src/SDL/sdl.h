@@ -7,14 +7,30 @@ typedef uint Uint32;
 typedef unsigned long Uint64;
 typedef int Sint32;
 typedef uint SDL_WindowID;
+typedef byte Uint8;
 
 typedef int SDL_bool;
 #define SDL_TRUE 1
 #define SDL_FALSE 0
 
 typedef enum {
-  SDL_EVENT_WINDOW_RESIZED = 0x206
+  SDL_EVENT_WINDOW_RESIZED = 0x206,
+
+  SDL_EVENT_KEY_DOWN = 0x300,
+  SDL_EVENT_KEY_UP,
+
+  SDL_EVENT_MOUSE_MOTION    = 0x400,
+  SDL_EVENT_MOUSE_BUTTON_DOWN,
+  SDL_EVENT_MOUSE_BUTTON_UP,
+  SDL_EVENT_MOUSE_WHEEL,
 } SDL_EventType;
+
+#define SDL_RELEASED 0
+#define SDL_PRESSED 1
+
+#define SDL_BUTTON_LEFT 0
+#define SDL_BUTTON_MIDDLE 1
+#define SDL_BUTTON_RIGHT 2
 
 /**
  *  Window state change event data (event.window.*)
@@ -28,9 +44,41 @@ typedef struct SDL_WindowEvent
     Sint32 data2;
 } SDL_WindowEvent;
 
+/**
+ *  Mouse motion event structure (event.motion.*)
+ */
+typedef struct SDL_MouseMotionEvent
+{
+    Uint32 type;        /**< ::SDL_EVENT_MOUSE_MOTION */
+    Uint64 timestamp;   /**< In nanoseconds, populated using SDL_GetTicksNS() */
+    Uint32 state;       /**< The current button state */
+    float x;            /**< X coordinate, relative to window */
+    float y;            /**< Y coordinate, relative to window */
+    float xrel;         /**< The relative motion in the X direction */
+    float yrel;         /**< The relative motion in the Y direction */
+} SDL_MouseMotionEvent;
+
+/**
+ *  Mouse button event structure (event.button.*)
+ */
+typedef struct SDL_MouseButtonEvent
+{
+    Uint32 type;
+    Uint64 timestamp;   /**< In nanoseconds, populated using SDL_GetTicksNS() */
+    Uint8 button;       /**< The mouse button index */
+    Uint8 state;        /**< ::SDL_PRESSED or ::SDL_RELEASED */
+    Uint8 clicks;       /**< 1 for single-click, 2 for double-click, etc. */
+    float x;            /**< X coordinate, relative to window */
+    float y;            /**< Y coordinate, relative to window */
+} SDL_MouseButtonEvent;
+
 typedef union SDL_Event {
   Uint32 type;
   SDL_WindowEvent window;
+  SDL_MouseMotionEvent motion;
+  SDL_MouseButtonEvent button;
+
+  Uint8 padding[32];
 } SDL_Event;
 
 int SDL_PushEvent(SDL_Event* event);

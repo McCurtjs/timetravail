@@ -128,6 +128,9 @@ extern const vec4 v4x;
 extern const vec4 v4y;
 extern const vec4 v4z;
 extern const vec4 v4origin;
+extern const vec4 v4front;
+extern const vec4 v4left;
+extern const vec4 v4down;
 
 //float v2dot(vec2 a, vec2 b);
 
@@ -138,10 +141,12 @@ float v3magsq(vec3 v);
 vec3  v3norm(vec3 v);
 vec3  v3add(vec3 a, vec3 b);
 vec3  v3sub(vec3 a, vec3 b);
+vec3  v3neg(vec3 v);
 vec3  v3scale(vec3 a, float f);
 vec3  v3wedge(vec3 a, vec3 b);
 float v3dot(vec3 a, vec3 b);
 vec3  v3cross(vec3 a, vec3 b);
 //quat  v3mul(vec3 a, vec3 b);
+float v3angle(vec3 a, vec3 b);
 
 #endif

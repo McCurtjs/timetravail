@@ -10,7 +10,7 @@ function renderTimer(now) {
   game.frame_time = now;
 
   document.getElementById('console').textContent = `
-    WASM GL Test - FPS: ${Math.floor(1000.0 / dt)}
+    WASM GL Test - FPS: ${Math.floor(1000 / dt)}
   `;
 
   if (!game.ready) {
@@ -18,7 +18,7 @@ function renderTimer(now) {
       game.ready = true;
     }
   } else {
-    wasm_update(dt);
+    wasm_update(dt / 1000);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     wasm_render();
   }

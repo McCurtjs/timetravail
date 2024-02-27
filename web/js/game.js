@@ -1,4 +1,5 @@
 
+import { sdl } from "./bind/wasm_const.js";
 import { wasm_import_base } from "./bind/wasm_base.js";
 import { wasm_import_gl } from "./bind/wasm_gl.js";
 import { wasm_import_stdio } from "./bind/wasm_stdio.js";
@@ -8,6 +9,7 @@ class Game {
   constructor() {
     this.wasm = null; // wasm instance
     this.gl = null;
+    this.canvas = null; // html canvas element (not gl.canvas!)
     this.data_id = 0;
     this.data = {};
     this.initialized = false;
@@ -97,22 +99,48 @@ class Game {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     this.gl = gl;
+    this.canvas = canvas;
   }
 
   initialize_window_events() {
     let game = this;
 
     let canvas_resize = () => {
+      let b = game.gl.canvas.getBoundingClientRect();
       let pr = window.devicePixelRatio;
-      let width = (window.innerWidth * pr) | 0;
-      let height = (window.innerHeight * pr) | 0;
+      let width = (b.width * pr) | 0;
+      let height = (b.height * pr) | 0;
       game.gl.canvas.width = width;
       game.gl.canvas.height = height;
-      game.wasm.exports.wasm_push_window_event(0x206, width, height);
+      game.wasm.exports.wasm_push_window_event(sdl.window_resize, width, height);
     }
 
     canvas_resize();
     window.addEventListener("resize", canvas_resize);
+
+    game.gl.canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); e.stopPropagation();
+    });
+
+    game.gl.canvas.addEventListener('mousedown', (e) => {
+      game.wasm.exports.wasm_push_mouse_button_event(
+        sdl.mouse_button_down, e.buttons, e.offsetX, e.offsetY);
+    });
+
+    // attach to window so we still get "up" events when dragged out the window
+    window.addEventListener('mouseup', (e) => {
+      let b = game.gl.canvas.getBoundingClientRect();
+      let pos = { x: e.clientX - b.x, y: e.clientY - b.y };
+      game.wasm.exports.wasm_push_mouse_button_event(
+        sdl.mouse_button_up, e.buttons, pos.x, pos.y);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      let b = game.gl.canvas.getBoundingClientRect();
+      let pos = { x: e.clientX - b.x, y: e.clientY - b.y };
+      game.wasm.exports.wasm_push_mouse_motion_event(
+        pos.x, pos.y, e.movementX, e.movementY);
+    });
   }
 }
 

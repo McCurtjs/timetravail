@@ -5,6 +5,10 @@
     "array": "c",
     "string_view": "c",
     "initializer_list": "c",
-    "utility": "c"
+    "utility": "c",
+    "deque": "c",
+    "vector": "c",
+    "camera.h": "c",
+    "types.h": "c"
   }
 }
