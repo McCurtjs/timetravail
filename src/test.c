@@ -1,8 +1,8 @@
-#include "wasm.h"
-#include "shader.h"
-#include "mat.h"
-#include "model.h"
-#include "camera.h"
+#include "eng/wasm.h"
+#include "eng/shader.h"
+#include "eng/mat.h"
+#include "eng/model.h"
+#include "eng/camera.h"
 
 #include <stdio.h>
 #include <string.h>

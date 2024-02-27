@@ -9,6 +9,11 @@
     "deque": "c",
     "vector": "c",
     "camera.h": "c",
-    "types.h": "c"
-  }
+    "types.h": "c",
+    "sdl.h": "c"
+  },
+  "C_Cpp.default.includePath": [
+    "src/eng/wasm"
+  ],
+  "files.eol": "\n"
 }
