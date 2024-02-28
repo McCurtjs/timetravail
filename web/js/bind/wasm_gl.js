@@ -154,11 +154,18 @@ function wasm_import_gl(imports, game) {
     });
   }
 
+  imports["glUniform4fv"] = (loc_id, count, ptr) => {
+    let data = game.data[loc_id];
+    if (!data || data.type != types.uniform) return 0;
+    let bytes = game.memory_f(ptr, count * 4);
+    game.gl.uniform4fv(data.location, bytes, 0);
+  }
+
   imports["glUniformMatrix4fv"] = (loc_id, count, transpose, ptr) => {
     let data = game.data[loc_id];
     if (!data || data.type != types.uniform) return 0;
     let bytes = game.memory_f(ptr, count * 16);
-    game.gl.uniformMatrix4fv(data.location, transpose != 0, bytes);
+    game.gl.uniformMatrix4fv(data.location, transpose != 0, bytes, 0);
   }
 }
 

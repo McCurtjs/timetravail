@@ -28,9 +28,17 @@ typedef enum {
 #define SDL_RELEASED 0
 #define SDL_PRESSED 1
 
-#define SDL_BUTTON_LEFT 0
-#define SDL_BUTTON_MIDDLE 1
-#define SDL_BUTTON_RIGHT 2
+#define SDL_BUTTON(X)       (1 << ((X)-1))
+#define SDL_BUTTON_LEFT     1
+#define SDL_BUTTON_MIDDLE   3 // <- SDL and javascript
+#define SDL_BUTTON_RIGHT    2 // <- swap these values
+#define SDL_BUTTON_X1       4
+#define SDL_BUTTON_X2       5
+#define SDL_BUTTON_LMASK    SDL_BUTTON(SDL_BUTTON_LEFT)
+#define SDL_BUTTON_MMASK    SDL_BUTTON(SDL_BUTTON_MIDDLE)
+#define SDL_BUTTON_RMASK    SDL_BUTTON(SDL_BUTTON_RIGHT)
+#define SDL_BUTTON_X1MASK   SDL_BUTTON(SDL_BUTTON_X1)
+#define SDL_BUTTON_X2MASK   SDL_BUTTON(SDL_BUTTON_X2)
 
 /**
  *  Window state change event data (event.window.*)

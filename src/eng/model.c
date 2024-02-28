@@ -10,13 +10,11 @@
 // Shared bindings for primitives
 
 static GLuint cube_pos_buffer = 0;
-static GLuint cube_vao = 0;
 static void prim_bind_cube() {
   if (!cube_pos_buffer) {
-    GLsizeiptr size = 14 * sizeof(*cube_pos);
     glGenBuffers(1, &cube_pos_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cube_pos_buffer);
-    glBufferData(GL_ARRAY_BUFFER, size, cube_pos, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_pos), cube_pos, GL_STATIC_DRAW);
   } else {
     glBindBuffer(GL_ARRAY_BUFFER, cube_pos_buffer);
   }
@@ -28,7 +26,7 @@ static GLuint cube_color_buffer = 0;
 static GLuint cube_color_vao = 0;
 static void prim_bind_cube_color() {
   if (!cube_color_buffer) {
-    GLsizeiptr size = 14 * sizeof(*cube_color);
+    GLsizeiptr size = sizeof(cube_color);
     glGenBuffers(1, &cube_color_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, cube_color_buffer);
     glBufferData(GL_ARRAY_BUFFER, size, cube_color, GL_STATIC_DRAW);
@@ -37,6 +35,29 @@ static void prim_bind_cube_color() {
   }
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1, sizeof(*cube_color) / 4, GL_FLOAT, GL_FALSE, 0, 0);
+}
+
+static GLuint cube_vertex_buffer = 0;
+static GLuint cube_vao = 0;
+static void prim_bind_cube_2() {
+  if (!cube_vertex_buffer) {
+    GLsizeiptr size = sizeof(cube2_verts);
+    glGenBuffers(1, &cube_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, cube_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, size, cube2_verts, GL_STATIC_DRAW);
+  } else {
+    glBindBuffer(GL_ARRAY_BUFFER, cube_vertex_buffer);
+  }
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+
+  glEnableVertexAttribArray(1);
+  const void* offset = (void*)12;
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), offset);
+
+  glEnableVertexAttribArray(2);
+  offset = (void*)24;
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), offset);
 }
 
 // Model_Grid
@@ -60,7 +81,7 @@ static int model_build_grid(Model_Grid* grid) {
   vec3* points = malloc(sizeof(vec3) * grid->points_count);
   color3b* colors = malloc(sizeof(color3b) * grid->points_count);
 
-  int i = 0;
+  uint i = 0;
 
   for (int j = 0; i < 6; i += 2, ++j) {
     colors[i] = v3bzero;
@@ -71,7 +92,7 @@ static int model_build_grid(Model_Grid* grid) {
   }
 
   if (ext > 0) {
-    for (int j = 0; i < 12; i += 2, ++j) {
+    for (uint j = 0; i < 12; i += 2, ++j) {
       colors[i] = colors[i+1] = (color3b){255, 255, 255};
       points[i] = points[i+1] = v3zero;
       points[i].f[j] = -ext;
@@ -89,7 +110,7 @@ static int model_build_grid(Model_Grid* grid) {
 
       byte c = (j % 10 == 0 ? 128 : (j % 5 == 0 ? 0 : 63));
       color3b color = (color3b){c, c, c};
-      for (int k = 0; k < 8; ++k) {
+      for (uint k = 0; k < 8; ++k) {
         colors[i + k] = color;
       }
     }
@@ -128,15 +149,15 @@ static int model_build_cube(Model_Cube* cube) {
   if (cube_vao) return 1;
   glGenVertexArrays(1, &cube_vao);
   glBindVertexArray(cube_vao);
-  prim_bind_cube();
+  prim_bind_cube_2();
   glBindVertexArray(0);
   cube->ready = TRUE;
   return 1;
 }
 
-void model_render_cube(Model_Cube* cube) {
+static void model_render_cube(Model_Cube* _) {
   glBindVertexArray(cube_vao);
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
 }
 
@@ -153,7 +174,7 @@ static int model_build_cube_color(Model_CubeColor* cube) {
   return 1;
 }
 
-void model_render_cube_color(Model_CubeColor* cube) {
+static void model_render_cube_color(Model_CubeColor* _) {
   glBindVertexArray(cube_color_vao);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
   glBindVertexArray(0);

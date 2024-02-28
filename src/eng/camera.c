@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-static void camera_basis(vec3 out[3], vec3 pos, vec3 back, vec3 up) {
+static void camera_basis(vec3 out[3], vec3 back, vec3 up) {
   out[2] = v3norm(back); // back
   out[0] = v3norm(v3cross(up, out[2])); // right
   out[1] = v3cross(out[2], out[0]); // up
@@ -10,7 +10,7 @@ static void camera_basis(vec3 out[3], vec3 pos, vec3 back, vec3 up) {
 
 static mat4 camera_look(vec3 pos, vec3 target, vec3 up) {
   vec3 c[3];
-  camera_basis(c, pos, v3sub(pos, target), up);
+  camera_basis(c, v3sub(pos, target), up);
 
   return m4basis(c[0], c[1], c[2], pos);
 }
@@ -29,7 +29,7 @@ void camera_build_orthographic(Camera* camera) {
 
 void camera_rotate(Camera* camera, vec2 euler) {
   vec3 c[3];
-  camera_basis(c, v3zero, v3neg(camera->front.xyz), camera->up.xyz);
+  camera_basis(c, v3neg(camera->front.xyz), camera->up.xyz);
   mat4 transform = m4rotation(c[0], euler.x);
   transform = m4mul(transform, m4rotation(camera->up.xyz, euler.y));
 
@@ -38,7 +38,7 @@ void camera_rotate(Camera* camera, vec2 euler) {
 
 void camera_rotate_local(Camera* camera, vec3 euler) {
   vec3 c[3];
-  camera_basis(c, v3zero, v3neg(camera->front.xyz), camera->up.xyz);
+  camera_basis(c, v3neg(camera->front.xyz), camera->up.xyz);
 
   mat4 transform = m4rotation(c[0], euler.x);
   transform = m4mul(transform, m4rotation(c[1], euler.y));
@@ -50,7 +50,7 @@ void camera_rotate_local(Camera* camera, vec3 euler) {
 
 void camera_orbit(Camera* camera, vec3 center, vec2 euler) {
   vec3 c[3];
-  camera_basis(c, center, v3sub(camera->pos.xyz, center), camera->up.xyz);
+  camera_basis(c, v3sub(camera->pos.xyz, center), camera->up.xyz);
 
   //float t = fabs(v3angle(camera->front.xyz, camera->up.xyz) - PI/2);
   //if (t > PI/2 - 0.05) {
@@ -66,7 +66,7 @@ void camera_orbit(Camera* camera, vec3 center, vec2 euler) {
 
 void camera_orbit_local(Camera* camera, vec3 center, vec3 euler) {
   vec3 c[3];
-  camera_basis(c, center, v3sub(camera->pos.xyz, center), camera->up.xyz);
+  camera_basis(c, v3sub(camera->pos.xyz, center), camera->up.xyz);
 
   mat4 transform = m4rotation(c[0], euler.x);
   transform = m4mul(transform, m4rotation(c[1], euler.y));

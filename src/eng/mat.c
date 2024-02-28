@@ -72,14 +72,6 @@ mat4 m4translation(vec3 vec) {
   return ret;
 }
 
-mat4 m4scalar(mat4 mat, vec3 scalar) {
-  mat4 ret = m4identity;
-  ret.m[0][0] = scalar.x;
-  ret.m[1][1] = scalar.y;
-  ret.m[2][2] = scalar.z;
-  return ret;
-}
-
 mat4 m4rotation(vec3 axis, float angle) {
   mat4 ret = m4identity;
 
@@ -102,7 +94,15 @@ mat4 m4rotation(vec3 axis, float angle) {
   return ret;
 }
 
-mat4 m4uniform(mat4 mat, float scalar) {
+mat4 m4scalar(vec3 scalar) {
+  mat4 ret = m4identity;
+  ret.m[0][0] = scalar.x;
+  ret.m[1][1] = scalar.y;
+  ret.m[2][2] = scalar.z;
+  return ret;
+}
+
+mat4 m4uniform(float scalar) {
   mat4 ret = m4identity;
   ret.m[0][0] = scalar;
   ret.m[1][1] = scalar;

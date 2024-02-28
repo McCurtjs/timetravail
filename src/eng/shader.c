@@ -5,6 +5,8 @@
 #include "GL/gl.h"
 #include "wasm.h"
 
+#include "data/inline_shaders.h"
+
 int hasext(const char* str, const char* ext) {
   const char* strext = strrchr(str, '.');
   return strcmp(strext + 1, ext) == 0;
@@ -46,10 +48,35 @@ int shader_program_build(ShaderProgram* p, Shader* vert, Shader* frag) {
   return p->ready;
 }
 
+static Shader basic_vert;
+static Shader basic_frag;
+static ShaderProgram basic_prog;
+static int basic_loaded = 0;
+int shader_program_build_basic(ShaderProgram* p) {
+  if (!basic_loaded) {
+    uint vlen = sizeof(basic_vert_text);
+    uint flen = sizeof(basic_frag_text);
+    shader_build(&basic_vert, GL_VERTEX_SHADER, basic_vert_text, vlen);
+    shader_build(&basic_frag, GL_FRAGMENT_SHADER, basic_frag_text, flen);
+
+    basic_loaded = shader_program_build(&basic_prog, &basic_vert, &basic_frag);
+    basic_prog.uniform.projViewMod =
+      glGetUniformLocation(basic_prog.handle, "projViewMod");
+  }
+  *p = basic_prog;
+  return p->ready;
+}
+
+int shader_program_uniform_location(ShaderProgram* program, const char* name) {
+  return glGetUniformLocation(program->handle, name);
+}
+
 void shader_program_use(ShaderProgram* program) {
   glUseProgram(program->handle);
 }
 
-void shader_program_delete(ShaderProgram* program) {
-  glDeleteProgram(program->handle);
+void shader_program_delete(ShaderProgram* p) {
+  if (p->handle != basic_prog.handle) {
+    glDeleteProgram(p->handle);
+  }
 }

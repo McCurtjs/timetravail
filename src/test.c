@@ -11,24 +11,22 @@
 #include "GL/gl.h"
 #include "SDL/sdl.h"
 
+#include "game.h"
+#include "system_events.h"
+
 int export(canary) (int a) {
   print("WASM is connected!");
   return a * a;
 }
 
-typedef struct Game {
-  vec2i window;
-  Camera camera;
-} Game;
-
 Game game;
-int projViewMod_loc; // put in shader
 
 File file_vert;
 File file_frag;
 Shader test_vert;
 Shader test_frag;
 ShaderProgram test_shader;
+ShaderProgram basic_shader;
 
 mat4 model;
 mat4 model2;
@@ -42,24 +40,26 @@ Model ccube2;
 Model grid;
 Model gizmo;
 
-void model_render_cube(Model_Cube* cube);
-void model_render_cube_color(Model_CubeColor* cube);
-
 void export(wasm_preload) () {
   file_open_async(&file_vert, "./res/shaders/basic.vert");
   file_open_async(&file_frag, "./res/shaders/basic.frag");
 
   model = m4identity;
 
-  game.camera = (Camera){
-    (vec4){3, 2, 5, 1}, v4front, v4y, d2r(70), 1, 0.1, 50
-  };
+  game.camera.pos = (vec4){3, 2, 5, 1};
+  game.camera.front = v4front;
+  game.camera.up = v4y;
+  game.camera.persp = (Camera_PerspectiveParams){d2r(70), 1, 0.1, 50};
   camera_build_perspective(&game.camera);
   camera_look_at(&game.camera, v3zero);
+
+  game.light_pos = (vec4){4, 3, 5, 1};
 }
 
 int export(wasm_load) (int await_count) {
   if (await_count) return 0;
+
+  shader_program_build_basic(&basic_shader);
 
   shader_build_from_file(&test_vert, &file_vert);
   shader_build_from_file(&test_frag, &file_frag);
@@ -69,7 +69,14 @@ int export(wasm_load) (int await_count) {
 
   shader_program_build(&test_shader, &test_vert, &test_frag);
   shader_program_use(&test_shader);
-  projViewMod_loc = glGetUniformLocation(test_shader.handle, "projViewMod");
+  test_shader.uniform.projViewMod =
+    shader_program_uniform_location(&test_shader, "projViewMod");
+  test_shader.uniform.phong.world =
+    shader_program_uniform_location(&test_shader, "world");
+  test_shader.uniform.phong.lightPos =
+    shader_program_uniform_location(&test_shader, "lightPos");
+  test_shader.uniform.phong.cameraPos =
+    shader_program_uniform_location(&test_shader, "cameraPos");
 
   cube.type = MODEL_CUBE;
   ccube.type = MODEL_CUBE_COLOR;
@@ -87,50 +94,16 @@ int export(wasm_load) (int await_count) {
   return 1;
 }
 
-int button_down = 0;
-
-void handle_events() {
-  SDL_Event event;
-
-  while (SDL_PollEvent(&event)) {
-    switch(event.type) {
-      case SDL_EVENT_WINDOW_RESIZED: {
-        game.window.w = event.window.data1;
-        game.window.h = event.window.data2;
-        glViewport(0, 0, game.window.w, game.window.h);
-        game.camera.persp.aspect = game.window.w / (float)game.window.h;
-        camera_build_perspective(&game.camera);
-       } break;
-
-       case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-        button_down = event.button.button;
-       } break;
-
-       case SDL_EVENT_MOUSE_BUTTON_UP: {
-        button_down = 0;
-       } break;
-
-       case SDL_EVENT_MOUSE_MOTION: {
-        if (button_down == 1) {
-          float xrot = d2r(-event.motion.yrel * 180 / (float)game.window.h);
-          float yrot = d2r(-event.motion.xrel * 180 / (float)game.window.x);
-          vec3 angles = (vec3){xrot, yrot, 0};
-          camera_orbit(&game.camera, v3zero, angles.xy);
-        }
-       } break;
-    }
-  }
-}
-
 void export(wasm_update) (float dt) {
-  handle_events();
+  process_system_events(&game);
 
-  model = m4translation(v4left.xyz);
+  model = m4translation((vec3){-2, 0, 0});
   model = m4mul(model, m4rotation(v3norm((vec3){1, 1.5, -.7}), cubespin));
   model = m4mul(model, m4rotation(v3norm((vec3){-4, 1.5, 1}), cubespin/3.6));
 
-  model2 = m4translation(v3x);
-  model2 = m4mul(model2, m4rotation(v3norm((vec3){-1, 0.2, 1}), cubespin/8.7));
+  model2 = m4translation((vec3){2, 0, 0});
+  model2 = m4mul(model2, m4uniform(2));
+  //model2 = m4mul(model2, m4rotation(v3norm((vec3){-1, 0.2, 1}), cubespin/8.7));
 
   model3 = m4look((vec3){0, 0, 2}, game.camera.pos.xyz, v3y);
 
@@ -140,9 +113,11 @@ void export(wasm_update) (float dt) {
 void export(wasm_render) () {
   mat4 projview = camera_projection_view(&game.camera);
 
-  shader_program_use(&test_shader);
+  shader_program_use(&basic_shader);
+  int projViewMod_loc = basic_shader.uniform.projViewMod;
 
-  vec4 v;
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, projview.f);
+  model_render(&grid);
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
   model_render(&ccube);
@@ -150,14 +125,26 @@ void export(wasm_render) () {
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model3).f);
   model_render(&ccube);
 
-  if (button_down)
+  if (game.button_down)
     model_render(&gizmo);
 
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model2).f);
-  model_render(&cube);
+  mat4 lightTransform = m4mul(projview, m4translation(game.light_pos.xyz));
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, lightTransform.f);
+  model_render(&gizmo);
 
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, projview.f);
-  model_render(&grid);
+  shader_program_use(&test_shader);
+  projViewMod_loc = test_shader.uniform.projViewMod;
+  int world_loc = test_shader.uniform.phong.world;
+  int lightPos_loc = test_shader.uniform.phong.lightPos;
+  int cameraPos_loc = test_shader.uniform.phong.cameraPos;
+  // should also pass transpose(inverse(model)) to multiply against normal
+
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model2).f);
+  glUniformMatrix4fv(world_loc, 1, 0, model2.f);
+  glUniform4fv(lightPos_loc, 1, game.light_pos.f);
+  glUniform4fv(cameraPos_loc, 1, game.camera.pos.f);
+
+  model_render(&cube);
 }
 
 // todo:

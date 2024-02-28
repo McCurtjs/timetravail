@@ -64,6 +64,7 @@ void    glAttachShader(GLuint program, GLuint shader);
 void    glLinkProgram(GLuint program);
 void    glGetProgramiv(GLuint program, GLenum pname, GLint* params);
 void    glUseProgram(GLuint program);
+void    glUniform4fv(GLint loc, GLsizei count, const GLfloat* value);
 void    glUniformMatrix4fv(
           GLint loc, GLsizei count, GLboolean transpose, const GLfloat* value);
 void    glDeleteProgram(GLuint program);

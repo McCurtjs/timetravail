@@ -5,10 +5,11 @@ mkdir -p build
 
 # -nostdinc doesn't work because wasi doesn't ship with stddef for some reason
 clang -Oz --target=wasm32-wasi \
-  --no-standard-libraries -Wl,--no-entry \
+  --no-standard-libraries \
+  -Wall -Wextra -Wno-missing-braces \
+  -Wl,--allow-undefined -Wl,--no-entry \
   -isystem lib/wasi-libc/sysroot/include/wasm32-wasi \
   -I src/eng -I src/eng/wasm \
-  -Wl,--allow-undefined \
   -o build/test.wasm \
   src/*.c \
   src/eng/*.c \

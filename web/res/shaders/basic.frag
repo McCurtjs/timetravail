@@ -1,7 +1,29 @@
 #version 300 es
-in lowp vec4 vColor;
-out lowp vec4 fragColor;
+precision highp float;
+
+#define ambient 0.025
+
+in vec4 vPos;
+in vec4 vNormal;
+in vec2 vUV;
+
+uniform vec4 lightPos;
+uniform vec4 cameraPos;
+float specularPower = 0.5;
+
+out vec4 fragColor;
 
 void main() {
-  fragColor = vColor;
+  vec4 n = normalize(vNormal);
+  vec4 viewDir = normalize(cameraPos - vPos);
+  vec4 lightDir = normalize(lightPos - vPos);
+  vec4 reflectDir = reflect(-lightDir, n);
+  float diffuse = max(dot(n, lightDir), 0.0);
+  float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+
+  fragColor = vec4(vUV, 0.0, 1.0) * (ambient + diffuse + specular);
+
+  //fragColor = normalize(vNormal) * 0.5 + vec4(0.5, 0.5, 0.5, 0);
+  fragColor.w = 1.0;
+  //fragColor = vec4(vUV, 0.0, 1.0);
 }

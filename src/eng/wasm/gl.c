@@ -8,7 +8,7 @@ extern void   glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
 extern GLuint glCreateShader(GLuint shaderType);
 extern void   js_glShaderSource(GLuint data_id, const char* src, GLint length);
 void          glShaderSource(
-  GLuint shader, GLsizei count, const GLchar** str, const GLint *length
+  GLuint shader, GLsizei _, const GLchar** str, const GLint *length
 ) {
   js_glShaderSource(shader, *str, *length);
 }
@@ -26,30 +26,31 @@ void          glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
   *params = js_glGetProgramParameter(program, pname);
 }
 extern void   glUseProgram(GLuint program);
+extern void   glUniform4fv(GLint loc, GLsizei count, const GLfloat* value);
 extern void   glUniformMatrix4fv(
                 GLint loc, GLsizei count, GLboolean tpose, const GLfloat* mat);
 extern void   glDeleteProgram(GLuint program);
 
 extern GLuint js_glCreateBuffer();
 void          glGenBuffers(GLsizei n, GLuint* buffers) {
-  for (int i = 0; i < n; ++i) buffers[i] = js_glCreateBuffer();
+  for (GLsizei i = 0; i < n; ++i) buffers[i] = js_glCreateBuffer();
 }
 extern void   glBindBuffer(GLenum target, GLuint buffer);
 extern void   glBufferData(
                 GLenum target, GLsizeiptr size, const void* src, GLenum usage);
 extern void   js_glDeleteBuffer(int data_id);
 void          glDeleteBuffers(GLsizei n, const GLuint* buffers) {
-  for (int i = 0; i < n; ++i) js_glDeleteBuffer(buffers[i]);
+  for (GLsizei i = 0; i < n; ++i) js_glDeleteBuffer(buffers[i]);
 }
 
 extern GLuint js_glCreateVertexArray();
 void          glGenVertexArrays(GLsizei n, GLuint* arrays) {
-  for (int i = 0; i < n; ++i) arrays[i] = js_glCreateVertexArray();
+  for (GLsizei i = 0; i < n; ++i) arrays[i] = js_glCreateVertexArray();
 }
 extern void   glBindVertexArray(GLuint array);
 extern void   js_glDeleteVertexArray(int data_id);
 void          glDeleteVertexArrays(GLsizei n, const GLuint* arrays) {
-  for (int i = 0; i < n; ++i) js_glDeleteVertexArray(arrays[i]);
+  for (GLsizei i = 0; i < n; ++i) js_glDeleteVertexArray(arrays[i]);
 }
 extern void   glVertexAttribPointer(
                 GLuint index, GLint size, GLenum type, GLboolean normalized,

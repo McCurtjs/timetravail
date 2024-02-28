@@ -13,7 +13,8 @@
     "sdl.h": "c"
   },
   "C_Cpp.default.includePath": [
-    "src/eng/wasm"
+    "src/eng/wasm",
+    "src/eng"
   ],
   "files.eol": "\n"
 }
