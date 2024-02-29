@@ -3,6 +3,7 @@ import { sdl } from "./bind/wasm_const.js";
 import { wasm_import_base } from "./bind/wasm_base.js";
 import { wasm_import_gl } from "./bind/wasm_gl.js";
 import { wasm_import_stdio } from "./bind/wasm_stdio.js";
+import { wasm_import_image } from "./bind/wasm_image.js";
 
 class Game {
 
@@ -71,6 +72,7 @@ class Game {
     wasm_import_base(imports, this);
     wasm_import_stdio(imports, this);
     wasm_import_gl(imports, this);
+    wasm_import_image(imports, this);
 
     await WebAssembly.instantiateStreaming(response, { env: imports })
     .then((obj) => {
@@ -92,7 +94,7 @@ class Game {
     }
 
     gl.clearColor(0.05, 0.15, 0.25, 1);
-    //gl.clearDepth(1);
+    gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);

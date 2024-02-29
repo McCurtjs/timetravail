@@ -79,6 +79,39 @@ function wasm_import_gl(imports, game) {
     game.gl.useProgram(data.program);
   }
 
+  imports["js_glGetUniformLocation"] = (program_id, name, len) => {
+    let data = game.data[program_id];
+    if (!data || data.type != types.sprog) return 0;
+    // TODO: also store ref in program data so we can delete them later
+    return game.store({
+      type: types.uniform,
+      ready: true,
+      location: game.gl.getUniformLocation(data.program, game.str(name, len))
+    });
+  }
+
+  // Shader uniforms
+
+  imports["glUniform1i"] = (loc_id, v0) => {
+    let data = game.data[loc_id];
+    if (!data || data.type != types.uniform) return 0;
+    game.gl.uniform1i(data.location, v0);
+  }
+
+  imports["glUniform4fv"] = (loc_id, count, ptr) => {
+    let data = game.data[loc_id];
+    if (!data || data.type != types.uniform) return 0;
+    let bytes = game.memory_f(ptr, count * 4);
+    game.gl.uniform4fv(data.location, bytes, 0);
+  }
+
+  imports["glUniformMatrix4fv"] = (loc_id, count, transpose, ptr) => {
+    let data = game.data[loc_id];
+    if (!data || data.type != types.uniform) return 0;
+    let bytes = game.memory_f(ptr, count * 16);
+    game.gl.uniformMatrix4fv(data.location, transpose != 0, bytes, 0);
+  }
+
   // Buffers and VAO
 
   imports["js_glCreateBuffer"] = () => {
@@ -143,29 +176,49 @@ function wasm_import_gl(imports, game) {
     game.gl.drawArrays(mode, first, count);
   }
 
-  imports["js_glGetUniformLocation"] = (program_id, name, len) => {
-    let data = game.data[program_id];
-    if (!data || data.type != types.sprog) return 0;
-    // TODO: also store ref in program data so we can delete them later
+  // Textures
+
+  imports["js_glCreateTexture"] = () => {
     return game.store({
-      type: types.uniform,
+      type: types.texture,
       ready: true,
-      location: game.gl.getUniformLocation(data.program, game.str(name, len))
-    });
+      texture: game.gl.createTexture(),
+    })
   }
 
-  imports["glUniform4fv"] = (loc_id, count, ptr) => {
-    let data = game.data[loc_id];
-    if (!data || data.type != types.uniform) return 0;
-    let bytes = game.memory_f(ptr, count * 4);
-    game.gl.uniform4fv(data.location, bytes, 0);
+  imports["glActiveTexture"] = (texture) => {
+    game.gl.activeTexture(texture);
   }
 
-  imports["glUniformMatrix4fv"] = (loc_id, count, transpose, ptr) => {
-    let data = game.data[loc_id];
-    if (!data || data.type != types.uniform) return 0;
-    let bytes = game.memory_f(ptr, count * 16);
-    game.gl.uniformMatrix4fv(data.location, transpose != 0, bytes, 0);
+  imports["glBindTexture"] = (target, data_id) => {
+    let data = game.data[data_id];
+    if (!data || data.type != types.texture) return;
+    game.gl.bindTexture(target, data.texture)
+  }
+
+  imports["wglTexImage2D"] = (target, level, iFmt, sFmt, sType, image_id) => {
+    let data = game.data[image_id];
+    if (!data || data.type != types.image) return;
+    game.gl.texImage2D(target, level, iFmt, sFmt, sType, data.image);
+  }
+
+  imports["glGenerateMipmap"] = (target) => {
+    game.gl.generateMipmap(target);
+  }
+
+  imports["glTexParameteri"] = (target, pname, param) => {
+    game.gl.texParameteri(target, pname, param);
+  }
+
+  imports["glPixelStorei"] = (pname, param) => {
+    game.gl.pixelStorei(pname, param);
+  }
+
+  imports["js_glDeleteTexture"] = (data_id) => {
+    let data = game.data[data_id];
+    if (!data || data.type != types.texture) return;
+    game.gl.deleteTexture(data.texture);
+    game.free(data_id);
   }
 }
 

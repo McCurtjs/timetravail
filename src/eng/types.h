@@ -2,6 +2,7 @@
 #define _TYPES_H_
 
 typedef unsigned int uint;
+typedef unsigned int jshandle;
 typedef unsigned char byte;
 
 #ifndef NULL
@@ -25,6 +26,7 @@ typedef unsigned char byte;
 #endif
 #define TAU (2 * PI)
 
-#define d2r(DEG) ((DEG) * PI / 180.0)
+#define d2r(DEG)  ((DEG) * PI / 180.0)
+#define isPow2(n) ((n & (n-1)) == 0)
 
 #endif

@@ -9,11 +9,13 @@ export const
   types = {
     none:     0,
     file:     1,
-    shader:   2,
-    sprog:    3,
-    vao:      4,
-    buffer:   5,
-    uniform:  6,
+    image:    2,
+    shader:   10,
+    sprog:    11,
+    vao:      12,
+    buffer:   13,
+    uniform:  14,
+    texture:  15,
   },
 
   sdl = {

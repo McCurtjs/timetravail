@@ -6,20 +6,22 @@ var game = null;
 function renderTimer(now) {
   const { await_count, gl } = game;
   const { wasm_load, wasm_update, wasm_render } = game.wasm.exports;
-  const dt = now - game.frame_time;
+  const ms = now - game.frame_time; // milliseconds per frame
+  const dt = ms / 1000; // seconds per frame
+  const fps = 1000 / ms; // frames per second
   game.frame_time = now;
 
   document.getElementById('console').textContent = `
-    WASM GL Test - FPS: ${Math.floor(1000 / dt)}
+    WASM GL Test - FPS: ${Math.floor(fps)}
   `;
 
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   if (!game.ready) {
-    if (wasm_load(await_count)) {
+    if (wasm_load(await_count, dt)) {
       game.ready = true;
     }
   } else {
-    wasm_update(dt / 1000);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    wasm_update(dt);
     wasm_render();
   }
   requestAnimationFrame(renderTimer);
@@ -30,7 +32,7 @@ window.onload = async() => {
 
   await game.initialize('test.wasm');
 
-  game.wasm.exports.wasm_preload();
+  game.wasm.exports.wasm_preload(game.gl.canvas.width, game.gl.canvas.height);
 
   requestAnimationFrame(renderTimer);
 

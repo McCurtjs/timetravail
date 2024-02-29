@@ -55,7 +55,7 @@ function wasm_import_stdio(imports, game) {
 
   imports['js_fclose'] = (data_id) => {
     let data = game.data[data_id];
-    if (!data || data.type != types.file) return 1;
+    if (!data || data.type != types.file) return;
     game.free(data_id);
   }
 

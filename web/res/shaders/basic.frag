@@ -1,7 +1,7 @@
 #version 300 es
 precision highp float;
 
-#define ambient 0.025
+#define ambient 0.5
 
 in vec4 vPos;
 in vec4 vNormal;
@@ -9,6 +9,7 @@ in vec2 vUV;
 
 uniform vec4 lightPos;
 uniform vec4 cameraPos;
+uniform sampler2D texSamp;
 float specularPower = 0.5;
 
 out vec4 fragColor;
@@ -22,8 +23,8 @@ void main() {
   float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
 
   fragColor = vec4(vUV, 0.0, 1.0) * (ambient + diffuse + specular);
+  fragColor = texture(texSamp, vUV) * (ambient + diffuse + specular);
 
   //fragColor = normalize(vNormal) * 0.5 + vec4(0.5, 0.5, 0.5, 0);
   fragColor.w = 1.0;
-  //fragColor = vec4(vUV, 0.0, 1.0);
 }

@@ -60,8 +60,7 @@ int shader_program_build_basic(ShaderProgram* p) {
     shader_build(&basic_frag, GL_FRAGMENT_SHADER, basic_frag_text, flen);
 
     basic_loaded = shader_program_build(&basic_prog, &basic_vert, &basic_frag);
-    basic_prog.uniform.projViewMod =
-      glGetUniformLocation(basic_prog.handle, "projViewMod");
+    shader_program_load_uniforms(&basic_prog, UNIFORMS_PVM);
   }
   *p = basic_prog;
   return p->ready;
@@ -69,6 +68,23 @@ int shader_program_build_basic(ShaderProgram* p) {
 
 int shader_program_uniform_location(ShaderProgram* program, const char* name) {
   return glGetUniformLocation(program->handle, name);
+}
+
+void shader_program_load_uniforms(ShaderProgram* p, UniformSet set) {
+  glUseProgram(p->handle);
+
+  p->uniform.projViewMod = glGetUniformLocation(p->handle, "projViewMod");
+
+  switch(set) {
+    case UNIFORMS_PVM: break;
+    case UNIFORMS_PHONG: {
+      p->uniform.phong.world = glGetUniformLocation(p->handle, "world");
+      p->uniform.phong.lightPos = glGetUniformLocation(p->handle, "lightPos");
+      p->uniform.phong.cameraPos = glGetUniformLocation(p->handle, "cameraPos");
+      p->uniform.phong.sampler = glGetUniformLocation(p->handle, "texSamp");
+    } break;
+  }
+  glUseProgram(0);
 }
 
 void shader_program_use(ShaderProgram* program) {
