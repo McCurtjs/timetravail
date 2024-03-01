@@ -112,10 +112,8 @@ int export(wasm_load) (int await_count, float dt) {
 
   cube.type = MODEL_CUBE;
   ccube2.type = MODEL_CUBE_COLOR;
-  grid.type = MODEL_GRID;
-  grid.grid.extent = 20;
-  gizmo.type = MODEL_GRID;
-  gizmo.grid.extent = -2;
+  model_setup_default_grid(&grid, 20);
+  model_setup_default_grid(&gizmo, -2);
   model_build(&cube);
   model_build(&ccube2);
   model_build(&grid);

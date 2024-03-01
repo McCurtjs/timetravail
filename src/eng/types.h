@@ -26,6 +26,11 @@ typedef unsigned char byte;
 #endif
 #define TAU (2 * PI)
 
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 #define d2r(DEG)  ((DEG) * PI / 180.0)
 #define isPow2(n) ((n & (n-1)) == 0)
 

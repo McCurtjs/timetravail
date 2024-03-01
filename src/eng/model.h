@@ -12,13 +12,15 @@ typedef enum ModelType {
   MODEL_TYPES_COUNT
 } ModelType;
 
-// A grid along the X/Z plane with color gizmo for primary axes
+// A grid defined by the basis axes provided, along the index primary axes
 // if extent is 0, render only a unit axis gizmo
 // use a negative extent to scale the gizmo by the absolute value
 typedef struct Model_Grid {
   uint type;
   uint ready;
   int  extent;
+  vec3 basis[3];
+  byte primary[2];
   uint vao;
   uint points_count;
   uint buffers[2];
@@ -46,5 +48,7 @@ typedef union Model {
 
 int  model_build(Model* model);
 void model_render(Model* model);
+
+void model_setup_default_grid(Model* model, int extent);
 
 #endif

@@ -82,31 +82,35 @@ static int model_build_grid(Model_Grid* grid) {
   color3b* colors = malloc(sizeof(color3b) * grid->points_count);
 
   uint i = 0;
+  const vec3* basis = grid->basis;
+  const byte  ga = MIN(grid->primary[0], 2);
+  const byte  gb = MIN(grid->primary[1], 2);
 
   for (int j = 0; i < 6; i += 2, ++j) {
     colors[i] = v3bzero;
     points[i] = points[i+1] = v3zero;
     colors[i].i[j] = 255;
     colors[i+1].i[j] = colors[i].i[j];
-    points[i].f[j] = gext;
+    points[i] = v3scale(basis[j], gext);
   }
 
   if (ext > 0) {
     for (uint j = 0; i < 12; i += 2, ++j) {
       colors[i] = colors[i+1] = (color3b){255, 255, 255};
       points[i] = points[i+1] = v3zero;
-      points[i].f[j] = -ext;
+      points[i] = v3scale(basis[j], -ext);
     }
 
     for (int j = 1; i < grid->points_count; i += 8, ++j) {
-      points[i+0] = (vec3){ ext, 0,    j};
-      points[i+1] = (vec3){-ext, 0,    j};
-      points[i+2] = (vec3){ ext, 0,   -j};
-      points[i+3] = (vec3){-ext, 0,   -j};
-      points[i+4] = (vec3){   j, 0,  ext};
-      points[i+5] = (vec3){   j, 0, -ext};
-      points[i+6] = (vec3){  -j, 0,  ext};
-      points[i+7] = (vec3){  -j, 0, -ext};
+      // (x * ext) + (y * j)
+      points[i+0] = v3add(v3scale(basis[ga], ext), v3scale(basis[gb], j));
+      points[i+1] = v3add(v3scale(basis[ga],-ext), v3scale(basis[gb], j));
+      points[i+2] = v3add(v3scale(basis[ga], ext), v3scale(basis[gb],-j));
+      points[i+3] = v3add(v3scale(basis[ga],-ext), v3scale(basis[gb],-j));
+      points[i+4] = v3add(v3scale(basis[ga], j), v3scale(basis[gb], ext));
+      points[i+5] = v3add(v3scale(basis[ga], j), v3scale(basis[gb],-ext));
+      points[i+6] = v3add(v3scale(basis[ga],-j), v3scale(basis[gb], ext));
+      points[i+7] = v3add(v3scale(basis[ga],-j), v3scale(basis[gb],-ext));
 
       byte c = (j % 10 == 0 ? 128 : (j % 5 == 0 ? 0 : 63));
       color3b color = (color3b){c, c, c};
@@ -207,4 +211,11 @@ void model_render(Model* model) {
   if (!model || !model->type || !model->ready) return;
 
   model_render_fns[model->type - 1](model);
+}
+
+void model_setup_default_grid(Model* model, int extent) {
+  model->grid = (Model_Grid) {
+    .type = MODEL_GRID, .ready = FALSE, .extent = extent,
+    .basis = {v3x, v3y, v3z}, .primary = {0, 2}
+  };
 }
