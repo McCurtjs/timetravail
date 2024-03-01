@@ -47,26 +47,30 @@ Texture texture_crate;
 Texture texture_tiles;
 
 void export(wasm_preload) (uint w, uint h) {
-  game.window.w = w;
-  game.window.h = h;
-
   file_open_async(&file_vert, "./res/shaders/basic.vert");
   file_open_async(&file_frag, "./res/shaders/basic.frag");
 
   image_open_async(&image_crate, "./res/textures/crate.png");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
 
-  model = m4identity;
+  game = (Game){
+    .window = {w, h},
+    .camera = {
+      .pos = (vec4){3, 2, 5, 1},
+      .front = v4front,
+      .up = v4y,
+      .persp = {d2r(70), v2iaspect((vec2i){w, h}), 0.1, 50}
+    },
+    .target = v3zero,
+    .light_pos = (vec4){4, 3, 5, 1},
+  };
 
-  game.camera.pos = (vec4){3, 2, 5, 1};
-  game.camera.front = v4front;
-  game.camera.up = v4y;
-  game.camera.persp = (Camera_PerspectiveParams){d2r(70), (float)w/h, 0.1, 50};
   camera_build_perspective(&game.camera);
   camera_look_at(&game.camera, v3zero);
 
   game.light_pos = (vec4){4, 3, 5, 1};
 
+  model = m4identity;
   ccube.type = MODEL_CUBE_COLOR;
   model_build(&ccube);
 
@@ -125,6 +129,23 @@ int export(wasm_load) (int await_count, float dt) {
 void export(wasm_update) (float dt) {
   process_system_events(&game);
 
+  if (game.forward_down)
+    game.camera.pos.xyz = v3add(game.camera.pos.xyz, v3scale(game.camera.front.xyz, dt));
+  if (game.back_down)
+    game.camera.pos.xyz = v3add(game.camera.pos.xyz, v3scale(game.camera.front.xyz, -dt));
+  if (game.right_down) {
+    vec3 right = v3norm(v3cross(game.camera.front.xyz, game.camera.up.xyz));
+    right = v3scale(right, dt);
+    game.camera.pos.xyz = v3add(game.camera.pos.xyz, right);
+    game.target = v3add(game.target, right);
+  }
+  if (game.left_down) {
+    vec3 left = v3norm(v3cross(game.camera.front.xyz, game.camera.up.xyz));
+    left = v3scale(left, -dt);
+    game.camera.pos.xyz = v3add(game.camera.pos.xyz, left);
+    game.target = v3add(game.target, left);
+  }
+
   model = m4translation((vec3){-2, 0, 0});
   model = m4mul(model, m4rotation(v3norm((vec3){1, 1.5, -.7}), cubespin));
   model = m4mul(model, m4rotation(v3norm((vec3){-4, 1.5, 1}), cubespin/3.6));
@@ -160,6 +181,10 @@ void export(wasm_render) () {
   glUniformMatrix4fv(projViewMod_loc, 1, 0, lightTransform.f);
   model_render(&gizmo);
 
+  mat4 targetTransform = m4mul(projview, m4translation(game.target));
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, targetTransform.f);
+  model_render(&gizmo);
+
   shader_program_use(&test_shader);
   projViewMod_loc = test_shader.uniform.projViewMod;
   int world_loc = test_shader.uniform.phong.world;
@@ -184,8 +209,8 @@ void export(wasm_render) () {
 
   glBindTexture(GL_TEXTURE_2D, texture_tiles.handle);
 
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, lorge_cube).f);
   glUniformMatrix4fv(world_loc, 1, 0, lorge_cube.f);
+  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, lorge_cube).f);
   model_render(&cube);
 
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -193,10 +218,59 @@ void export(wasm_render) () {
 
 // todo:
 // game objects??? (container with function pointers to behavior/render fns)
-// key inputs
-// make grid generic based on basis vectors
-// actually test orthographic mode
+/*
+typedef struct Entity {
+  Transform*; // transient pointer to transform that gets updated each frame
+
+  vec3 position; // actual position
+  union {
+    quat orientation; // for 3d objects
+    float rotation;   // for 2d objects, probably just do this for now
+  }                   // (will anything in this game even need to rotate? maybe
+                      //  just stick to position for now for simplicity)
+  Model*; // reference to model this uses (owned by game?)
+  Texture*; // reference to texture this uses (owned by game also?)
+  pfn_behavior; // behavior funciton that runs each from for loop update
+  pfn_render; // pointer to funciton that renders this game object (or maybe
+              // not, if we just register the transform to a batch that gets
+              // drawn together, it won't have to render itself. Mabye just
+              // include it for simplicity for non-instanced draws).
+  pfn_physics; // use a registration setup as well? (future goals)
+} Entity;
+
+instance organizing?
+- for each shader { for each model { for each texture { draw instances } } }
+- can an entity have multiple registered transforms
+Game: {
+  Shaders {
+    a: {
+      Models: {
+        a: {
+          Textures: {
+            a: {
+              Transforms: {
+                a, b, c...
+              }
+            },
+            b: { ... }
+          }
+        },
+        b: { ... }
+      }
+    },
+    b: { ... }
+  }
+}
+
+*/
+// make spritemaster to batch together sprites
 // atlas'd and batched 2d sprite animation
+// debug draw for lines
+// actually test orthographic mode
+// line intersections, 2d physics for player movement
+// - point-based player position? use line segment to detect collisions
+//   with other lines. Attach to line segment when "at rest", connect segments
+//   together like a linked list
 // load model from file
 // instances
 // fix camera rotation on poles in non-local orbit and rotation mode

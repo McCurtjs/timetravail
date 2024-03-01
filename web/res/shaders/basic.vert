@@ -13,9 +13,9 @@ out vec4 vNormal;
 out vec2 vUV;
 
 void main() {
-  vPos = position;
+  vPos = world * position;
   vUV = uv;
-  vNormal = world * vec4(normal.xyz, 0);
+  vNormal = vec4(normal.xyz, 0);
 
-  gl_Position = projViewMod * vPos;
+  gl_Position = projViewMod * position;
 }

@@ -8,15 +8,16 @@ typedef unsigned long Uint64;
 typedef int Sint32;
 typedef uint SDL_WindowID;
 typedef byte Uint8;
+typedef unsigned short Uint16;
 
 typedef int SDL_bool;
 #define SDL_TRUE 1
 #define SDL_FALSE 0
 
 typedef enum {
-  SDL_EVENT_WINDOW_RESIZED = 0x206,
+  SDL_EVENT_WINDOW_RESIZED  = 0x206,
 
-  SDL_EVENT_KEY_DOWN = 0x300,
+  SDL_EVENT_KEY_DOWN        = 0x300,
   SDL_EVENT_KEY_UP,
 
   SDL_EVENT_MOUSE_MOTION    = 0x400,
@@ -41,6 +42,41 @@ typedef enum {
 #define SDL_BUTTON_X2MASK   SDL_BUTTON(SDL_BUTTON_X2)
 
 /**
+ * Enumeration of valid key mods (possibly OR'd together).
+ */
+typedef enum
+{
+    SDL_KMOD_NONE = 0x0000,
+    SDL_KMOD_LSHIFT = 0x0001,
+    SDL_KMOD_RSHIFT = 0x0002,
+    SDL_KMOD_LCTRL = 0x0040,
+    SDL_KMOD_RCTRL = 0x0080,
+    SDL_KMOD_LALT = 0x0100,
+    SDL_KMOD_RALT = 0x0200,
+    SDL_KMOD_LGUI = 0x0400,
+    SDL_KMOD_RGUI = 0x0800,
+    SDL_KMOD_NUM = 0x1000,
+    SDL_KMOD_CAPS = 0x2000,
+    SDL_KMOD_MODE = 0x4000,
+    SDL_KMOD_SCROLL = 0x8000,
+
+    SDL_KMOD_CTRL = SDL_KMOD_LCTRL | SDL_KMOD_RCTRL,
+    SDL_KMOD_SHIFT = SDL_KMOD_LSHIFT | SDL_KMOD_RSHIFT,
+    SDL_KMOD_ALT = SDL_KMOD_LALT | SDL_KMOD_RALT,
+    SDL_KMOD_GUI = SDL_KMOD_LGUI | SDL_KMOD_RGUI,
+
+    SDL_KMOD_RESERVED = SDL_KMOD_SCROLL /* This is for source-level compatibility with SDL 2.0.0. */
+} SDL_Keymod;
+
+typedef struct SDL_Keysym
+{
+    //SDL_Scancode scancode;      /**< SDL physical key code - see ::SDL_Scancode for details */
+    //SDL_Keycode sym;            /**< SDL virtual key code - see ::SDL_Keycode for details */
+    uint sym; // the key, for now
+    Uint16 mod;                 /**< current key modifiers */
+} SDL_Keysym;
+
+/**
  *  Window state change event data (event.window.*)
  */
 typedef struct SDL_WindowEvent
@@ -51,6 +87,18 @@ typedef struct SDL_WindowEvent
     Sint32 data1;
     Sint32 data2;
 } SDL_WindowEvent;
+
+/**
+ *  Keyboard button event structure (event.key.*)
+ */
+typedef struct SDL_KeyboardEvent
+{
+    Uint32 type;        /**< ::SDL_EVENT_KEY_DOWN or ::SDL_EVENT_KEY_UP */
+    Uint64 timestamp;   /**< In nanoseconds, populated using SDL_GetTicksNS() */
+    Uint8 state;        /**< ::SDL_PRESSED or ::SDL_RELEASED */
+    Uint8 repeat;       /**< Non-zero if this is a key repeat */
+    SDL_Keysym keysym;  /**< The key that was pressed or released */
+} SDL_KeyboardEvent;
 
 /**
  *  Mouse motion event structure (event.motion.*)
@@ -83,6 +131,7 @@ typedef struct SDL_MouseButtonEvent
 typedef union SDL_Event {
   Uint32 type;
   SDL_WindowEvent window;
+  SDL_KeyboardEvent key;
   SDL_MouseMotionEvent motion;
   SDL_MouseButtonEvent button;
 

@@ -49,30 +49,37 @@ void camera_rotate_local(Camera* camera, vec3 euler) {
 }
 
 void camera_orbit(Camera* camera, vec3 center, vec2 euler) {
+  vec4 center2pos = v4zero;
+  center2pos.xyz = v3sub(camera->pos.xyz, center);
   vec3 c[3];
-  camera_basis(c, v3sub(camera->pos.xyz, center), camera->up.xyz);
+  camera_basis(c, v3neg(camera->front.xyz), camera->up.xyz);
 
   //float t = fabs(v3angle(camera->front.xyz, camera->up.xyz) - PI/2);
   //if (t > PI/2 - 0.05) {
   //  print_float(t);
   //}
 
-  mat4 transform = m4rotation(c[0], euler.x);
+  mat4 transform = m4identity;
+  transform = m4mul(transform, m4rotation(c[0], euler.x));
   transform = m4mul(transform, m4rotation(camera->up.xyz, euler.y));
 
-  camera->pos = mv4mul(transform, camera->pos);
+  center2pos = mv4mul(transform, center2pos);
+  camera->pos.xyz = v3add(center, center2pos.xyz);
   camera->front = mv4mul(transform, camera->front);
 }
 
 void camera_orbit_local(Camera* camera, vec3 center, vec3 euler) {
+  vec4 center2pos = v4zero;
+  center2pos.xyz = v3sub(camera->pos.xyz, center);
   vec3 c[3];
-  camera_basis(c, v3sub(camera->pos.xyz, center), camera->up.xyz);
+  camera_basis(c, v3neg(camera->front.xyz), camera->up.xyz);
 
   mat4 transform = m4rotation(c[0], euler.x);
   transform = m4mul(transform, m4rotation(c[1], euler.y));
   transform = m4mul(transform, m4rotation(c[2], euler.z));
 
-  camera->pos = mv4mul(transform, camera->pos);
+  center2pos = mv4mul(transform, center2pos);
+  camera->pos.xyz = v3add(center, center2pos.xyz);
   camera->front = mv4mul(transform, camera->front);
   camera->up = mv4mul(transform, camera->up);
 }

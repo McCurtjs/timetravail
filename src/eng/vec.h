@@ -136,6 +136,7 @@ extern const vec4 v4down;
 
 vec3 qtransform(quat q, vec3 v);
 
+float v2iaspect(vec2i v);
 float v3mag(vec3 v);
 float v3magsq(vec3 v);
 vec3  v3norm(vec3 v);

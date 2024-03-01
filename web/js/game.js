@@ -108,13 +108,13 @@ class Game {
     let game = this;
 
     let canvas_resize = () => {
-      let b = game.gl.canvas.getBoundingClientRect();
+      let bounds = game.gl.canvas.getBoundingClientRect();
       let pr = window.devicePixelRatio;
-      let width = (b.width * pr) | 0;
-      let height = (b.height * pr) | 0;
-      game.gl.canvas.width = width;
-      game.gl.canvas.height = height;
-      game.wasm.exports.wasm_push_window_event(sdl.window_resize, width, height);
+      let w = (bounds.width * pr) | 0;
+      let h = (bounds.height * pr) | 0;
+      game.gl.canvas.width = w;
+      game.gl.canvas.height = h;
+      game.wasm.exports.wasm_push_window_event(sdl.window_resize, w, h);
     }
 
     canvas_resize();
@@ -122,6 +122,23 @@ class Game {
 
     game.gl.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault(); e.stopPropagation();
+    });
+
+    let keyboard_event = (e, event_type) => {
+      let k = e.key.toLowerCase().charCodeAt(0);
+      let mod = 0;
+      mod |= e.shiftKey ? sdl.keymod.lshift : 0;
+      mod |= e.ctrlKey ? sdl.keymod.lctrl : 0;
+      mod |= e.altKey ? sdl.keymod.lalt : 0;
+      game.wasm.exports.wasm_push_keyboard_event(event_type, k, mod, e.repeat);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      keyboard_event(e, sdl.key_down);
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keyboard_event(e, sdl.key_up);
     });
 
     game.gl.canvas.addEventListener('mousedown', (e) => {

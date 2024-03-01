@@ -29,6 +29,14 @@ export const
     mouse_wheel: 0x403,
 
     // other
-
+    keymod: {
+      none:   0x0000,
+      lshift: 0x0001,
+      rshift: 0x0002,
+      lctrl:  0x0040,
+      rctrl:  0x0080,
+      lalt:   0x0100,
+      ralt:   0x0200,
+    }
   }
 ;

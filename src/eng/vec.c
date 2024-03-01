@@ -31,6 +31,10 @@ vec3 qtransform(quat q, vec3 v) {
   //return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
 }
 
+float v2iaspect(vec2i v) {
+  return (float)v.w / (float)v.h;
+}
+
 float v3magsq(vec3 v) {
   return v.x * v.x + v.y * v.y + v.z * v.z;
 }
