@@ -80,6 +80,17 @@ vec3 v3cross(vec3 a, vec3 b) {
   };
 }
 
+// From Ken Whatmough's post on
+// https://math.stackexchange.com/questions/137362/how-to-find-perpendicular-vector-to-another-vector
+vec3 v3perp(vec3 v) {
+  return (vec3) {
+    copysign(v.z, v.x),
+    copysign(v.z, v.y),
+    -copysign(fabs(v.x) + fabs(v.y), v.z)
+    // or -copysign(v.x, v.z) - copysign(v.y, v.z)
+  };
+}
+
 float v3angle(vec3 a, vec3 b) {
   return acos(v3dot(a, b) / (v3mag(a) * v3mag(b)));
 }

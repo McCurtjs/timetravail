@@ -147,6 +147,7 @@ vec3  v3scale(vec3 a, float f);
 vec3  v3wedge(vec3 a, vec3 b);
 float v3dot(vec3 a, vec3 b);
 vec3  v3cross(vec3 a, vec3 b);
+vec3  v3perp(vec3 v);
 //quat  v3mul(vec3 a, vec3 b);
 float v3angle(vec3 a, vec3 b);
 

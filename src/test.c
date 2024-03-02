@@ -4,6 +4,7 @@
 #include "eng/model.h"
 #include "eng/camera.h"
 #include "eng/texture.h"
+#include "eng/draw.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -156,6 +157,16 @@ void export(wasm_update) (float dt) {
 
   model3 = m4look((vec3){0, 0, 2}, game.camera.pos.xyz, v3y);
 
+  draw_point((vec3){-4, 2, -1});
+  draw_color((vec3){0, 0, 1});
+  draw_line(v3zero, game.light_pos.xyz);
+  draw_vector(game.target);
+  draw_offset(v3y);
+  draw_colors(v3x, v3z);
+  draw_vector(game.light_pos.xyz);
+  //draw_dir(v3perp(game.light_pos.xyz));
+  draw_rect((vec3){2, 2, 0}, (vec3){4, 0, 0}, (vec3){0, 5, 0});
+
   cubespin += 2 * dt;
 }
 
@@ -167,6 +178,7 @@ void export(wasm_render) () {
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, projview.f);
   model_render(&grid);
+  draw_render();
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
   model_render(&ccube);
@@ -265,7 +277,6 @@ Game: {
 */
 // make spritemaster to batch together sprites
 // atlas'd and batched 2d sprite animation
-// debug draw for lines
 // actually test orthographic mode
 // line intersections, 2d physics for player movement
 // - point-based player position? use line segment to detect collisions
