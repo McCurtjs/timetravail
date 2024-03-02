@@ -15,37 +15,20 @@
 
 #include "game.h"
 #include "system_events.h"
+#include "test_behaviors.h"
 
 int export(canary) (int a) {
   print("WASM is connected!");
   return a * a;
 }
 
-Game game;
+static Game game;
 
-File file_vert;
-File file_frag;
-Shader test_vert;
-Shader test_frag;
-ShaderProgram test_shader;
-ShaderProgram basic_shader;
-
-mat4 model;
-mat4 model2;
-mat4 model3;
-
-float cubespin = 0;
-
-Model cube;
-Model ccube;
-Model ccube2;
-Model grid;
-Model gizmo;
-
-Image image_crate;
-Image image_tiles;
-Texture texture_crate;
-Texture texture_tiles;
+// Async loaders
+static File file_vert;
+static File file_frag;
+static Image image_crate;
+static Image image_tiles;
 
 void export(wasm_preload) (uint w, uint h) {
   file_open_async(&file_vert, "./res/shaders/basic.vert");
@@ -54,202 +37,182 @@ void export(wasm_preload) (uint w, uint h) {
   image_open_async(&image_crate, "./res/textures/crate.png");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
 
+  vec2i windim = {w, h};
   game = (Game){
-    .window = {w, h},
+    .window = windim,
     .camera = {
       .pos = (vec4){3, 2, 5, 1},
       .front = v4front,
       .up = v4y,
       .persp = {d2r(70), v2iaspect((vec2i){w, h}), 0.1, 50}
+      //.ortho = {-6 * v2iaspect(windim), 6 * v2iaspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},
+    .input.mapping.keys = {'w', 's', 'a', 'd'},
+    .entities = {
+      .data = NULL
+    }
   };
+  game_init(&game);
+  //camera_build_perspective(&game.camera);
+  camera_build_orthographic(&game.camera);
 
-  camera_build_perspective(&game.camera);
-  camera_look_at(&game.camera, v3zero);
+  // load this first since it's the loading screen spinner
+  game.models.color_cube.type = MODEL_CUBE_COLOR;
+  model_build(&game.models.color_cube);
 
-  game.light_pos = (vec4){4, 3, 5, 1};
-
-  model = m4identity;
-  ccube.type = MODEL_CUBE_COLOR;
-  model_build(&ccube);
-
-  shader_program_build_basic(&basic_shader);
+  shader_program_build_basic(&game.shaders.basic);
 }
 
-void cheesy_loading_anim(float dt) {
+void cheesy_loading_animation(float dt) {
+  static float cubespin = 0;
   mat4 projview = camera_projection_view(&game.camera);
 
-  shader_program_use(&basic_shader);
-  int projViewMod_loc = basic_shader.uniform.projViewMod;
+  shader_program_use(&game.shaders.basic);
+  int projViewMod_loc = game.shaders.basic.uniform.projViewMod;
 
-  model = m4translation((vec3){0, 0, 0});
+  mat4 model = m4translation((vec3){0, 0, 0});
   model = m4mul(model, m4rotation(v3norm((vec3){1, 1.5, -.7}), cubespin));
   model = m4mul(model, m4rotation(v3norm((vec3){-4, 1.5, 1}), cubespin/3.6));
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
-  model_render(&ccube);
+  model_render(&game.models.color_cube);
   cubespin += 2 * dt;
 }
 
 int export(wasm_load) (int await_count, float dt) {
   if (await_count) {
-    cheesy_loading_anim(dt);
+    cheesy_loading_animation(dt);
     return 0;
   };
-  cubespin = 0;
 
-  shader_build_from_file(&test_vert, &file_vert);
-  shader_build_from_file(&test_frag, &file_frag);
+  // Build shaders from async data
+  Shader light_vert, light_frag;
+  shader_build_from_file(&light_vert, &file_vert);
+  shader_build_from_file(&light_frag, &file_frag);
 
+  shader_program_build(&game.shaders.light, &light_vert, &light_frag);
+  shader_program_load_uniforms(&game.shaders.light, UNIFORMS_PHONG);
+
+  // Build textures from async data
+  texture_build_from_image(&game.textures.crate, &image_crate);
+  texture_build_from_image(&game.textures.tiles, &image_tiles);
+
+  // Delete async loaded resources
   file_delete(&file_vert);
   file_delete(&file_frag);
-
-  texture_build_from_image(&texture_crate, &image_crate);
-  texture_build_from_image(&texture_tiles, &image_tiles);
-
   image_delete(&image_crate);
   image_delete(&image_tiles);
 
-  shader_program_build(&test_shader, &test_vert, &test_frag);
-  shader_program_load_uniforms(&test_shader, UNIFORMS_PHONG);
+  // Set up game models
+  model_setup_default_grid(&game.models.grid, 20);
+  model_setup_default_grid(&game.models.gizmo, -2);
+  game.models.box.type = MODEL_CUBE;
+  model_build(&game.models.box);
+  model_build(&game.models.grid);
+  model_build(&game.models.gizmo);
 
-  cube.type = MODEL_CUBE;
-  ccube2.type = MODEL_CUBE_COLOR;
-  model_setup_default_grid(&grid, 20);
-  model_setup_default_grid(&gizmo, -2);
-  model_build(&cube);
-  model_build(&ccube2);
-  model_build(&grid);
-  model_build(&gizmo);
+  // Establish game entities
+
+  // Debug Renderer
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.basic,
+    .model = &game.models.grid,
+    .transform = m4identity,
+    .render = render_debug,
+  });
+
+  // Camera Controller
+  game_add_entity(&game, &(Entity) {
+    .behavior = behavior_camera,
+  });
+
+  // Spinny Cube
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.basic,
+    .model = &game.models.color_cube,
+    .pos = (vec3){-2, 0, 0},
+    .angle = 0,
+    .transform = m4identity,
+    .render = render_basic,
+    .behavior = behavior_cubespin,
+  });
+
+  // Staring Cube
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.basic,
+    .model = &game.models.color_cube,
+    .pos = (vec3){0, 0, 2},
+    .render = render_basic,
+    .behavior = behavior_stare,
+  });
+
+  // Gizmos
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.basic,
+    .model = &game.models.gizmo,
+    .render = render_basic,
+    .behavior = behavior_attach_to_camera_target,
+  });
+
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.basic,
+    .model = &game.models.gizmo,
+    .render = render_basic,
+    .behavior = behavior_attach_to_light,
+  });
+
+  // Crate
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.light,
+    .model = &game.models.box,
+    .texture = &game.textures.crate,
+    .transform = m4translation((vec3){0, -0.5, 0}),
+    .render = render_phong,
+  });
+
+  // Bigger Crate
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.light,
+    .model = &game.models.box,
+    .texture = &game.textures.crate,
+    .transform = m4mul(m4translation((vec3){2, 0, 0}), m4uniform(2)),
+    .render = render_phong,
+  });
+
+  // Even Bigger Crate
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.light,
+    .model = &game.models.box,
+    .texture = &game.textures.crate,
+    .transform = m4mul(m4translation((vec3){5, 0.5, 0}), m4uniform(3)),
+    .render = render_phong,
+  });
+
+  // LORGE Cube
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.light,
+    .model = &game.models.box,
+    .texture = &game.textures.tiles,
+    .transform = m4mul(m4translation((vec3){0, -10.5, -5}), m4uniform(19)),
+    .render = render_phong,
+  });
 
   return 1;
 }
 
 void export(wasm_update) (float dt) {
   process_system_events(&game);
-
-  if (game.forward_down)
-    game.camera.pos.xyz = v3add(game.camera.pos.xyz, v3scale(game.camera.front.xyz, dt));
-  if (game.back_down)
-    game.camera.pos.xyz = v3add(game.camera.pos.xyz, v3scale(game.camera.front.xyz, -dt));
-  if (game.right_down) {
-    vec3 right = v3norm(v3cross(game.camera.front.xyz, game.camera.up.xyz));
-    right = v3scale(right, dt);
-    game.camera.pos.xyz = v3add(game.camera.pos.xyz, right);
-    game.target = v3add(game.target, right);
-  }
-  if (game.left_down) {
-    vec3 left = v3norm(v3cross(game.camera.front.xyz, game.camera.up.xyz));
-    left = v3scale(left, -dt);
-    game.camera.pos.xyz = v3add(game.camera.pos.xyz, left);
-    game.target = v3add(game.target, left);
-  }
-
-  model = m4translation((vec3){-2, 0, 0});
-  model = m4mul(model, m4rotation(v3norm((vec3){1, 1.5, -.7}), cubespin));
-  model = m4mul(model, m4rotation(v3norm((vec3){-4, 1.5, 1}), cubespin/3.6));
-
-  model2 = m4translation((vec3){2, 0, 0});
-  model2 = m4mul(model2, m4uniform(2));
-  //model2 = m4mul(model2, m4rotation(v3norm((vec3){-1, 0.2, 1}), cubespin/8.7));
-
-  model3 = m4look((vec3){0, 0, 2}, game.camera.pos.xyz, v3y);
-
-  draw_point((vec3){-4, 2, -1});
-  draw_color((vec3){0, 0, 1});
-  draw_line(v3zero, game.light_pos.xyz);
-  draw_vector(game.target);
-  draw_offset(v3y);
-  draw_colors(v3x, v3z);
-  draw_vector(game.light_pos.xyz);
-  //draw_dir(v3perp(game.light_pos.xyz));
-  draw_rect((vec3){2, 2, 0}, (vec3){4, 0, 0}, (vec3){0, 5, 0});
-
-  cubespin += 2 * dt;
+  game_update(&game, dt);
 }
 
 void export(wasm_render) () {
-  mat4 projview = camera_projection_view(&game.camera);
-
-  shader_program_use(&basic_shader);
-  int projViewMod_loc = basic_shader.uniform.projViewMod;
-
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, projview.f);
-  model_render(&grid);
-  draw_render();
-
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
-  model_render(&ccube);
-
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model3).f);
-  model_render(&ccube);
-
-  if (game.button_down)
-    model_render(&gizmo);
-
-  mat4 lightTransform = m4mul(projview, m4translation(game.light_pos.xyz));
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, lightTransform.f);
-  model_render(&gizmo);
-
-  mat4 targetTransform = m4mul(projview, m4translation(game.target));
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, targetTransform.f);
-  model_render(&gizmo);
-
-  shader_program_use(&test_shader);
-  projViewMod_loc = test_shader.uniform.projViewMod;
-  int world_loc = test_shader.uniform.phong.world;
-  int lightPos_loc = test_shader.uniform.phong.lightPos;
-  int cameraPos_loc = test_shader.uniform.phong.cameraPos;
-  int sampler_loc = test_shader.uniform.phong.sampler;
-  // should also pass transpose(inverse(model)) to multiply against normal
-
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model2).f);
-  glUniform4fv(lightPos_loc, 1, game.light_pos.f);
-  glUniform4fv(cameraPos_loc, 1, game.camera.pos.f);
-
-  glActiveTexture(GL_TEXTURE0);
-  glUniform1i(sampler_loc, 0);
-
-  glBindTexture(GL_TEXTURE_2D, texture_crate.handle);
-  glUniformMatrix4fv(world_loc, 1, 0, model2.f);
-  model_render(&cube);
-
-  mat4 lorge_cube = m4translation((vec3){0, -10.5, -5});
-  lorge_cube = m4mul(lorge_cube, m4uniform(19));
-
-  glBindTexture(GL_TEXTURE_2D, texture_tiles.handle);
-
-  glUniformMatrix4fv(world_loc, 1, 0, lorge_cube.f);
-  glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, lorge_cube).f);
-  model_render(&cube);
-
-  glBindTexture(GL_TEXTURE_2D, 0);
+  game_render(&game);
 }
 
 // todo:
-// game objects??? (container with function pointers to behavior/render fns)
 /*
-typedef struct Entity {
-  Transform*; // transient pointer to transform that gets updated each frame
-
-  vec3 position; // actual position
-  union {
-    quat orientation; // for 3d objects
-    float rotation;   // for 2d objects, probably just do this for now
-  }                   // (will anything in this game even need to rotate? maybe
-                      //  just stick to position for now for simplicity)
-  Model*; // reference to model this uses (owned by game?)
-  Texture*; // reference to texture this uses (owned by game also?)
-  pfn_behavior; // behavior funciton that runs each from for loop update
-  pfn_render; // pointer to funciton that renders this game object (or maybe
-              // not, if we just register the transform to a batch that gets
-              // drawn together, it won't have to render itself. Mabye just
-              // include it for simplicity for non-instanced draws).
-  pfn_physics; // use a registration setup as well? (future goals)
-} Entity;
-
 instance organizing?
 - for each shader { for each model { for each texture { draw instances } } }
 - can an entity have multiple registered transforms
@@ -275,9 +238,9 @@ Game: {
 }
 
 */
+// actually test orthographic mode
 // make spritemaster to batch together sprites
 // atlas'd and batched 2d sprite animation
-// actually test orthographic mode
 // line intersections, 2d physics for player movement
 // - point-based player position? use line segment to detect collisions
 //   with other lines. Attach to line segment when "at rest", connect segments

@@ -87,7 +87,7 @@ void shader_program_load_uniforms(ShaderProgram* p, UniformSet set) {
   glUseProgram(0);
 }
 
-void shader_program_use(ShaderProgram* program) {
+void shader_program_use(const ShaderProgram* program) {
   glUseProgram(program->handle);
 }
 

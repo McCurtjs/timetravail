@@ -49,7 +49,7 @@ int  shader_program_build(ShaderProgram* program, Shader* vert, Shader* frag);
 int  shader_program_build_basic(ShaderProgram* program);
 int  shader_program_uniform_location(ShaderProgram* program, const char* name);
 void shader_program_load_uniforms(ShaderProgram* program, UniformSet set);
-void shader_program_use(ShaderProgram* program);
+void shader_program_use(const ShaderProgram* program);
 void shdaer_program_delete(ShaderProgram* program);
 
 #endif

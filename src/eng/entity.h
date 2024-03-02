@@ -15,8 +15,8 @@ typedef struct TransformIndex {
 
 typedef struct Game Game;
 typedef struct Entity Entity;
-typedef void (*UpdateFn)(Entity* e, const Game* game, float dt);
-typedef void (*RenderFn)(Entity* e, const Game* game);
+typedef void (*UpdateFn)(Entity* e, Game* game, float dt);
+typedef void (*RenderFn)(Entity* e, Game* game);
 //typedef void (PhysicsFn)(struct Entity* e);
 //typedef void (OnCollideFn)(struct Entity* self, struct Entity* other); // ?
 

@@ -28,7 +28,7 @@ mat4 m4ortho(
 
   ret.m[3][0] = -(right + left) / (right - left);
   ret.m[3][1] = -(top + bottom) / (top - bottom);
-  ret.m[3][2] = -(far + near) / (near - far);
+  ret.m[3][2] = -(far + near) / (far - near);
 
   return ret;
 }

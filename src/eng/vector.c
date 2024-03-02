@@ -39,7 +39,7 @@ uint vector_push_back(Vector* v, const void* element) {
   if (v->size >= v->capacity) {
     vector_reserve(v, v->capacity + capacity_growth);
   }
-  memcpy(v->data + v->size * v->bytes, element, v->element_size);
+  memcpy(v->data + v->size * v->element_size, element, v->element_size);
   v->bytes += v->element_size;
   return v->size++;
 }

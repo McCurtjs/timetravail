@@ -47,12 +47,8 @@ typedef union Model {
 } Model;
 
 int  model_build(Model* model);
-void model_render(Model* model);
+void model_render(const Model* model);
 
 void model_setup_default_grid(Model* model, int extent);
-
-//void dbdraw_offset(vec3 offset);
-//void dbdraw_vector(vec3 v);
-//void dbdraw_line(vec3 a, vec3 b);
 
 #endif

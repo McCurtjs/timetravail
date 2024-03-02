@@ -141,7 +141,7 @@ static int model_build_grid(Model_Grid* grid) {
   return 1;
 }
 
-static void model_render_grid(Model_Grid* grid) {
+static void model_render_grid(const Model_Grid* grid) {
   glBindVertexArray(grid->vao);
   glDrawArrays(GL_LINES, 0, grid->points_count);
   glBindVertexArray(0);
@@ -159,7 +159,7 @@ static int model_build_cube(Model_Cube* cube) {
   return 1;
 }
 
-static void model_render_cube(Model_Cube* _) {
+static void model_render_cube(const Model_Cube* _) {
   glBindVertexArray(cube_vao);
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
@@ -178,7 +178,7 @@ static int model_build_cube_color(Model_CubeColor* cube) {
   return 1;
 }
 
-static void model_render_cube_color(Model_CubeColor* _) {
+static void model_render_cube_color(const Model_CubeColor* _) {
   glBindVertexArray(cube_color_vao);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
   glBindVertexArray(0);
@@ -187,7 +187,7 @@ static void model_render_cube_color(Model_CubeColor* _) {
 // Exported functions
 
 typedef int  (*model_build_pfn)(void* model);
-typedef void (*model_render_pfn)(void* model);
+typedef void (*model_render_pfn)(const void* model);
 
 static model_build_pfn model_build_fns[MODEL_TYPES_COUNT] = {
   (model_build_pfn)model_build_grid,
@@ -207,7 +207,7 @@ static model_render_pfn model_render_fns[MODEL_TYPES_COUNT] = {
   (model_render_pfn)model_render_cube_color
 };
 
-void model_render(Model* model) {
+void model_render(const Model* model) {
   if (!model || !model->type || !model->ready) return;
 
   model_render_fns[model->type - 1](model);
