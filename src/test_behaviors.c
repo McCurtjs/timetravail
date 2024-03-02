@@ -4,7 +4,7 @@
 
 #include "draw.h"
 
-void behavior_camera(Entity* _, Game* game, float dt) {
+void behavior_test_camera(Entity* _, Game* game, float dt) {
   if (game->input.pressed.forward)
     game->camera.pos.xyz = v3add(game->camera.pos.xyz, v3scale(game->camera.front.xyz, dt));
   if (game->input.pressed.back)

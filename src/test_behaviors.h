@@ -4,7 +4,7 @@
 #include "entity.h"
 #include "game.h"
 
-void behavior_camera(Entity* entity, Game* game, float dt);
+void behavior_test_camera(Entity* entity, Game* game, float dt);
 void behavior_cubespin(Entity* entity, Game* game, float dt);
 void behavior_stare(Entity* entity, Game* game, float dt);
 void behavior_attach_to_light(Entity* entity, Game* game, float dt);

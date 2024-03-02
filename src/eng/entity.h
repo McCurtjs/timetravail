@@ -22,14 +22,16 @@ typedef void (*RenderFn)(Entity* e, Game* game);
 
 typedef struct Entity {
   vec3 pos;
+  vec3 vel;
+
   union {
     quat rotation;
-    float angle;    // for 2d, angle around z axis
+    float angle;
   };
   union {
     TransformIndex transform_ref;
     struct {
-      mat4 transform; // what even is a transform in this context
+      mat4 transform;
       const ShaderProgram* shader;
       const Model* model;
       const Texture* texture;

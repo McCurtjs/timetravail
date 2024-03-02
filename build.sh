@@ -12,6 +12,7 @@ clang -Oz --target=wasm32-wasi \
   -I src/eng -I src/eng/wasm \
   -o build/test.wasm \
   src/*.c \
+  src/game/*.c \
   src/eng/*.c \
   src/eng/wasm/*.c \
   src/eng/wasm/sdl/*.c \

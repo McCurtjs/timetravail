@@ -25,7 +25,7 @@ typedef struct Game_Textures {
   Texture tiles;
 } Game_Textures;
 
-#define game_key_count 4
+#define game_key_count 6
 #define game_mouse_button_count 3
 #define game_button_input_count (game_key_count + game_mouse_button_count)
 
@@ -41,6 +41,8 @@ typedef struct Game_Buttons {
           uint back;
           uint left;
           uint right;
+          uint camera_lock;
+          uint run_replay;
         };
       };
       // mouse
