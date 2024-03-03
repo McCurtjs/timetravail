@@ -51,7 +51,7 @@ void* vector_get(Vector* v, uint index) {
 
 void* vector_back(Vector* v) {
   if (!v || v->size == 0) return NULL;
-  return v->data + v->size * v->element_size;
+  return v->data + (v->size - 1) * v->element_size;
 }
 
 uint vector_pop_back(Vector* v, void* ret) {

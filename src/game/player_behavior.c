@@ -10,6 +10,7 @@
 #define RIGHT 0x0002
 #define LEFT  0x0004
 #define DROP  0x0008
+#define REPLAY (1 << 8)
 
 #define PRESSED(mask) (inputs & (mask))
 #define TRIGGERED(mask) (inputs & ((mask) << 4))
@@ -29,11 +30,12 @@ static int playback = FALSE;
 void behavior_player(Entity* e, Game* game, float _) {
   float dt = 0.016;
   if (replay.data == NULL) {
-    vector_init_reserve(&replay, sizeof(ReplayNode), 60 * 60); // 1 minute
-    vector_push_back(&replay, &(ReplayNode){
+    vector_init_reserve(&replay, sizeof(ReplayNode), 60 * 60);
+    vector_push_back(&replay, &(ReplayNode) {
       .frame = 0,
+      .buttons = 0,
       .pos = e->pos.xy,
-      .vel = v3zero.xy,
+      .vel = e->vel.xy,
     });
   }
 
@@ -58,75 +60,80 @@ void behavior_player(Entity* e, Game* game, float _) {
   inputs |= game->input.triggered.right << 5;
   inputs |= game->input.triggered.left << 6;
   inputs |= game->input.triggered.back << 7;
-
-
-
-  vec3 input = v3zero;
+  inputs |= game->input.triggered.run_replay << 8;
 
   if (!playback) {
-
-    if (PRESSED(RIGHT)) {
-      input.x += e->vel.x + accel[airborne] * dt > max_vel[airborne] ? max_vel[airborne] - e->vel.x : accel[airborne] * dt;
-      if (!airborne && TRIGGERED(RIGHT) && e->vel.x < -16) {
-        input.x += -e->vel.x / 3;
-      }
-    }
-
-    if (PRESSED(LEFT)) {
-      input.x += e->vel.x - accel[airborne] * dt < -max_vel[airborne] ? -max_vel[airborne] - e->vel.x : -accel[airborne] * dt;
-      if (!airborne && TRIGGERED(LEFT) && e->vel.x > 16) {
-        input.x += -e->vel.x / 3;
-      }
-    }
-
-    if (!PRESSED(LEFT) && !PRESSED(RIGHT)) {
-      if (!airborne) {
-        input.x += -e->vel.x * skid * dt;
-      }
-    }
-
-    if (TRIGGERED(DROP) && airborne && e->vel.y < 0.2) {
-      input.y += -drop;
-      print_int(inputs);
-    }
-
-    if (TRIGGERED(JUMP) && (has_double || !airborne)) {
-      input.y += -e->vel.y + jump_str;
-      if (airborne) {
-        if ((e->vel.x < -1 && PRESSED(RIGHT))
-        ||  (e->vel.x > 1 && PRESSED(LEFT))
-        ){
-          input.x += -e->vel.x + e->vel.x * -jump_reverse_factor;
-        }
-        has_double = FALSE;
-      }
-      airborne = TRUE;
-    } else if (PRESSED(JUMP) && airborne) {
-      input.y += lift * dt;
-    }
-
-    e->vel = v3add(e->vel, input);
-
-    if ((input.x != 0 || input.y != 0) && replay.size < replay.capacity) {
+    ReplayNode node = *(ReplayNode*)vector_back(&replay);
+    if (node.buttons != inputs) { // || frame % 60 == 0
       vector_push_back(&replay, &(ReplayNode) {
         .frame = frame,
+        .buttons = inputs,
         .vel = e->vel.xy,
         .pos = e->pos.xy,
       });
-      print("Value stored");
+      print_int(replay.size);
     }
+  } else { // playback replay!
+    inputs = 0;
 
-  // Doing playback
-  } else {
-    ReplayNode node = *(ReplayNode*)vector_get(&replay, index);
-    if (node.frame == frame) {
-      e->vel.xy = node.vel;
-      e->pos.xy = node.pos;
-      ++index;
+    if (index < replay.size) {
+      ReplayNode node = *(ReplayNode*)vector_get(&replay, index);
+
+      if (frame == node.frame) {
+        e->vel.xy = node.vel;
+        e->pos.xy = node.pos;
+        ++index;
+      } else {
+        node = *(ReplayNode*)vector_get(&replay, index-1);
+      }
+
+      inputs = node.buttons;
     }
   }
 
-  e->vel.y += -gravity * dt;
+  vec3 acceleration = v3zero;
+
+  if (PRESSED(RIGHT)) {
+    acceleration.x += e->vel.x + accel[airborne] * dt > max_vel[airborne] ? max_vel[airborne] - e->vel.x : accel[airborne] * dt;
+    if (!airborne && TRIGGERED(RIGHT) && e->vel.x < -16) {
+      acceleration.x += -e->vel.x / 3;
+    }
+  }
+
+  if (PRESSED(LEFT)) {
+    acceleration.x += e->vel.x - accel[airborne] * dt < -max_vel[airborne] ? -max_vel[airborne] - e->vel.x : -accel[airborne] * dt;
+    if (!airborne && TRIGGERED(LEFT) && e->vel.x > 16) {
+      acceleration.x += -e->vel.x / 3;
+    }
+  }
+
+  if (!PRESSED(LEFT) && !PRESSED(RIGHT)) {
+    if (!airborne) {
+      acceleration.x += -e->vel.x * skid * dt;
+    }
+  }
+
+  if (TRIGGERED(DROP) && airborne && e->vel.y < 0.2) {
+    acceleration.y += -drop;
+  }
+
+  if (TRIGGERED(JUMP) && (has_double || !airborne)) {
+    acceleration.y += -e->vel.y + jump_str;
+    if (airborne) {
+      if ((e->vel.x < -1 && PRESSED(RIGHT))
+      ||  (e->vel.x > 1 && PRESSED(LEFT))
+      ){
+        acceleration.x += -e->vel.x + e->vel.x * -jump_reverse_factor;
+      }
+      has_double = FALSE;
+    }
+    airborne = TRUE;
+  } else if (PRESSED(JUMP) && airborne) {
+    acceleration.y += lift * dt;
+  }
+
+  acceleration.y += -gravity * dt;
+  e->vel = v3add(e->vel, acceleration);
   e->pos = v3add(e->pos, v3scale(e->vel, dt));
 
   if (e->pos.y <= 0) {
@@ -151,9 +158,14 @@ void behavior_player(Entity* e, Game* game, float _) {
 
   ++frame;
 
-  if (game->input.triggered.run_replay) {
+  if (inputs & REPLAY) {
     frame = 0;
     index = 0;
     playback = TRUE;
   }
 }
+
+// TODO:
+// - For reverse playback, bake a node every 60 frames or so with pos/vel data
+// - for a reverse frame, track to previous stored node and simulate up to that
+//   frame. Store all the intervening nodes in a temporary buffer to reuse.
