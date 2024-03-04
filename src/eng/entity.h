@@ -53,9 +53,7 @@ typedef struct Entity {
   Vector replay;
   Vector replay_temp;
   bool playback;
-
-  uint index; // used only by forward replays for caching
-  uint frame; // used only by forward replays for caching
+  bool ghost;
 
   RenderFn render;
   UpdateFn behavior;

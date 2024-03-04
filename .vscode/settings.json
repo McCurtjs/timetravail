@@ -11,7 +11,8 @@
     "camera.h": "c",
     "types.h": "c",
     "sdl.h": "c",
-    "math.h": "c"
+    "math.h": "c",
+    "functional": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",

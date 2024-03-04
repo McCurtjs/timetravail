@@ -149,6 +149,11 @@ int export(wasm_load) (int await_count, float dt) {
     .render = render_basic,
     .behavior = behavior_player,
   });
+  vector_init(&game.timeguys, sizeof(PlayerRef));
+  vector_push_back(&game.timeguys, &(PlayerRef){
+    .start_frame = 0,
+    .e = vector_get_back(&game.entities)
+  });
 
   return 1;
 }

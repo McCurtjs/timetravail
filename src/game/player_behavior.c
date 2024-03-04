@@ -3,8 +3,11 @@
 #include "wasm.h"
 #include "draw.h"
 
+#include "../test_behaviors.h"
 #include "vector.h"
 #include  "entity.h"
+
+#include <math.h>
 
 //         pressed v
 //      triggered v|
@@ -51,6 +54,11 @@ static uint get_input_mask(Game* game) {
 
 static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
   vec2 acceleration = v2zero;
+
+
+    if (dt < 0.016) {
+      print_float(dt);
+    }
 
   if (PRESSED(RIGHT)) {
     acceleration.x +=
@@ -118,27 +126,37 @@ static int handle_collisions(
 void behavior_player(Entity* e, Game* game, float _) {
   float dt = 0.016;
 
-  // Initialize the replay data storage on first update
-  if (e->replay.data == NULL) {
-    vector_init_reserve(&e->replay, sizeof(ReplayNode), 60 * 60);
-    vector_push_back(&e->replay, &(ReplayNode) {
-      .frame = 0,
-      .frame_until = 0,
-      .buttons = 0,
-      .data = e->fd,
-    });
-  }
-
   // Convert inputs from source game booleans to bitmask
   uint inputs = get_input_mask(game);
 
-  // debug points
+  // Initialize the replay data storage on first update
+  if (e->replay.data == NULL) {
+    vector_init_reserve(&e->replay, sizeof(ReplayNode), 200);
+    vector_push_back(&e->replay, &(ReplayNode) {
+      .frame = game->frame,
+      .frame_until = game->frame,
+      .buttons = 0,
+      .data = e->fd,
+    });
+
+    // Store a a pointer to this player entity along with the current frame
+    // to mark it as the "active" player for its frame set
+    vector_push_back(&game->timeguys, &(PlayerRef) {
+      .start_frame = game->frame,
+      .e = e,
+    });
+
+    print("New dude!");
+    print_int((int)e);
+  }
+
+  /* debug points
   draw_color(v3x);
   for (uint i = 0; i < e->replay.size; ++i) {
     ReplayNode node;
     vector_read(&e->replay, i, &node);
     draw_point(v2v3(node.data.pos, 0));
-  }
+  } //*/
 
   ReplayNode node; // this shouldn't be here, fix it
 
@@ -147,19 +165,36 @@ void behavior_player(Entity* e, Game* game, float _) {
     ReplayNode* prev_node = vector_get_back(&e->replay);
 
     if (game->frame - prev_node->frame >= max_replay_temp
+    ||  game->reverse_triggered
     ||  prev_node->buttons != inputs
     ||  prev_node->data.airborne != e->fd.airborne
     ||  prev_node->data.has_double != e->fd.has_double
     ) {
-      prev_node->frame_until = game->frame;
+      // Because fractional frames, make sure we aren't double-counting frames
+      if ((uint)game->frame!= prev_node->frame) {
+        prev_node->frame_until = game->frame;
 
-      vector_push_back(&e->replay, &(ReplayNode) {
-        .frame = game->frame,
-        .frame_until = game->frame,
-        .buttons = inputs,
-        .data = e->fd,
-      });
+        vector_push_back(&e->replay, &(ReplayNode) {
+         .frame = game->frame,
+          .frame_until = game->frame,
+          .buttons = inputs,
+          .data = e->fd,
+        });
+      }
+
+      // Stop recording when the game tells us the slowdown is over
+      if (game->reverse_triggered) {
+        print("Reverse triggered!");
+        e->playback = TRUE;
+      }
     }
+
+    // Simulate movement based on inputs
+    PlayerFrameData updates = e->fd;
+    handle_input(&updates, dt * game->reverse_speed, inputs);
+    handle_collisions(node.data, &updates);
+    handle_collisions(e->fd, &updates);
+    e->fd = updates;
 
   // Handle replay playback
   } else if (e->replay.size) {
@@ -168,7 +203,16 @@ void behavior_player(Entity* e, Game* game, float _) {
     }
 
     uint index;
-    ReplayNode node;
+    ReplayNode node, next;
+
+    // First check if the current frame is before the first playback frame
+    vector_read_front(&e->replay, &node);
+    if (node.frame > game->frame) {
+      e->hidden = TRUE;
+      return;
+    } else {
+      e->hidden = FALSE;
+    }
 
     // Find the snapshot containing the current frame
     // TODO: replace with binary search, this is gross
@@ -180,7 +224,7 @@ void behavior_player(Entity* e, Game* game, float _) {
       }
     }
 
-    index = node.frame;
+    uint block_start = node.frame;
 
     // If the current frame is within the bounds of the temp array, get it
     ReplayNode* temp = NULL;
@@ -195,36 +239,53 @@ void behavior_player(Entity* e, Game* game, float _) {
       loop {
         vector_push_back(&e->replay_temp, &node);
 
-        until(++node.frame >= node.frame_until);
+        // go one past the end so we can be sure the temp buffer also contains
+        // the next frame (pre-inc is exact, post-inc overlaps the next block)
+        until(node.frame++ >= node.frame_until);
 
         PlayerFrameData updates = node.data;
         handle_input(&updates, dt, node.buttons);
         handle_collisions(node.data, &updates);
         node.data = updates;
       }
+      print("Hi");
+      print_int(e->replay_temp.size);
+      print_int(node.frame_until - block_start);
     }
 
     // Read the final correct node from the temp buffer
-    if ((game->frame - index) < e->replay_temp.size) {
-      vector_read(&e->replay_temp, game->frame - index, &node);
+    if ((game->frame - block_start + 1) < e->replay_temp.size) {
+      vector_read(&e->replay_temp, game->frame - block_start, &node);
+      vector_read(&e->replay_temp, game->frame - block_start + 1, &next);
+      if (game->frame - block_start + 1 >= e->replay_temp.size) {
+        print("Ooops");
+        print_int(game->frame - block_start);
+        print_int(e->replay_temp.size);
+      }
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
-      vector_read_back(&e->replay, &node);
+      vector_read_back(&e->replay, &next);
+      next = node;
     }
+
+    // Interpolate position between the current and next frame for decimal frame
+    float frame_t = game->frame - floorf(game->frame);
+    node.data.pos = v2lerp(node.data.pos, next.data.pos, frame_t);
 
     // At this point, "node" should be set to the correct current frame
     temp = vector_get_back(&e->replay);
-    if (game->frame != node.frame && game->frame < temp->frame_until) { // sanity check
+    if ((uint)game->frame != node.frame && game->frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
-      print_int(game->reverse_playback); print_int(node.frame); print_int(game->frame);
+      print_int((int)e); print_int(node.frame); print_int(game->frame);
     }
+
+    // Finally, set the location of the entity
+    e->fd = node.data;
+
+    /*
 
     // Handle regular forward playback
     if (!game->reverse_playback) {
-      e->fd = node.data;
-      //inputs &= 0x00ff;
-      inputs = node.buttons;
-
       draw_color(v3y);
       vec3 _dbg_prev;
       for (uint i = 0; i < e->replay_temp.size; ++i) {
@@ -238,10 +299,6 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Handle playback of the replay in reverse
     } else {
       draw_color(v3z);
-
-      e->fd.pos = node.data.pos;
-      e->fd.vel = node.data.vel;
-
       vec3 _dbg_prev;
       for (uint i = 0; i < e->replay_temp.size; ++i) {
         ReplayNode node;
@@ -250,37 +307,9 @@ void behavior_player(Entity* e, Game* game, float _) {
         if (i > 0) draw_line(_dbg_prev, v2v3(node.data.pos, 0));
         _dbg_prev = v2v3(node.data.pos, 0);
       }
-    }
-  }
-
-  // Simulate movement based on inputs
-  if (!game->reverse_playback) {
-    PlayerFrameData updates = e->fd;
-    handle_input(&updates, dt, inputs);
-    handle_collisions(node.data, &updates);
-    handle_collisions(e->fd, &updates);
-    e->fd = updates;
+    } //*/
   }
 
   // Update rendering
   e->transform = m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 0.5}), 0));
-  draw_color(v3x);
-  draw_offset(v2v3(e->fd.pos, 0));
-  draw_vector(v2v3(v2scale(e->fd.vel, 0.5), 0));
-
-  // Camera control
-  static int lock_camera = FALSE;
-  if (lock_camera) {
-    game->camera.pos.xy = e->fd.pos;
-  }
-  if (game->input.triggered.camera_lock) {
-    lock_camera = !lock_camera;
-  }
-
-  // Handle replay trigger
-  if (inputs & REPLAY) {
-    if (!e->playback) {
-      e->playback = TRUE;
-    }
-  }
 }

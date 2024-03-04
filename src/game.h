@@ -65,6 +65,11 @@ typedef struct Game_Inputs {
   Game_Buttons released;
 } Game_Inputs;
 
+typedef struct PlayerRef {
+  uint start_frame;
+  Entity* e;
+} PlayerRef;
+
 typedef struct Game {
   vec2i window;
   Camera camera;
@@ -81,8 +86,12 @@ typedef struct Game {
   Vector entities;
 
   // Game specific shenanigans
-  uint frame;
-  uint reverse_playback;
+  float frame;
+  bool reverse_playback;
+  bool reverse_triggered;
+  float reverse_speed;
+  Vector timeguys;
+
 } Game;
 
 void game_init(Game* game);
