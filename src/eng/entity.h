@@ -6,6 +6,13 @@
 #include "texture.h"
 #include "shader.h"
 
+typedef struct PlayerFrameData {
+  vec2 pos;
+  vec2 vel;
+  int airborne;
+  int has_double;
+} PlayerFrameData;
+
 typedef struct TransformIndex {
   uint shader;
   uint model;
@@ -23,6 +30,8 @@ typedef void (*RenderFn)(Entity* e, Game* game);
 typedef struct Entity {
   vec3 pos;
   vec3 vel;
+
+  PlayerFrameData fd;
 
   union {
     quat rotation;

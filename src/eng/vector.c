@@ -49,14 +49,24 @@ void* vector_get(Vector* v, uint index) {
   return v->data + index * v->element_size;
 }
 
-void* vector_back(Vector* v) {
+void vector_read(Vector* v, uint index, void* element) {
+  if (!v || index >= v->size) return;
+  memcpy(element, v->data + index * v->element_size, v->element_size);
+}
+
+void* vector_get_back(Vector* v) {
   if (!v || v->size == 0) return NULL;
   return v->data + (v->size - 1) * v->element_size;
 }
 
+void vector_read_back(Vector* v, void* element) {
+  if (!v || v->size == 0) return;
+  memcpy(element, v->data + (v->size - 1) * v->element_size, v->element_size);
+}
+
 uint vector_pop_back(Vector* v, void* ret) {
   if (!v || v->size == 0) return 0;
-  memcpy(ret, v->data + v->size * v->element_size, v->element_size);
+  memcpy(ret, v->data + (v->size - 1) * v->element_size, v->element_size);
   return --v->size;
 }
 

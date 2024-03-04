@@ -44,8 +44,8 @@ void export(test_wasm_preload) (uint w, uint h) {
       .pos = (vec4){3, 2, 5, 1},
       .front = v4front,
       .up = v4y,
-      .persp = {d2r(70), v2iaspect((vec2i){w, h}), 0.1, 50}
-      //.ortho = {-6 * v2iaspect(windim), 6 * v2iaspect(windim), 6, -6, 0.1, 500}
+      .persp = {d2r(70), i2aspect((vec2i){w, h}), 0.1, 50}
+      //.ortho = {-6 * i2aspect(windim), 6 * i2aspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},

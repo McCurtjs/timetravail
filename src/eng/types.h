@@ -34,4 +34,7 @@ typedef unsigned char byte;
 #define d2r(DEG)  ((DEG) * PI / 180.0)
 #define isPow2(n) ((n & (n-1)) == 0)
 
+#define loop while (TRUE)
+#define until(condition) if (condition) break;
+
 #endif

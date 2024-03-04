@@ -14,7 +14,7 @@ void process_system_events(Game* game) {
         game->window.w = event.window.data1;
         game->window.h = event.window.data2;
         glViewport(0, 0, game->window.w, game->window.h);
-        float aspect = v2iaspect(game->window);
+        float aspect = i2aspect(game->window);
         game->camera.persp.aspect = aspect;
         camera_build_perspective(&game->camera);
         //game->camera.ortho.left = -game->camera.ortho.top * aspect;

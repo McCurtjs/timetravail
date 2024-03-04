@@ -40,8 +40,8 @@ void export(wasm_preload) (uint w, uint h) {
       .pos = (vec4){0, 0, 60, 1},
       .front = v4front,
       .up = v4y,
-      .persp = {d2r(20), v2iaspect((vec2i){w, h}), 0.1, 100}
-      //.ortho = {-6 * v2iaspect(windim), 6 * v2iaspect(windim), 6, -6, 0.1, 500}
+      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1, 100}
+      //.ortho = {-6 * i2aspect(windim), 6 * i2aspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},
@@ -129,11 +129,17 @@ int export(wasm_load) (int await_count, float dt) {
   //  .behavior = behavior_test_camera,
   //});
 
-  // Spinny Cube
+  // Player
   game_add_entity(&game, &(Entity) {
     .shader = &game.shaders.basic,
     .model = &game.models.color_cube,
     .pos = (vec3){0, 20, 0},
+    .fd = {
+      .pos = (vec2){0, 20},
+      .vel = v2zero,
+      .airborne = TRUE,
+      .has_double = TRUE
+    },
     .render = render_basic,
     .behavior = behavior_player,
   });

@@ -87,7 +87,7 @@ static int model_build_grid(Model_Grid* grid) {
   const byte  gb = MIN(grid->primary[1], 2);
 
   for (int j = 0; i < 6; i += 2, ++j) {
-    colors[i] = v3bzero;
+    colors[i] = b3zero;
     points[i] = points[i+1] = v3zero;
     colors[i].i[j] = 255;
     colors[i+1].i[j] = colors[i].i[j];
