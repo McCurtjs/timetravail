@@ -16,7 +16,7 @@
 #include "game.h"
 #include "system_events.h"
 #include "test_behaviors.h"
-#include "game/player_behavior.h"
+#include "game/game_behaviors.h"
 
 static Game game;
 
@@ -129,17 +129,23 @@ int export(wasm_load) (int await_count, float dt) {
   //  .behavior = behavior_test_camera,
   //});
 
+  // Time Controller
+  game_add_entity(&game, &(Entity) {
+    .behavior = behavior_time_controller,
+  });
+
   // Player
   game_add_entity(&game, &(Entity) {
     .shader = &game.shaders.basic,
     .model = &game.models.color_cube,
-    .pos = (vec3){0, 20, 0},
     .fd = {
       .pos = (vec2){0, 20},
       .vel = v2zero,
       .airborne = TRUE,
       .has_double = TRUE
     },
+    .replay = { .data = NULL },
+    .replay_temp = { .data = NULL },
     .render = render_basic,
     .behavior = behavior_player,
   });

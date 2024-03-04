@@ -5,6 +5,7 @@
 #include "model.h"
 #include "texture.h"
 #include "shader.h"
+#include "vector.h"
 
 typedef struct PlayerFrameData {
   vec2 pos;
@@ -28,10 +29,10 @@ typedef void (*RenderFn)(Entity* e, Game* game);
 //typedef void (OnCollideFn)(struct Entity* self, struct Entity* other); // ?
 
 typedef struct Entity {
-  vec3 pos;
-  vec3 vel;
-
-  PlayerFrameData fd;
+  union {
+    PlayerFrameData fd;
+    vec3 pos;
+  };
 
   union {
     quat rotation;
@@ -46,6 +47,15 @@ typedef struct Entity {
       const Texture* texture;
     };
   };
+
+  bool hidden;
+
+  Vector replay;
+  Vector replay_temp;
+  bool playback;
+
+  uint index; // used only by forward replays for caching
+  uint frame; // used only by forward replays for caching
 
   RenderFn render;
   UpdateFn behavior;

@@ -79,6 +79,10 @@ typedef struct Game {
   Game_Textures textures;
 
   Vector entities;
+
+  // Game specific shenanigans
+  uint frame;
+  uint reverse_playback;
 } Game;
 
 void game_init(Game* game);

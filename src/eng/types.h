@@ -4,6 +4,7 @@
 typedef unsigned int uint;
 typedef unsigned int jshandle;
 typedef unsigned char byte;
+typedef unsigned char bool;
 
 #ifndef NULL
 #define NULL 0

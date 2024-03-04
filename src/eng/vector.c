@@ -54,6 +54,16 @@ void vector_read(Vector* v, uint index, void* element) {
   memcpy(element, v->data + index * v->element_size, v->element_size);
 }
 
+void* vector_get_front(Vector* v) {
+  if (!v || v->size == 0) return NULL;
+  return v->data;
+}
+
+void vector_read_front(Vector* v, void* element) {
+  if (!v || v->size == 0) return;
+  memcpy(element, v->data, v->element_size);
+}
+
 void* vector_get_back(Vector* v) {
   if (!v || v->size == 0) return NULL;
   return v->data + (v->size - 1) * v->element_size;
@@ -68,6 +78,10 @@ uint vector_pop_back(Vector* v, void* ret) {
   if (!v || v->size == 0) return 0;
   memcpy(ret, v->data + (v->size - 1) * v->element_size, v->element_size);
   return --v->size;
+}
+
+void vector_clear(Vector* v) {
+  v->size = 0;
 }
 
 void vector_delete(Vector* v) {

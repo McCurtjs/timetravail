@@ -34,7 +34,7 @@ void game_render(Game* game) {
   for (uint i = 0 ; i < game->entities.size; ++i) {
     Entity* entity = vector_get(&game->entities, i);
 
-    if (entity->render) {
+    if (entity->render && !entity->hidden) {
       entity->render(entity, game);
     }
   }
