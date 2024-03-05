@@ -70,6 +70,10 @@ typedef struct PlayerRef {
   Entity* e;
 } PlayerRef;
 
+typedef struct Line {
+  vec2 a, b;
+} Line;
+
 typedef struct Game {
   vec2i window;
   Camera camera;
@@ -83,14 +87,19 @@ typedef struct Game {
   Game_Models models;
   Game_Textures textures;
 
+  // Vector levels; // list of levels with hot-swapping?
   Vector entities;
 
   // Game specific shenanigans
+  // Probably move all of these to a level class?
   float frame;
   bool reverse_playback;
   bool reverse_triggered;
   float reverse_speed;
   Vector timeguys;
+
+  Line* colliders;
+  uint collider_count;
 
 } Game;
 

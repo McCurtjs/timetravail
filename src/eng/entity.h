@@ -7,11 +7,14 @@
 #include "shader.h"
 #include "vector.h"
 
+typedef struct Line Line;
+
 typedef struct PlayerFrameData {
   vec2 pos;
   vec2 vel;
   int airborne;
   int has_double;
+  const Line* standing;
 } PlayerFrameData;
 
 typedef struct TransformIndex {

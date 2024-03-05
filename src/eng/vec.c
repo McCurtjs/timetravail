@@ -58,7 +58,7 @@ vec2 v2wedge(vec2 a, vec2 b) {
 }
 
 float v2cross(vec2 a, vec2 b) {
-  return a.x * b.y - a.y * b.y;
+  return a.x * b.y - a.y * b.x;
 }
 
 vec2 v2perp(vec2 v) {
@@ -86,6 +86,54 @@ vec2 v2rot(vec2 v, float theta) {
 vec2 v2lerp(vec2 p1, vec2 p2, float t) {
   vec2 v = v2scale(v2sub(p2, p1), t);
   return v2add(p1, v);
+}
+
+// t = (P.x * u.y - P.y * u.x + u.x * Q.y - u.y * Q.x) / (u.x * v.y - u.y * v.x)
+// s = (v.x * P.y - v.y * P.x + Q.x * v.y - Q.y * v.x) / (v.x * u.y - v.y * u.x)
+bool v2line_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out) {
+  float div = v2cross(u, v);
+  if (div == 0) return FALSE;
+  float t = (v2cross(P, u) + v2cross(u, Q)) / div;
+  if (t_out) *t_out = t;
+  if (!s_out) return TRUE;
+  *s_out = (v2cross(v, P) + v2cross(Q, v)) / -div;
+  return TRUE;
+}
+
+bool v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out) {
+  float t;
+  if (!v2line_line(P, v, Q, u, &t, NULL)) return FALSE;
+  if (t_out) *t_out = t;
+  if (t < 0) return FALSE;
+  return TRUE;
+}
+
+bool v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out) {
+  float t, s;
+  if (!v2line_line(P, v, Q, u, &t, &s)) return FALSE;
+  if (t_out) *t_out = t;
+  if (s_out) *s_out = s;
+  if (t < 0) return FALSE;
+  if (s < 0) return FALSE;
+  return TRUE;
+}
+
+bool v2ray_seg(vec2 P, vec2 v, vec2 Q1, vec2 Q2, float* t_out) {
+  vec2 u = v2sub(Q2, Q1);
+  float t, s; float* t_ptr = t_out ? t_out : &t;
+  if (!v2ray_ray(P, v, Q1, u, t_ptr, &s)) return FALSE;
+  if (s > 1) return FALSE;
+  return TRUE;
+}
+
+bool v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out) {
+  vec2 v = v2sub(P2, P1), u = v2sub(Q2, Q1);
+  float t, s;
+  if (!v2ray_ray(P1, v, Q1, u, &t, &s)) return FALSE;
+  if (t > 1) return FALSE;
+  if (s > 1) return FALSE;
+  if (out) *out = v2add(P1, v2scale(v, t));
+  return TRUE;
 }
 
 vec3 v2v3(vec2 v, float z) {

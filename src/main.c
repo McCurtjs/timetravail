@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "GL/gl.h"
 #include "SDL/sdl.h"
@@ -114,6 +115,21 @@ int export(wasm_load) (int await_count, float dt) {
   model_build(&game.models.grid);
   model_build(&game.models.gizmo);
 
+  // Set level geometry
+
+  Line colliders[] = {
+    { .a = (vec2){-4, 3}, .b = (vec2){-1, 3} },
+    { .a = (vec2){ 1, 6}, .b = (vec2){ 4, 6} },
+    { .a = (vec2){ 20.5, 6}, .b = (vec2){ 20.5, 8} },
+    { .a = (vec2){-15, 7}, .b = (vec2){-8, 5} },
+    { .a = (vec2){ 10, 0}, .b = (vec2){ 17, 7} },
+    { .a = (vec2){ 17, 7}, .b = (vec2){ 100, 7} },
+  };
+
+  game.colliders = malloc(sizeof(colliders));
+  memcpy(game.colliders, colliders, sizeof(colliders));
+  game.collider_count = sizeof(colliders) / sizeof(Line);
+
   // Establish game entities
 
   // Debug Renderer
@@ -128,6 +144,11 @@ int export(wasm_load) (int await_count, float dt) {
   //game_add_entity(&game, &(Entity) {
   //  .behavior = behavior_test_camera,
   //});
+
+  // Entity to draw physics lines
+  game_add_entity(&game, &(Entity) {
+    .behavior = behavior_draw_physics_colliders
+  });
 
   // Time Controller
   game_add_entity(&game, &(Entity) {

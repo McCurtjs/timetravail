@@ -55,11 +55,6 @@ static uint get_input_mask(Game* game) {
 static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
   vec2 acceleration = v2zero;
 
-
-    if (dt < 0.016) {
-      print_float(dt);
-    }
-
   if (PRESSED(RIGHT)) {
     acceleration.x +=
       (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
@@ -101,26 +96,17 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
       d->has_double = FALSE;
     }
     d->airborne = TRUE;
+    d->standing = NULL;
   } else if (PRESSED(JUMP) && d->airborne) {
     acceleration.y += lift * dt;
   }
 
-  acceleration.y += -gravity * dt;
+  if (!d->standing) {
+    acceleration.y += -gravity * dt;
+  }
+
   d->vel = v2add(d->vel, acceleration);
   d->pos = v2add(d->pos, v2scale(d->vel, dt));
-}
-
-static int handle_collisions(
-  PlayerFrameData _/*old_fd*/, PlayerFrameData* new_fd
-) {
-  if (new_fd->pos.y <= 0) {
-    new_fd->pos.y = 0;
-    new_fd->vel.y = 0;
-    new_fd->airborne = FALSE;
-    new_fd->has_double = TRUE;
-    return 1;
-  }
-  return 0;
 }
 
 void behavior_player(Entity* e, Game* game, float _) {
@@ -150,7 +136,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     print_int((int)e);
   }
 
-  /* debug points
+  //* debug points
   draw_color(v3x);
   for (uint i = 0; i < e->replay.size; ++i) {
     ReplayNode node;
@@ -158,7 +144,6 @@ void behavior_player(Entity* e, Game* game, float _) {
     draw_point(v2v3(node.data.pos, 0));
   } //*/
 
-  ReplayNode node; // this shouldn't be here, fix it
 
   // Handle input event recording
   if (!e->playback) {
@@ -169,6 +154,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     ||  prev_node->buttons != inputs
     ||  prev_node->data.airborne != e->fd.airborne
     ||  prev_node->data.has_double != e->fd.has_double
+    ||  prev_node->data.standing != e->fd.standing
     ) {
       // Because fractional frames, make sure we aren't double-counting frames
       if ((uint)game->frame!= prev_node->frame) {
@@ -184,7 +170,6 @@ void behavior_player(Entity* e, Game* game, float _) {
 
       // Stop recording when the game tells us the slowdown is over
       if (game->reverse_triggered) {
-        print("Reverse triggered!");
         e->playback = TRUE;
       }
     }
@@ -192,8 +177,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
     handle_input(&updates, dt * game->reverse_speed, inputs);
-    handle_collisions(node.data, &updates);
-    handle_collisions(e->fd, &updates);
+    handle_player_collisions(game, e->fd, &updates);
     e->fd = updates;
 
   // Handle replay playback
@@ -209,7 +193,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     vector_read_front(&e->replay, &node);
     if (node.frame > game->frame) {
       e->hidden = TRUE;
-      return;
+      return; // hard exit, don't waste time simulating playback
     } else {
       e->hidden = FALSE;
     }
@@ -245,23 +229,15 @@ void behavior_player(Entity* e, Game* game, float _) {
 
         PlayerFrameData updates = node.data;
         handle_input(&updates, dt, node.buttons);
-        handle_collisions(node.data, &updates);
+        handle_player_collisions(game, node.data, &updates);
         node.data = updates;
       }
-      print("Hi");
-      print_int(e->replay_temp.size);
-      print_int(node.frame_until - block_start);
     }
 
     // Read the final correct node from the temp buffer
     if ((game->frame - block_start + 1) < e->replay_temp.size) {
       vector_read(&e->replay_temp, game->frame - block_start, &node);
       vector_read(&e->replay_temp, game->frame - block_start + 1, &next);
-      if (game->frame - block_start + 1 >= e->replay_temp.size) {
-        print("Ooops");
-        print_int(game->frame - block_start);
-        print_int(e->replay_temp.size);
-      }
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
       vector_read_back(&e->replay, &next);
@@ -282,9 +258,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Finally, set the location of the entity
     e->fd = node.data;
 
-    /*
-
-    // Handle regular forward playback
+    //* Handle regular forward playback
     if (!game->reverse_playback) {
       draw_color(v3y);
       vec3 _dbg_prev;
@@ -312,4 +286,30 @@ void behavior_player(Entity* e, Game* game, float _) {
 
   // Update rendering
   e->transform = m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 0.5}), 0));
+
+  // Camera control
+  // (you want to guarantee the camera control is at the end to avoid stuttering
+  // when the player moves after the camera in update sequence)
+  if (e != ((PlayerRef*)vector_get_back(&game->timeguys))->e) return;
+
+  static int lock_camera = FALSE;
+  if (lock_camera) {
+    game->camera.pos.xy = e->fd.pos;
+  }
+  if (game->input.triggered.camera_lock) {
+    lock_camera = !lock_camera;
+  }
 }
+
+// TODO:
+//  - make player left/right move in the direction of the stood-on platform
+//  - differentiate platform types/reactions based on their angle
+//    - steep slopes (walk up slower)
+//    - walls (no standing changes - will need a collision frame record)
+//    - no-stand collider with bouncy property?
+//    - moving platforms (tie physics platforms to entities, record movement in Line class?)
+//      - give Line its own "behavior" setup to react when collided with?
+//      - moving platforms will probably just have to move based on time functions (cos(frame))
+//    - platform drop
+//  - test the epsilon thing again? or ignore it since it never works well
+//    - or set epsilon to zero so the platforms can be EXACT

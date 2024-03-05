@@ -12,7 +12,8 @@
     "types.h": "c",
     "sdl.h": "c",
     "math.h": "c",
-    "functional": "c"
+    "functional": "c",
+    "game_behaviors.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",

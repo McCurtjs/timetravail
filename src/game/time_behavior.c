@@ -100,12 +100,12 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
   draw_vector(v2v3(v2scale(active.e->fd.vel, 0.5), 0));
   //*/
 
-  // Camera control
-  static int lock_camera = FALSE;
-  if (lock_camera) {
-    game->camera.pos.xy = active.e->fd.pos;
-  }
-  if (game->input.triggered.camera_lock) {
-    lock_camera = !lock_camera;
-  }
+//  // Camera control
+//  static int lock_camera = FALSE;
+//  if (lock_camera) {
+//    game->camera.pos.xy = active.e->fd.pos;
+//  }
+//  if (game->input.triggered.camera_lock) {
+//    lock_camera = !lock_camera;
+//  }
 }

@@ -141,6 +141,14 @@ typedef vec4 color4;
 #define v4left    ((vec4){-1, 0, 0, 0 })
 #define v4down    ((vec4){ 0,-1, 0, 0 })
 #define v4front   ((vec4){ 0, 0,-1, 0 })
+#define cBlack    ((vec4){ 0, 0, 0, 1 })
+#define cRed      ((vec4){ 1, 0, 0, 1 })
+#define cGreen    ((vec4){ 0, 1, 0, 1 })
+#define cBlue     ((vec4){ 0, 0, 1, 1 })
+#define cYellow   ((vec4){ 1, 1, 0, 1 })
+#define cCyan     ((vec4){ 0, 1, 1, 1 })
+#define cMagenta  ((vec4){ 1, 0, 1, 1 })
+#define cWhite    ((vec4){ 1, 1, 1, 1 })
 
 vec3 qtransform(quat q, vec3 v);
 
@@ -164,8 +172,13 @@ vec2  v2dir(float theta);
 vec2  v2rot(vec2 v, float theta);
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
 vec2  v2lerp(vec2 a, vec2 b, float t);
-vec3  v2v3(vec2 v, float z);
-vec4  v2v4(vec2 v, float z, float w);
+bool  v2line_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
+bool  v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out);
+bool  v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
+bool  v2ray_seg(vec2 P, vec2 v, vec2 Q1, vec2 Q2, float* t_out);
+bool  v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out);
+vec3  v2v3(vec2 xy, float z);
+vec4  v2v4(vec2 xy, float z, float w);
 
 float v3mag(vec3 v);
 float v3magsq(vec3 v);
@@ -182,6 +195,6 @@ vec3  v3perp(vec3 v);
 //quat  v3mul(vec3 a, vec3 b);
 float v3angle(vec3 a, vec3 b);
 //vec3  v3rot(vec3 v, vec3 axis, float theta);
-vec4  v3v4(vec3 v, float w);
+vec4  v3v4(vec3 xyz, float w);
 
 #endif
