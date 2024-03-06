@@ -120,10 +120,27 @@ int export(wasm_load) (int await_count, float dt) {
   Line colliders[] = {
     { .a = (vec2){-4, 3}, .b = (vec2){-1, 3} },
     { .a = (vec2){ 1, 6}, .b = (vec2){ 4, 6} },
-    { .a = (vec2){ 20.5, 6}, .b = (vec2){ 20.5, 8} },
+    { .a = (vec2){ 4.0, 6}, .b = (vec2){ 10, 6} },
+    { .a = (vec2){ 20.5, 6}, .b = (vec2){ 20.5, 8}, .wall = TRUE },
     { .a = (vec2){-15, 7}, .b = (vec2){-8, 5} },
     { .a = (vec2){ 10, 0}, .b = (vec2){ 17, 7} },
-    { .a = (vec2){ 17, 7}, .b = (vec2){ 100, 7} },
+    { .a = (vec2){ 17, 7}, .b = (vec2){ 100, 7}, .droppable = TRUE },
+    { .a = (vec2){ -15, 4}, .b = (vec2){ -15, -0.5}, .wall = TRUE },
+    { .a = (vec2){ -15, -0.5}, .b = (vec2){ -15, 4}, .wall = TRUE },
+
+    { .a = (vec2){ 5, 13}, .b = (vec2){ 10, 13} },
+    { .a = (vec2){ 5, 20}, .b = (vec2){ 10, 20} },
+    { .a = (vec2){ 15, 25}, .b = (vec2){ 20, 25} },
+
+    { .a = (vec2){-27, 1}, .b = (vec2){ -23, 1}, .bouncy = TRUE, .wall = TRUE },
+
+    { .a = (vec2){-12, 30}, .b = (vec2){ 12, 30} },   // fd base
+    { .a = (vec2){-2.5, 37}, .b = (vec2){ 2.5, 37}, .droppable = TRUE }, // top plat
+    { .a = (vec2){-10, 33.5}, .b = (vec2){ -5, 33.5}, .droppable = TRUE }, // left plat
+    { .a = (vec2){ 5, 33.5}, .b = (vec2){ 10, 33.5}, .droppable = TRUE }, // right plat
+    { .a = (vec2){-8, 25}, .b = (vec2){-12, 30}, .wall = TRUE }, // left wall
+    { .a = (vec2){ 12, 30}, .b = (vec2){ 8, 25}, .wall = TRUE }, // right wall
+    { .a = (vec2){ 8, 25}, .b = (vec2){-8, 25}, .wall = TRUE }, // bottom
   };
 
   game.colliders = malloc(sizeof(colliders));

@@ -54,35 +54,51 @@ static uint get_input_mask(Game* game) {
 
 static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
   vec2 acceleration = v2zero;
+  vec2 axis = v2x;
+
+  if (d->standing) {
+    axis = v2norm(v2sub(d->standing->b, d->standing->a));
+  }
 
   if (PRESSED(RIGHT)) {
-    acceleration.x +=
-      (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
-      ? max_vel[d->airborne] - d->vel.x
-      : accel[d->airborne] * dt;
-    if (!d->airborne && TRIGGERED(RIGHT) && d->vel.x < -16) {
-      acceleration.x += -d->vel.x / 3;
-    }
+    acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
+
+    //acceleration.x +=
+    //  (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
+    //  ? max_vel[d->airborne] - d->vel.x
+    //  : accel[d->airborne] * dt;
+    //if (!d->airborne && TRIGGERED(RIGHT) && d->vel.x < -16) {
+    //  acceleration.x += -d->vel.x / 3;
+    //}
   }
 
   if (PRESSED(LEFT)) {
-    acceleration.x +=
-      d->vel.x - accel[d->airborne] * dt < -max_vel[d->airborne]
-      ? -max_vel[d->airborne] - d->vel.x
-      : -accel[d->airborne] * dt;
-    if (!d->airborne && TRIGGERED(LEFT) && d->vel.x > 16) {
-      acceleration.x += -d->vel.x / 3;
-    }
+    acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
+    //acceleration.x +=
+    //  d->vel.x - accel[d->airborne] * dt < -max_vel[d->airborne]
+    //  ? -max_vel[d->airborne] - d->vel.x
+    //  : -accel[d->airborne] * dt;
+    //if (!d->airborne && TRIGGERED(LEFT) && d->vel.x > 16) {
+    //  acceleration.x += -d->vel.x / 3;
+    //}
   }
 
   if (!PRESSED(LEFT) && !PRESSED(RIGHT)) {
     if (!d->airborne) {
-      acceleration.x += -d->vel.x * skid * dt;
+      acceleration = v2add(acceleration, v2scale(v2neg(d->vel), skid * dt));
+      //acceleration.x += -d->vel.x * skid * dt;
     }
   }
 
+  if (d->vel.x > max_vel[d->airborne]) {
+    d->vel.x = max_vel[d->airborne];
+  } else if (d->vel.x < -max_vel[d->airborne]) {
+    d->vel.x = -max_vel[d->airborne];
+  }
+
   if (TRIGGERED(DROP) && d->airborne && d->vel.y < 0.2) {
-    acceleration.y += -drop;
+    acceleration = v2add(acceleration, v2scale(v2down, drop));
+    //acceleration.y += -drop;
   }
 
   if (TRIGGERED(JUMP) && (d->has_double || !d->airborne)) {
@@ -127,6 +143,7 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
+    ((PlayerRef*)vector_get_back(&game->timeguys))->end_frame = game->frame;
     vector_push_back(&game->timeguys, &(PlayerRef) {
       .start_frame = game->frame,
       .e = e,
@@ -136,7 +153,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     print_int((int)e);
   }
 
-  //* debug points
+  /* debug points
   draw_color(v3x);
   for (uint i = 0; i < e->replay.size; ++i) {
     ReplayNode node;
@@ -290,19 +307,27 @@ void behavior_player(Entity* e, Game* game, float _) {
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering
   // when the player moves after the camera in update sequence)
-  if (e != ((PlayerRef*)vector_get_back(&game->timeguys))->e) return;
+  PlayerRef active, temp;
+  for (uint index = 0; index < game->timeguys.size; ++index) {
+    vector_read(&game->timeguys, index, &temp);
 
-  static int lock_camera = FALSE;
-  if (lock_camera) {
-    game->camera.pos.xy = e->fd.pos;
+    if (index == 0 || temp.start_frame <= game->frame) {
+      active = temp;
+    }
   }
-  if (game->input.triggered.camera_lock) {
-    lock_camera = !lock_camera;
+
+  if (active.e == e) {
+    static int lock_camera = FALSE;
+    if (lock_camera) {
+      game->camera.pos.xy = e->fd.pos;
+    }
+    if (game->input.triggered.camera_lock) {
+      lock_camera = !lock_camera;
+    }
   }
 }
 
 // TODO:
-//  - make player left/right move in the direction of the stood-on platform
 //  - differentiate platform types/reactions based on their angle
 //    - steep slopes (walk up slower)
 //    - walls (no standing changes - will need a collision frame record)
@@ -311,5 +336,6 @@ void behavior_player(Entity* e, Game* game, float _) {
 //      - give Line its own "behavior" setup to react when collided with?
 //      - moving platforms will probably just have to move based on time functions (cos(frame))
 //    - platform drop
+//    - make sure if the player is moving fast and hits two platforms, pick the nearest
 //  - test the epsilon thing again? or ignore it since it never works well
 //    - or set epsilon to zero so the platforms can be EXACT

@@ -123,12 +123,17 @@ typedef vec4 color4;
 #define v2zero    ((vec2){ 0, 0 })
 #define v2x       ((vec2){ 1, 0 })
 #define v2y       ((vec2){ 0, 1 })
+#define v2right   ((vec2){ 1, 0 })
+#define v2up      ((vec2){ 0, 1 })
 #define v2left    ((vec2){-1, 0 })
 #define v2down    ((vec2){ 0,-1 })
 #define v3zero    ((vec3){ 0, 0, 0 })
 #define v3x       ((vec3){ 1, 0, 0 })
 #define v3y       ((vec3){ 0, 1, 0 })
 #define v3z       ((vec3){ 0, 0, 1 })
+#define v3right   ((vec3){ 1, 0, 0 })
+#define v3up      ((vec3){ 0, 1, 0 })
+#define v3back    ((vec3){ 0, 0, 1 })
 #define v3left    ((vec3){-1, 0, 0 })
 #define v3down    ((vec3){ 0,-1, 0 })
 #define v3front   ((vec3){ 0, 0,-1 })
@@ -138,6 +143,9 @@ typedef vec4 color4;
 #define v4z       ((vec4){ 0, 0, 1, 0 })
 #define v4w       ((vec4){ 0, 0, 0, 1 })
 #define v4origin  ((vec4){ 0, 0, 0, 1 })
+#define v4right   ((vec4){ 1, 0, 0, 0 })
+#define v4up      ((vec4){ 0, 1, 0, 0 })
+#define v4back    ((vec4){ 0, 0, 1, 0 })
 #define v4left    ((vec4){-1, 0, 0, 0 })
 #define v4down    ((vec4){ 0,-1, 0, 0 })
 #define v4front   ((vec4){ 0, 0,-1, 0 })
@@ -149,6 +157,14 @@ typedef vec4 color4;
 #define cCyan     ((vec4){ 0, 1, 1, 1 })
 #define cMagenta  ((vec4){ 1, 0, 1, 1 })
 #define cWhite    ((vec4){ 1, 1, 1, 1 })
+#define bBlack    ((vec4b){   0,   0,   0, 255 })
+#define bRed      ((vec4b){ 255,   0,   0, 255 })
+#define bGreen    ((vec4b){   0, 255,   0, 255 })
+#define bBlue     ((vec4b){   0,   0, 255, 255 })
+#define bYellow   ((vec4b){ 255, 255,   0, 255 })
+#define bCyan     ((vec4b){   0, 255, 255, 255 })
+#define bMagenta  ((vec4b){ 255,   0, 255, 255 })
+#define bWhite    ((vec4b){ 255, 255, 255, 255 })
 
 vec3 qtransform(quat q, vec3 v);
 
@@ -165,13 +181,15 @@ float v2dot(vec2 a, vec2 b);
 vec2  v2wedge(vec2 a, vec2 b);
 float v2cross(vec2 a, vec2 b);
 vec2  v2perp(vec2 v);
-//vec2 v2reflect(vec2 a, vec2 b);
+vec2 v2reflect(vec2 a, vec2 b);
 //vec3 v2mul(vec2 v, vec2 axis);
 float v2angle(vec2 a, vec2 b);
 vec2  v2dir(float theta);
 vec2  v2rot(vec2 v, float theta);
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
 vec2  v2lerp(vec2 a, vec2 b, float t);
+float v2closest_t(vec2 P, vec2 Q, vec2 u);
+vec2  v2closest(vec2 P, vec2 Q, vec2 u);
 bool  v2line_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
 bool  v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out);
 bool  v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);

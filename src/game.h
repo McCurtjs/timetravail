@@ -67,11 +67,15 @@ typedef struct Game_Inputs {
 
 typedef struct PlayerRef {
   uint start_frame;
+  uint end_frame;
   Entity* e;
 } PlayerRef;
 
 typedef struct Line {
   vec2 a, b;
+  bool droppable;
+  bool wall;
+  bool bouncy;
 } Line;
 
 typedef struct Game {

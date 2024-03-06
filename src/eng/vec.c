@@ -65,6 +65,13 @@ vec2 v2perp(vec2 v) {
   return (vec2){-v.y, v.x};
 }
 
+vec2 v2reflect(vec2 v, vec2 mirror) {
+  float t = v2dot(v, v2norm(mirror)) * v2mag(mirror);
+  vec2 P = v2scale(mirror, t);
+  vec2 r = v2sub(P, v);
+  return v2add(P, r);
+}
+
 float v2angle(vec2 a, vec2 b) {
   return acosf(v2dot(a, b) / (v2mag(a) * v2mag(b)));
 }
@@ -86,6 +93,14 @@ vec2 v2rot(vec2 v, float theta) {
 vec2 v2lerp(vec2 p1, vec2 p2, float t) {
   vec2 v = v2scale(v2sub(p2, p1), t);
   return v2add(p1, v);
+}
+
+float v2closest_t(vec2 P, vec2 Q, vec2 u) {
+  return v2dot(v2norm(u), v2sub(P, Q)) * v2mag(u);
+}
+
+vec2 v2closest(vec2 P, vec2 Q, vec2 u) {
+  return v2add(Q, v2scale(u, v2closest_t(P, Q, u)));
 }
 
 // t = (P.x * u.y - P.y * u.x + u.x * Q.y - u.y * Q.x) / (u.x * v.y - u.y * v.x)
