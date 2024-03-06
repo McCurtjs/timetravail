@@ -73,9 +73,12 @@ typedef struct PlayerRef {
 
 typedef struct Line {
   vec2 a, b;
+
   bool droppable;
   bool wall;
   bool bouncy;
+
+  Movement* moving;
 } Line;
 
 typedef struct Game {

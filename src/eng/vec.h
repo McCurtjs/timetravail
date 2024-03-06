@@ -172,6 +172,8 @@ float i2aspect(vec2i v);
 
 float v2mag(vec2 v);
 float v2magsq(vec2 v);
+float v2dist(vec2 P, vec2 Q);
+float v2distsq(vec2 P, vec2 Q);
 vec2  v2norm(vec2 v);
 vec2  v2neg(vec2 v);
 vec2  v2add(vec2 a, vec2 b);
@@ -181,7 +183,7 @@ float v2dot(vec2 a, vec2 b);
 vec2  v2wedge(vec2 a, vec2 b);
 float v2cross(vec2 a, vec2 b);
 vec2  v2perp(vec2 v);
-vec2 v2reflect(vec2 a, vec2 b);
+vec2  v2reflect(vec2 a, vec2 b);
 //vec3 v2mul(vec2 v, vec2 axis);
 float v2angle(vec2 a, vec2 b);
 vec2  v2dir(float theta);

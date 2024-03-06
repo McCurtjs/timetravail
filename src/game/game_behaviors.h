@@ -13,4 +13,8 @@ int  handle_player_collisions(
 
 void behavior_draw_physics_colliders(Entity* entity, Game* game, float dt);
 
+void behavior_moving_platform(Entity* entity, Game* game, float dt);
+
+vec2 platform_pos_at_frame(Movement* m, float frame);
+
 #endif

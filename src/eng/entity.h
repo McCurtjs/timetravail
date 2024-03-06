@@ -31,6 +31,15 @@ typedef void (*RenderFn)(Entity* e, Game* game);
 //typedef void (PhysicsFn)(struct Entity* e);
 //typedef void (OnCollideFn)(struct Entity* self, struct Entity* other); // ?
 
+typedef struct Movement {
+  Line* line;
+  bool move_once;
+  vec2 target;
+  float delay;
+  float duration;
+  vec2 origin, v_plat, v_rail;
+} Movement;
+
 typedef struct Entity {
   union {
     PlayerFrameData fd;
@@ -53,10 +62,16 @@ typedef struct Entity {
 
   bool hidden;
 
-  Vector replay;
-  Vector replay_temp;
-  bool playback;
-  bool ghost;
+  // GameObject* obj; // pointer to custom data? (void*?)
+
+  union {
+    Movement movement_params;
+    struct {
+      Vector replay;
+      Vector replay_temp;
+      bool playback;
+    };
+  };
 
   RenderFn render;
   UpdateFn behavior;

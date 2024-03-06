@@ -36,7 +36,7 @@ const static float gravity = 9.8 * 5;
 const static float jump_str = 16;
 const static float jump_reverse_factor = 0.2;
 
-const static int max_replay_temp = 60;
+const static int max_replay_temp = 120;
 
 static uint get_input_mask(Game* game) {
   uint inputs = 0;
@@ -193,7 +193,8 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
-    handle_input(&updates, dt * game->reverse_speed, inputs);
+    dt = dt * game->reverse_speed;
+    handle_input(&updates, dt, inputs);
     handle_player_collisions(game, e->fd, &updates);
     e->fd = updates;
 
@@ -328,14 +329,18 @@ void behavior_player(Entity* e, Game* game, float _) {
 }
 
 // TODO:
+//  - sprite animations (and requisite playback information in fd)
+//  - hitboxes
+//    - spawn transient hitbox object in vector in game
+//      - check active player against all hitboxes for detection
+//      - use a tick-down timer in fd to maintain hitbox duration
+//        - (spawn a 1-frame box as long as count is positive, set to n on attack)
+//    + alternatively, tie hitboxes directly to animation frames
+//      - give specific frames of animation pointers to hitbox data
+//      - accuracy of boxes should be maintained because animations should be accurate
+//  - stopwatch model and effect (maybe just do the hand spin first)
+//    - yeah, we're gonna need model loading most likely...
+//    - CRT static and film-roll rewind effect when playing backwards
 //  - differentiate platform types/reactions based on their angle
 //    - steep slopes (walk up slower)
-//    - walls (no standing changes - will need a collision frame record)
-//    - no-stand collider with bouncy property?
-//    - moving platforms (tie physics platforms to entities, record movement in Line class?)
-//      - give Line its own "behavior" setup to react when collided with?
-//      - moving platforms will probably just have to move based on time functions (cos(frame))
-//    - platform drop
-//    - make sure if the player is moving fast and hits two platforms, pick the nearest
-//  - test the epsilon thing again? or ignore it since it never works well
-//    - or set epsilon to zero so the platforms can be EXACT
+//    - give Line its own "behavior" setup to react when collided with?

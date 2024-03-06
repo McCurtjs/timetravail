@@ -28,6 +28,14 @@ float v2magsq(vec2 v) {
   return v.x * v.x + v.y * v.y;
 }
 
+float v2dist(vec2 P, vec2 Q) {
+  return sqrt(v2distsq(P, Q));
+}
+
+float v2distsq(vec2 P, vec2 Q) {
+  return v2magsq(v2sub(Q, P));
+}
+
 vec2 v2norm(vec2 v) {
   float mag = v2mag(v);
   return (vec2){v.x / mag, v.y / mag};
