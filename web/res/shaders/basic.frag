@@ -15,6 +15,10 @@ float specularPower = 0.35;
 out vec4 fragColor;
 
 void main() {
+  vec4 albedo = texture(texSamp, vUV);
+
+  if (albedo.w == 0.0) discard;
+
   vec4 n = normalize(vNormal);
   vec4 viewDir = normalize(cameraPos - vPos);
   vec4 lightDir = normalize(lightPos - vPos);
@@ -23,8 +27,8 @@ void main() {
   float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
 
   fragColor = vec4(vUV, 0.0, 1.0) * (ambient + diffuse + specular);
-  fragColor = texture(texSamp, vUV) * (ambient + diffuse + specular);
+  fragColor.xyz = albedo.xyz * (ambient + diffuse + specular);
+  fragColor.w = albedo.w;
 
-  //fragColor = normalize(vNormal) * 0.5 + vec4(0.5, 0.5, 0.5, 0);
-  fragColor.w = 1.0;
+  //fragColor = vec4(normalize(vNormal.xyz) * 0.5 + vec3(0.5, 0.5, 0.5), 1);
 }

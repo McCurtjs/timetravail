@@ -10,6 +10,18 @@ function wasm_import_gl(imports, game) {
     game.gl.viewport(x, y, width, height);
   }
 
+  imports["glEnable"] = (cap) => {
+    game.gl.enable(cap);
+  }
+
+  imports["glDisable"] = (cap) => {
+    game.gl.disable(cap);
+  }
+
+  imports["glBlendFunc"] = (sfactor, dfactor) => {
+    game.gl.blendFunc(sfactor, dfactor);
+  }
+
   // Shaders
 
   imports["glCreateShader"] = (shader_type) => {

@@ -237,7 +237,10 @@ static void model_render_sprites(Model_Sprites* sprites) {
   uint size = sizeof(SpriteVertex) * sprites->verts.size;
   glBufferData(GL_ARRAY_BUFFER, size, sprites->verts.data, GL_DYNAMIC_DRAW);
 
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDrawArrays(GL_TRIANGLES, 0, sprites->verts.size);
+  glDisable(GL_BLEND);
 
   glBindVertexArray(0);
 

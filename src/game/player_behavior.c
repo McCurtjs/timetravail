@@ -328,7 +328,8 @@ void behavior_player(Entity* e, Game* game, float _) {
   }
 
   // Update rendering
-  e->transform = m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 0.5}), 0));
+  e->transform = m4uniform(2);
+  e->transform = m4mul(m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 1}), 0)), e->transform);
 
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering

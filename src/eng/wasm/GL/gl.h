@@ -331,6 +331,9 @@ typedef double GLclampd;
 
 GLenum  glGetError();
 void    glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+void    glEnable(GLenum cap);
+void    glDisable(GLenum cap);
+void    glBlendFunc(GLenum sfactor, GLenum dfactor);
 
 GLuint  glCreateShader(GLenum shaderType);
 void    glShaderSource(

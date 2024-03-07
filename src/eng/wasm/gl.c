@@ -4,6 +4,9 @@
 
 extern GLenum glGetError();
 extern void   glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+extern void   glEnable(GLenum cap);
+extern void   glDisable(GLenum cap);
+extern void   glBlendFunc(GLenum sfactor, GLenum dfactor);
 
 extern GLuint glCreateShader(GLuint shaderType);
 extern void   js_glShaderSource(GLuint data_id, const char* src, GLint length);
