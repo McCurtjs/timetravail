@@ -3,20 +3,20 @@
 
 //https://stackoverflow.com/questions/28375338/cube-using-single-gl-triangle-strip
 const static vec4 cube_color[14] = {
-  cWhite,
-  cRed,
-  cGreen,
-  cBlue,
-  cYellow,
-  cRed,
-  cCyan,
-  cWhite,
-  cMagenta,
-  cGreen,
-  cBlack,
-  cYellow,
-  cMagenta,
-  cCyan
+  c4white,
+  c4red,
+  c4green,
+  c4blue,
+  c4yellow,
+  c4red,
+  c4cyan,
+  c4white,
+  c4magenta,
+  c4green,
+  c4black,
+  c4yellow,
+  c4magenta,
+  c4cyan
 };
 
 const static vec3 cube_pos[14] = {

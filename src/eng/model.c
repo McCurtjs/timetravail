@@ -4,6 +4,8 @@
 
 #include <stdlib.h>
 
+#include "wasm.h"
+
 // inlined static data declarations for model primitives
 #include "data/inline_primitives.h"
 
@@ -184,6 +186,115 @@ static void model_render_cube_color(const Model_CubeColor* _) {
   glBindVertexArray(0);
 }
 
+// Model_Sprites
+
+typedef struct SpriteVertex {
+  vec2 pos;
+  vec2 uv;
+  vec3 norm;
+  color3b tint;
+} SpriteVertex;
+
+static int model_build_sprites(Model_Sprites* sprites) {
+  if (sprites->verts.data != NULL) {
+    vector_delete(&sprites->verts);
+  }
+  vector_init(&sprites->verts, sizeof(SpriteVertex));
+
+  glGenVertexArrays(1, &sprites->vao);
+  glBindVertexArray(sprites->vao);
+
+  glGenBuffers(1, &sprites->buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, v2floats, GL_FLOAT, GL_FALSE,
+    sizeof(SpriteVertex), &((SpriteVertex*)0)->pos);
+
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, v3floats, GL_FLOAT, GL_FALSE,
+    sizeof(SpriteVertex), &((SpriteVertex*)0)->norm);
+
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, v2floats, GL_FLOAT, GL_FALSE,
+    sizeof(SpriteVertex), &((SpriteVertex*)0)->uv);
+
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, b3bytes, GL_UNSIGNED_BYTE, GL_TRUE,
+    sizeof(SpriteVertex), &((SpriteVertex*)0)->tint);
+
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  sprites->ready = TRUE;
+  return 1;
+}
+
+static void model_render_sprites(Model_Sprites* sprites) {
+  glBindVertexArray(sprites->vao);
+  glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
+
+  uint size = sizeof(SpriteVertex) * sprites->verts.size;
+  glBufferData(GL_ARRAY_BUFFER, size, sprites->verts.data, GL_DYNAMIC_DRAW);
+
+  glDrawArrays(GL_TRIANGLES, 0, sprites->verts.size);
+
+  glBindVertexArray(0);
+
+  vector_clear(&sprites->verts);
+}
+
+void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, float scale, uint frame) {
+  if (sprites->verts.data == NULL) return;
+  Model_Sprites* spr = (Model_Sprites*)sprites;
+
+  frame = frame % (spr->grid.w * spr->grid.h);
+
+  vec2 extent = (vec2) { 1.0 / spr->grid.w, -1.0 / spr->grid.h };
+  vec2 corner = (vec2) {
+    .x = (frame % spr->grid.w) / (float)spr->grid.w,
+    .y = 1 - (frame / spr->grid.w) / (float)spr->grid.h,
+  };
+
+  scale /= 2;
+  SpriteVertex BL, TL, TR, BR;
+
+  BL = (SpriteVertex) {
+    .pos  = v2add(pos, (vec2){-scale, -scale}),
+    .uv   = (vec2){corner.x, corner.y + extent.y},
+    .norm = v3z,
+    .tint = b4white.rgb,
+  };
+
+  TR = (SpriteVertex) {
+    .pos  = v2add(pos, (vec2){scale, scale}),
+    .uv   = (vec2){corner.x + extent.x, corner.y},
+    .norm = v3z,
+    .tint = b4white.rgb,
+  };
+
+  TL = (SpriteVertex) {
+    .pos  = v2add(pos, (vec2){-scale, scale}),
+    .uv   = corner,
+    .norm = v3z,
+    .tint = b4white.rgb,
+  };
+
+  BR = (SpriteVertex) {
+    .pos  = v2add(pos, (vec2){scale, -scale}),
+    .uv   = v2add(corner, extent),
+    .norm = v3z,
+    .tint = b4white.rgb,
+  };
+
+  vector_push_back(&spr->verts, &TR);
+  vector_push_back(&spr->verts, &TL);
+  vector_push_back(&spr->verts, &BL);
+  vector_push_back(&spr->verts, &TR);
+  vector_push_back(&spr->verts, &BL);
+  vector_push_back(&spr->verts, &BR);
+}
+
 // Exported functions
 
 typedef int  (*model_build_pfn)(void* model);
@@ -192,7 +303,8 @@ typedef void (*model_render_pfn)(const void* model);
 static model_build_pfn model_build_fns[MODEL_TYPES_COUNT] = {
   (model_build_pfn)model_build_grid,
   (model_build_pfn)model_build_cube,
-  (model_build_pfn)model_build_cube_color
+  (model_build_pfn)model_build_cube_color,
+  (model_build_pfn)model_build_sprites
 };
 
 int model_build(Model* model) {
@@ -204,7 +316,8 @@ int model_build(Model* model) {
 static model_render_pfn model_render_fns[MODEL_TYPES_COUNT] = {
   (model_render_pfn)model_render_grid,
   (model_render_pfn)model_render_cube,
-  (model_render_pfn)model_render_cube_color
+  (model_render_pfn)model_render_cube_color,
+  (model_render_pfn)model_render_sprites
 };
 
 void model_render(const Model* model) {
@@ -213,7 +326,7 @@ void model_render(const Model* model) {
   model_render_fns[model->type - 1](model);
 }
 
-void model_setup_default_grid(Model* model, int extent) {
+void model_grid_set_default(Model* model, int extent) {
   model->grid = (Model_Grid) {
     .type = MODEL_GRID, .ready = FALSE, .extent = extent,
     .basis = {v3x, v3y, v3z}, .primary = {0, 2}

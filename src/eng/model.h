@@ -3,12 +3,14 @@
 
 #include "types.h"
 #include "mat.h"
+#include "vector.h"
 
 typedef enum ModelType {
   MODEL_NONE = 0,
   MODEL_GRID,
   MODEL_CUBE,
   MODEL_CUBE_COLOR,
+  MODEL_SPRITES,
   MODEL_TYPES_COUNT
 } ModelType;
 
@@ -36,6 +38,15 @@ typedef struct Model_CubeColor {
   uint ready;
 } Model_CubeColor;
 
+typedef struct Model_Sprites {
+  uint type;
+  uint ready;
+  vec2i grid;
+  uint vao;
+  uint buffer;
+  Vector verts;
+} Model_Sprites;
+
 typedef union Model {
   struct {
     uint type;
@@ -44,11 +55,13 @@ typedef union Model {
   Model_Grid grid;
   Model_Cube cube;
   Model_CubeColor cube_color;
+  Model_Sprites sprites;
 } Model;
 
 int  model_build(Model* model);
 void model_render(const Model* model);
 
-void model_setup_default_grid(Model* model, int extent);
+void model_grid_set_default(Model* model, int extent);
+void model_sprites_draw(const Model_Sprites* spr, vec2 pos, float scale, uint frame);
 
 #endif

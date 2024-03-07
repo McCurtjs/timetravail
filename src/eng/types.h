@@ -7,7 +7,7 @@ typedef unsigned char byte;
 typedef unsigned char bool;
 
 #ifndef NULL
-#define NULL 0
+#define NULL ((void*)0)
 #endif
 
 #ifndef TRUE

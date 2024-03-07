@@ -14,6 +14,20 @@ typedef struct {
 const extern mat4 m4identity;
 const extern mat4 m4zero;
 
+#define m4identity ((mat4) {  \
+  1, 0, 0, 0,                 \
+  0, 1, 0, 0,                 \
+  0, 0, 1, 0,                 \
+  0, 0, 0, 1                  \
+})                           //
+
+#define m4zero ((mat4) {  \
+  0, 0, 0, 0,             \
+  0, 0, 0, 0,             \
+  0, 0, 0, 0,             \
+  0, 0, 0, 0              \
+})                       //
+
 mat4 m4ortho(
   float left, float right, float top, float bottom, float near, float far);
 mat4 m4perspective(float fov_rads, float aspect, float near, float far);

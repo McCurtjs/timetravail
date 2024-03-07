@@ -2,20 +2,6 @@
 
 #include <math.h>
 
-const mat4 m4identity = {
-  1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 1
-};
-
-const mat4 m4zero = {
-  0, 0, 0, 0,
-  0, 0, 0, 0,
-  0, 0, 0, 0,
-  0, 0, 0, 0
-};
-
 mat4 m4ortho(
   float left, float right, float top, float bottom, float near, float far
 ) {

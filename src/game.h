@@ -18,11 +18,13 @@ typedef struct Game_Models {
   Model gizmo;
   Model grid;
   Model box;
+  Model player;
 } Game_Models;
 
 typedef struct Game_Textures {
   Texture crate;
   Texture tiles;
+  Texture player;
 } Game_Textures;
 
 #define game_key_count 6

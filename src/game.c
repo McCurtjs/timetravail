@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include "./game/game_behaviors.h"
+
 #include "wasm.h"
 
 void game_init(Game* game) {
@@ -38,4 +40,7 @@ void game_render(Game* game) {
       entity->render(entity, game);
     }
   }
+
+  // render the resulting sprite sheet
+  finish_rendering_sprites(game, &game->models.player.sprites, &game->textures.player);
 }

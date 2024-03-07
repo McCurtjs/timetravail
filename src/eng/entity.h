@@ -7,6 +7,7 @@
 #include "shader.h"
 #include "vector.h"
 
+#include "../animations.h"
 typedef struct Line Line;
 
 typedef struct PlayerFrameData {
@@ -15,6 +16,8 @@ typedef struct PlayerFrameData {
   int airborne;
   int has_double;
   const Line* standing;
+  uint anim_frame;
+  uint animation;
 } PlayerFrameData;
 
 typedef struct TransformIndex {
@@ -66,6 +69,7 @@ typedef struct Entity {
 
   union {
     Movement movement_params;
+    AnimationData anim_data;
     struct {
       Vector replay;
       Vector replay_temp;

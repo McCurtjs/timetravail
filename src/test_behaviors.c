@@ -71,7 +71,7 @@ void render_phong(Entity* e, Game* game) {
 
   glBindTexture(GL_TEXTURE_2D, e->texture->handle);
   glUniformMatrix4fv(uniforms.world, 1, 0, e->transform.f);
-  model_render(&game->models.box);
+  model_render(e->model);
 
   glBindTexture(GL_TEXTURE_2D, 0);
 }

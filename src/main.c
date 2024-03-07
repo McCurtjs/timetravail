@@ -18,6 +18,7 @@
 #include "system_events.h"
 #include "test_behaviors.h"
 #include "game/game_behaviors.h"
+#include "animations.h"
 
 static Game game;
 
@@ -26,6 +27,7 @@ static File file_vert;
 static File file_frag;
 static Image image_crate;
 static Image image_tiles;
+static Image image_anim_test;
 
 void export(wasm_preload) (uint w, uint h) {
   file_open_async(&file_vert, "./res/shaders/basic.vert");
@@ -33,6 +35,7 @@ void export(wasm_preload) (uint w, uint h) {
 
   image_open_async(&image_crate, "./res/textures/crate.png");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
+  image_open_async(&image_anim_test, "./res/textures/test_sprites.png");
 
   vec2i windim = {w, h};
   game = (Game){
@@ -95,12 +98,14 @@ int export(wasm_load) (int await_count, float dt) {
   // Build textures from async data
   texture_build_from_image(&game.textures.crate, &image_crate);
   texture_build_from_image(&game.textures.tiles, &image_tiles);
+  texture_build_from_image(&game.textures.player, &image_anim_test);
 
   // Delete async loaded resources
   file_delete(&file_vert);
   file_delete(&file_frag);
   image_delete(&image_crate);
   image_delete(&image_tiles);
+  image_delete(&image_anim_test);
 
   // Set up game models
   game.models.grid.grid = (Model_Grid) {
@@ -109,7 +114,14 @@ int export(wasm_load) (int await_count, float dt) {
     .primary = {0, 1},
     .extent = 100
   };
-  model_setup_default_grid(&game.models.gizmo, -2);
+
+  game.models.player.sprites = (Model_Sprites) {
+    .type = MODEL_SPRITES,
+    .grid = {.w = 4, .h = 4},
+  };
+
+  model_build(&game.models.player);
+  model_grid_set_default(&game.models.gizmo, -2);
   game.models.box.type = MODEL_CUBE;
   model_build(&game.models.box);
   model_build(&game.models.grid);
@@ -209,6 +221,14 @@ int export(wasm_load) (int await_count, float dt) {
       .duration = 5,
     },
     .behavior = behavior_moving_platform,
+  });
+
+  // Animation test
+  game_add_entity(&game, &(Entity) {
+    .shader = &game.shaders.light,
+    .model = &game.models.player,
+    .transform = m4uniform(10),
+    .render = render_sprites,
   });
 
   // Player

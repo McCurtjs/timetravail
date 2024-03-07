@@ -106,8 +106,8 @@ int export(test_wasm_load) (int await_count, float dt) {
   image_delete(&image_tiles);
 
   // Set up game models
-  model_setup_default_grid(&game.models.grid, 20);
-  model_setup_default_grid(&game.models.gizmo, -2);
+  model_grid_set_default(&game.models.grid, 20);
+  model_grid_set_default(&game.models.gizmo, -2);
   game.models.box.type = MODEL_CUBE;
   model_build(&game.models.box);
   model_build(&game.models.grid);
