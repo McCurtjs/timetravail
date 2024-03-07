@@ -16,7 +16,7 @@ typedef struct PlayerFrameData {
   int airborne;
   int has_double;
   const Line* standing;
-  uint anim_frame;
+  uint start_frame;
   uint animation;
 } PlayerFrameData;
 
@@ -69,8 +69,8 @@ typedef struct Entity {
 
   union {
     Movement movement_params;
-    AnimationData anim_data;
     struct {
+      AnimationData anim_data;
       Vector replay;
       Vector replay_temp;
       bool playback;

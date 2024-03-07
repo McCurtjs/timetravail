@@ -5,7 +5,7 @@
 
 #include "../test_behaviors.h"
 #include "vector.h"
-#include  "entity.h"
+#include "entity.h"
 
 #include <math.h>
 
@@ -63,6 +63,12 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
   if (PRESSED(RIGHT)) {
     acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
 
+    if (!d->airborne) {
+      // need to set animation direction in these, independent of velocity
+      // have a turnaround animation based on velocity?
+      //d->animation = ANIMATION_RUN;
+    }
+
     //acceleration.x +=
     //  (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
     //  ? max_vel[d->airborne] - d->vel.x
@@ -74,6 +80,11 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
 
   if (PRESSED(LEFT)) {
     acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
+
+    if (!d->airborne) {
+      //d->animation = ANIMATION_RUN;
+    }
+
     //acceleration.x +=
     //  d->vel.x - accel[d->airborne] * dt < -max_vel[d->airborne]
     //  ? -max_vel[d->airborne] - d->vel.x
@@ -113,6 +124,7 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
     }
     d->airborne = TRUE;
     d->standing = NULL;
+    d->animation = ANIMATION_JUMP;
   } else if (PRESSED(JUMP) && d->airborne) {
     acceleration.y += lift * dt;
   }
@@ -123,6 +135,14 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
 
   d->vel = v2add(d->vel, acceleration);
   d->pos = v2add(d->pos, v2scale(d->vel, dt));
+
+  if (!d->airborne) {
+    if (v2mag(d->vel) < 1) {
+      d->animation = ANIMATION_IDLE;
+    } else {
+      d->animation = ANIMATION_RUN;
+    }
+  }
 }
 
 void behavior_player(Entity* e, Game* game, float _) {
@@ -172,13 +192,18 @@ void behavior_player(Entity* e, Game* game, float _) {
     ||  prev_node->data.airborne != e->fd.airborne
     ||  prev_node->data.has_double != e->fd.has_double
     ||  prev_node->data.standing != e->fd.standing
+    ||  prev_node->data.animation != e->fd.animation
     ) {
       // Because fractional frames, make sure we aren't double-counting frames
-      if ((uint)game->frame!= prev_node->frame) {
+      if ((uint)game->frame != prev_node->frame) {
         prev_node->frame_until = game->frame;
 
+        if (prev_node->data.animation != e->fd.animation) {
+          e->fd.start_frame = game->frame;
+        }
+
         vector_push_back(&e->replay, &(ReplayNode) {
-         .frame = game->frame,
+          .frame = game->frame,
           .frame_until = game->frame,
           .buttons = inputs,
           .data = e->fd,

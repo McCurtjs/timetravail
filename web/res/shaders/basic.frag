@@ -10,7 +10,7 @@ in vec2 vUV;
 uniform vec4 lightPos;
 uniform vec4 cameraPos;
 uniform sampler2D texSamp;
-float specularPower = 0.5;
+float specularPower = 0.35;
 
 out vec4 fragColor;
 

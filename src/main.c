@@ -223,27 +223,23 @@ int export(wasm_load) (int await_count, float dt) {
     .behavior = behavior_moving_platform,
   });
 
-  // Animation test
+  // Player
   game_add_entity(&game, &(Entity) {
     .shader = &game.shaders.light,
     .model = &game.models.player,
-    .transform = m4uniform(10),
-    .render = render_sprites,
-  });
-
-  // Player
-  game_add_entity(&game, &(Entity) {
-    .shader = &game.shaders.basic,
-    .model = &game.models.color_cube,
     .fd = {
       .pos = (vec2){0, 20},
       .vel = v2zero,
       .airborne = TRUE,
       .has_double = TRUE
     },
+    .anim_data = {
+      .anim_count = ANIMATION_COUNT,
+      .animations = player_animations,
+    },
     .replay = { .data = NULL },
     .replay_temp = { .data = NULL },
-    .render = render_basic,
+    .render = render_sprites,
     .behavior = behavior_player,
   });
   vector_init(&game.timeguys, sizeof(PlayerRef));

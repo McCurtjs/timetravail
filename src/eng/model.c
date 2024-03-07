@@ -244,7 +244,7 @@ static void model_render_sprites(Model_Sprites* sprites) {
   vector_clear(&sprites->verts);
 }
 
-void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, float scale, uint frame) {
+void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame) {
   if (sprites->verts.data == NULL) return;
   Model_Sprites* spr = (Model_Sprites*)sprites;
 
@@ -256,32 +256,32 @@ void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, float scale, uin
     .y = 1 - (frame / spr->grid.w) / (float)spr->grid.h,
   };
 
-  scale /= 2;
+  scale = v2scale(scale, 0.5);
   SpriteVertex BL, TL, TR, BR;
 
   BL = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){-scale, -scale}),
+    .pos  = v2add(pos, v2neg(scale)),
     .uv   = (vec2){corner.x, corner.y + extent.y},
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   TR = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){scale, scale}),
+    .pos  = v2add(pos, scale),
     .uv   = (vec2){corner.x + extent.x, corner.y},
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   TL = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){-scale, scale}),
+    .pos  = v2add(pos, (vec2){-scale.x, scale.y}),
     .uv   = corner,
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   BR = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){scale, -scale}),
+    .pos  = v2add(pos, (vec2){scale.x, -scale.y}),
     .uv   = v2add(corner, extent),
     .norm = v3z,
     .tint = b4white.rgb,

@@ -1,5 +1,5 @@
-#ifndef _ANIMATION_H_
-#define _ANIMATION_H_
+#ifndef _ANIMATIONS_H_
+#define _ANIMATIONS_H_
 
 #include "types.h"
 
@@ -27,6 +27,7 @@ typedef struct Animation {
   Frame* frames;
   uint count;
   uint rate;
+  int repeat;
 } Animation;
 
 typedef struct AnimationData {
@@ -38,6 +39,6 @@ typedef struct AnimationData {
 
 } AnimationData;
 
-AnimationData animations_for_player();
+extern Animation player_animations[];
 
 #endif

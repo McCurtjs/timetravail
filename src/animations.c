@@ -20,6 +20,8 @@ static Frame player_run[] = {
 static Frame player_jump[] = {
   { .frame = 11 },
   { .frame = 12 },
+  { .frame = 13 },
+  { .frame = 14 },
 };
 
 static Frame player_air[] = {
@@ -39,17 +41,10 @@ static Frame player_punch[] = {
 #define ANIM_SIZE(FRAMES) (sizeof(FRAMES) / sizeof(Frame))
 #define FRAMES(F) .frames = F, .count = ANIM_SIZE(F)
 
-static Animation player_animations[] = {
-  { FRAMES(player_idle), .rate = 4 },
-  { FRAMES(player_run), .rate = 4 },
-  { FRAMES(player_jump), .rate = 4 },
-  { FRAMES(player_air), .rate = 4 },
+Animation player_animations[] = {
+  { FRAMES(player_idle), .rate = 12 },
+  { FRAMES(player_run), .rate = 8 },
+  { FRAMES(player_jump), .rate = 8, .repeat = 2 },
+  { FRAMES(player_air), .rate = 6 },
   { FRAMES(player_punch), .rate = 4 },
 };
-
-AnimationData animations_for_player() {
-  return (AnimationData) {
-    .anim_count = ANIMATION_COUNT,
-    .animations = player_animations,
-  };
-}

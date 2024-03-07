@@ -62,6 +62,6 @@ int  model_build(Model* model);
 void model_render(const Model* model);
 
 void model_grid_set_default(Model* model, int extent);
-void model_sprites_draw(const Model_Sprites* spr, vec2 pos, float scale, uint frame);
+void model_sprites_draw(const Model_Sprites* spr, vec2 pos, vec2 scale, uint frame);
 
 #endif

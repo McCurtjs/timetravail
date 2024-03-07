@@ -72,12 +72,16 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
       print("Going to forward playback");
 
       game_add_entity(game, &(Entity) {
-        .shader = &game->shaders.basic,
-        .model = &game->models.color_cube,
+        .shader = &game->shaders.light,
+        .model = &game->models.player,
         .fd = active.e->fd,
+        .anim_data = {
+          .anim_count = ANIMATION_COUNT,
+          .animations = player_animations,
+        },
         .replay = { .data = NULL },
         .replay_temp = { .data = NULL },
-        .render = render_basic,
+        .render = render_sprites,
         .behavior = behavior_player,
       });
 
