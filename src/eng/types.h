@@ -38,4 +38,6 @@ typedef unsigned char bool;
 #define loop while (TRUE)
 #define until(condition) if (condition) break;
 
+#define unless(condition) if (!(condition))
+
 #endif

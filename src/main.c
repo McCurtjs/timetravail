@@ -35,7 +35,7 @@ void export(wasm_preload) (uint w, uint h) {
 
   image_open_async(&image_crate, "./res/textures/crate.png");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
-  image_open_async(&image_anim_test, "./res/textures/test_sprites.png");
+  image_open_async(&image_anim_test, "./res/textures/spritesheet.png");
 
   vec2i windim = {w, h};
   game = (Game){
@@ -117,7 +117,7 @@ int export(wasm_load) (int await_count, float dt) {
 
   game.models.player.sprites = (Model_Sprites) {
     .type = MODEL_SPRITES,
-    .grid = {.w = 4, .h = 4},
+    .grid = {.w = 16, .h = 16},
   };
 
   model_build(&game.models.player);

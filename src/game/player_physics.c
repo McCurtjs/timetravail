@@ -26,14 +26,14 @@ int handle_player_collisions(
     if (dot < 0 || dot > length) {
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
-      new_fd->animation = ANIMATION_AIR;
+      new_fd->animation = ANIMATION_FALL;
     }
 
     // Drop through the platform if it's droppable and you press down
     if (game->input.pressed.back && was_standing->droppable) {
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
-      new_fd->animation = ANIMATION_AIR;
+      new_fd->animation = ANIMATION_FALL;
       new_fd->vel.y -= 10;
     }
   }

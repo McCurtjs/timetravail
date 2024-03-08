@@ -29,6 +29,7 @@ typedef struct ReplayNode {
 
 const static float accel[2] = {45, 16}; // [0] = ground, [1] = air
 const static float max_vel[2] = {20, 23};
+const static float walk_multiplier = 0.5;
 const static float lift = 17;
 const static float skid = 9;
 const static float drop = 10;
@@ -52,7 +53,7 @@ static uint get_input_mask(Game* game) {
   return inputs;
 }
 
-static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
+static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   vec2 acceleration = v2zero;
   vec2 axis = v2x;
 
@@ -101,46 +102,71 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs) {
     }
   }
 
-  if (d->vel.x > max_vel[d->airborne]) {
-    d->vel.x = max_vel[d->airborne];
-  } else if (d->vel.x < -max_vel[d->airborne]) {
-    d->vel.x = -max_vel[d->airborne];
-  }
-
   if (TRIGGERED(DROP) && d->airborne && d->vel.y < 0.2) {
     acceleration = v2add(acceleration, v2scale(v2down, drop));
     //acceleration.y += -drop;
   }
 
-  if (TRIGGERED(JUMP) && (d->has_double || !d->airborne)) {
-    acceleration.y += -d->vel.y + jump_str;
-    if (d->airborne) {
+  bool about_to_jump = FALSE;
+  if (TRIGGERED(JUMP)) {
+
+    // regular jump has a delay to match the frame
+    if (!d->airborne) {
+      d->animation = ANIMATION_JUMP;
+      about_to_jump = TRUE;
+
+    // double jump
+    } else if (d->has_double) {
+      acceleration.y += -d->vel.y + jump_str;
+      d->has_double = FALSE;
+
       if ((d->vel.x < -1 && PRESSED(RIGHT))
       ||  (d->vel.x > 1 && PRESSED(LEFT))
       ){
         acceleration.x += -d->vel.x + d->vel.x * -jump_reverse_factor;
       }
-      d->has_double = FALSE;
     }
-    d->airborne = TRUE;
-    d->standing = NULL;
-    d->animation = ANIMATION_JUMP;
+
+  // if we're already jumping, we can hold up to jump farther/higher
   } else if (PRESSED(JUMP) && d->airborne) {
     acceleration.y += lift * dt;
   }
+
+  // trigger the delayed jump based on the animation frame
+  if (d->animation == ANIMATION_JUMP && frame - d->start_frame <= 4) {
+    about_to_jump = TRUE; // prevent later code from changing anim to idle
+
+    if (frame - d->start_frame == 4) {
+      acceleration.y += -d->vel.y + jump_str;
+      d->airborne = TRUE;
+      d->standing = NULL;
+    }
+  } else
 
   if (!d->standing) {
     acceleration.y += -gravity * dt;
   }
 
   d->vel = v2add(d->vel, acceleration);
+
+  float walking = PRESSED(DROP) && !d->airborne ? walk_multiplier : 1.0;
+  float total_max_vel = max_vel[d->airborne] * walking;
+  if (d->vel.x > total_max_vel) {
+    d->vel.x = total_max_vel;
+  } else if (d->vel.x < -total_max_vel) {
+    d->vel.x = -total_max_vel;
+  }
+
   d->pos = v2add(d->pos, v2scale(d->vel, dt));
 
-  if (!d->airborne) {
-    if (v2mag(d->vel) < 1) {
+  if (!d->airborne && !about_to_jump) {
+    float player_speed = v2mag(d->vel);
+    if (player_speed < 1) {
       d->animation = ANIMATION_IDLE;
-    } else {
+    } else if (player_speed > max_vel[0] - 2) {
       d->animation = ANIMATION_RUN;
+    } else {
+      d->animation = ANIMATION_WALK;
     }
   }
 }
@@ -198,8 +224,16 @@ void behavior_player(Entity* e, Game* game, float _) {
       if ((uint)game->frame != prev_node->frame) {
         prev_node->frame_until = game->frame;
 
-        if (prev_node->data.animation != e->fd.animation) {
-          e->fd.start_frame = game->frame;
+        uint prev_anim = prev_node->data.animation;
+        uint next_anim = e->fd.animation;
+
+        if (prev_anim != next_anim) {
+          // walk and run map onto each other, so don't update the start frame
+          unless ((prev_anim == ANIMATION_WALK || prev_anim == ANIMATION_RUN)
+          &&      (next_anim == ANIMATION_WALK || next_anim == ANIMATION_RUN)
+          ) {
+            e->fd.start_frame = game->frame;
+          }
         }
 
         vector_push_back(&e->replay, &(ReplayNode) {
@@ -219,7 +253,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
     dt = dt * game->reverse_speed;
-    handle_input(&updates, dt, inputs);
+    handle_input(&updates, dt, inputs, (uint)game->frame);
     handle_player_collisions(game, e->fd, &updates);
     e->fd = updates;
 
@@ -271,7 +305,7 @@ void behavior_player(Entity* e, Game* game, float _) {
         until(node.frame++ >= node.frame_until);
 
         PlayerFrameData updates = node.data;
-        handle_input(&updates, dt, node.buttons);
+        handle_input(&updates, dt, node.buttons, (uint)game->frame);
         handle_player_collisions(game, node.data, &updates);
         node.data = updates;
       }
@@ -328,8 +362,8 @@ void behavior_player(Entity* e, Game* game, float _) {
   }
 
   // Update rendering
-  e->transform = m4uniform(2);
-  e->transform = m4mul(m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 1}), 0)), e->transform);
+  e->transform = m4uniform(3);
+  e->transform = m4mul(m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 1.5}), 0)), e->transform);
 
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering
@@ -355,7 +389,6 @@ void behavior_player(Entity* e, Game* game, float _) {
 }
 
 // TODO:
-//  - sprite animations (and requisite playback information in fd)
 //  - hitboxes
 //    - spawn transient hitbox object in vector in game
 //      - check active player against all hitboxes for detection
