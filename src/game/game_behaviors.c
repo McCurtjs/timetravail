@@ -49,7 +49,7 @@ void render_sprites(Entity* e, Game* g) {
     // the remainder forever. To do that we basically clip the whole animation
     // into just the looping portion and pretend the early frames didn't exist
     frame_index =
-      ((current_frame - a->repeat) / a->rate) // set new current frame to 0
+      ((current_frame / a->rate) - a->repeat) // set new current frame to 0
       %
       (a->count - a->repeat) // lower the total number of frames
       +
@@ -58,7 +58,7 @@ void render_sprites(Entity* e, Game* g) {
     frame_index = a->frames[frame_index].frame;
   }
 
-  model_sprites_draw(&e->model->sprites, pos, scale, frame_index);
+  model_sprites_draw(&e->model->sprites, pos, scale, frame_index, e->fd.facing);
 }
 
 void finish_rendering_sprites(

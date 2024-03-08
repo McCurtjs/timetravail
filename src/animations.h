@@ -5,6 +5,9 @@
 
 #include "vec.h"
 
+#define FACING_RIGHT 0
+#define FACING_LEFT 1
+
 typedef enum Anims {
   ANIMATION_IDLE,
   ANIMATION_WALK,

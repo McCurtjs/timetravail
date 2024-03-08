@@ -64,7 +64,9 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
   if (PRESSED(RIGHT)) {
     acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
 
+
     if (!d->airborne) {
+      d->facing = FACING_RIGHT;
       // need to set animation direction in these, independent of velocity
       // have a turnaround animation based on velocity?
       //d->animation = ANIMATION_RUN;
@@ -82,7 +84,9 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
   if (PRESSED(LEFT)) {
     acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
 
+
     if (!d->airborne) {
+      d->facing = FACING_LEFT;
       //d->animation = ANIMATION_RUN;
     }
 
@@ -133,7 +137,7 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
   }
 
   // trigger the delayed jump based on the animation frame
-  if (d->animation == ANIMATION_JUMP && frame - d->start_frame <= 4) {
+  if (d->animation == ANIMATION_JUMP && frame - d->start_frame <= 6) {
     about_to_jump = TRUE; // prevent later code from changing anim to idle
 
     if (frame - d->start_frame == 4) {
@@ -219,22 +223,11 @@ void behavior_player(Entity* e, Game* game, float _) {
     ||  prev_node->data.has_double != e->fd.has_double
     ||  prev_node->data.standing != e->fd.standing
     ||  prev_node->data.animation != e->fd.animation
+    ||  prev_node->data.facing != e->fd.facing
     ) {
       // Because fractional frames, make sure we aren't double-counting frames
       if ((uint)game->frame != prev_node->frame) {
         prev_node->frame_until = game->frame;
-
-        uint prev_anim = prev_node->data.animation;
-        uint next_anim = e->fd.animation;
-
-        if (prev_anim != next_anim) {
-          // walk and run map onto each other, so don't update the start frame
-          unless ((prev_anim == ANIMATION_WALK || prev_anim == ANIMATION_RUN)
-          &&      (next_anim == ANIMATION_WALK || next_anim == ANIMATION_RUN)
-          ) {
-            e->fd.start_frame = game->frame;
-          }
-        }
 
         vector_push_back(&e->replay, &(ReplayNode) {
           .frame = game->frame,
@@ -256,6 +249,19 @@ void behavior_player(Entity* e, Game* game, float _) {
     handle_input(&updates, dt, inputs, (uint)game->frame);
     handle_player_collisions(game, e->fd, &updates);
     e->fd = updates;
+
+    // If we started a new animation on this frame, update the anim start frame
+    uint prev_anim = prev_node->data.animation;
+    uint next_anim = e->fd.animation;
+
+    if (prev_anim != next_anim) {
+      // walk and run map onto each other, so don't update the start frame
+      unless ((prev_anim == ANIMATION_WALK || prev_anim == ANIMATION_RUN)
+      &&      (next_anim == ANIMATION_WALK || next_anim == ANIMATION_RUN)
+      ) {
+        e->fd.start_frame = game->frame;
+      }
+    }
 
   // Handle replay playback
   } else if (e->replay.size) {

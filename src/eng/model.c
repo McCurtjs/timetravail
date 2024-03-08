@@ -247,7 +247,8 @@ static void model_render_sprites(Model_Sprites* sprites) {
   vector_clear(&sprites->verts);
 }
 
-void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame) {
+void model_sprites_draw(
+  const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame, bool mirror) {
   if (sprites->verts.data == NULL) return;
   Model_Sprites* spr = (Model_Sprites*)sprites;
 
@@ -258,6 +259,11 @@ void model_sprites_draw(const Model_Sprites* sprites, vec2 pos, vec2 scale, uint
     .x = (frame % spr->grid.w) / (float)spr->grid.w,
     .y = 1 - (frame / spr->grid.w) / (float)spr->grid.h,
   };
+
+  if (mirror) {
+    corner.x += 1.0 / (float)spr->grid.w;
+    extent.x *= -1;
+  }
 
   scale = v2scale(scale, 0.5);
   SpriteVertex BL, TL, TR, BR;

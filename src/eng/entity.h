@@ -18,6 +18,7 @@ typedef struct PlayerFrameData {
   const Line* standing;
   uint start_frame;
   uint animation;
+  bool facing;
 } PlayerFrameData;
 
 typedef struct TransformIndex {

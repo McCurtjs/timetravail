@@ -62,8 +62,8 @@ static Frame player_run[] = {
 static Frame player_jump[] = {
   { .frame = ROW*3 +  0 },
   { .frame = ROW*3 +  1 },
-  { .frame = ROW*3 +  2 }, { .frame = ROW*3 +  2 },
-  { .frame = ROW*3 +  3 }, { .frame = ROW*3 +  3 },
+  { .frame = ROW*3 +  2 },
+  { .frame = ROW*3 +  3 },
   { .frame = ROW*3 +  4 }, { .frame = ROW*3 +  4 },
   { .frame = ROW*3 +  5 }, { .frame = ROW*3 +  5 },
   { .frame = ROW*3 +  6 }, { .frame = ROW*3 +  6 },
@@ -107,6 +107,6 @@ Animation player_animations[] = {
   { FRAMES(player_idle), .rate = 6 },
   { FRAMES(player_walk), .rate = 4 },
   { FRAMES(player_run), .rate = 4 },
-  { FRAMES(player_jump), .rate = 2, .repeat = 10 },
+  { FRAMES(player_jump), .rate = 2, .repeat = 8 },
   { FRAMES(player_fall), .rate = 4 }
 };
