@@ -86,6 +86,13 @@ int handle_player_collisions(
       new_fd->vel = v2reflect(new_fd->vel, v_unit);
     } else {
       new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
+
+      // if we're fully grounded and bump into a wall, play a little animation
+      if (!old_fd.airborne && !new_fd->airborne && closest_line->wall
+      && new_fd->animation != ANIMATION_JUMP
+      ) {
+        new_fd->animation = ANIMATION_BUMP_INTO_WALL;
+      }
     }
 
     ret = 1;
@@ -97,6 +104,28 @@ int handle_player_collisions(
     new_fd->airborne = FALSE;
     new_fd->has_double = TRUE;
     ret = 1;
+  }
+
+  float player_speed = v2mag(new_fd->vel);
+
+  // Handle special animations for landing
+  if (old_fd.airborne && !new_fd->airborne) {
+
+    // if we're at running speed and in hangtime-2, land into a sick roll
+    if (player_speed > 12
+    && ( new_fd->animation == ANIMATION_DOUBLE_JUMP
+      || new_fd->animation == ANIMATION_DOUBLE_JUMP_REVERSE)
+    ) {
+      new_fd->animation = ANIMATION_ROLL_INTO_RUN;
+
+    // if we're at a walking or idle pace, regular land
+    } else if (player_speed < 18
+    || !(game->input.pressed.left || game->input.pressed.right)
+    ) {
+      new_fd->animation = ANIMATION_LAND;
+    }
+
+    // (if we're at running speed in hangtime-1, just go straight to running)
   }
 
   return ret;

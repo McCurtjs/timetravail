@@ -65,16 +65,18 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
   }
 
   // Active the reverse ability...
-  if (game->input.triggered.run_replay) {
+  if (game->input.triggered.run_replay && !active.e->fd.warp_triggered) {
 
     // If we're reverseing, flip back to forward and create a player instance
     if (game->reverse_playback) {
       print("Going to forward playback");
+      PlayerFrameData new_fd = active.e->fd;
+      new_fd.warp_triggered = 0;
 
       game_add_entity(game, &(Entity) {
         .shader = &game->shaders.light,
         .model = &game->models.player,
-        .fd = active.e->fd,
+        .fd = new_fd,
         .anim_data = {
           .anim_count = ANIMATION_COUNT,
           .animations = player_animations,

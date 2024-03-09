@@ -29,6 +29,8 @@ typedef struct ReplayNode {
 
 const static float accel[2] = {45, 16}; // [0] = ground, [1] = air
 const static float max_vel[2] = {20, 23};
+const static float min_roll_velocity = 8;
+const static float run_anim_threshold_diff = 2;
 const static float walk_multiplier = 0.5;
 const static float lift = 17;
 const static float skid = 9;
@@ -53,9 +55,26 @@ static uint get_input_mask(Game* game) {
   return inputs;
 }
 
-static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) {
+// Used to track these animations whose frames map onto each other and
+// don't need to have the start frame updated as a result
+static bool ground_move_anim(uint animation) {
+  return animation == ANIMATION_WALK
+      || animation == ANIMATION_RUN
+      || animation == ANIMATION_ROLL_INTO_RUN
+  ;
+}
+
+// Similarly used to determine if the player is in a warp animation
+static bool warp_anim(uint animation) {
+  return animation == ANIMATION_WARP_AIR
+      || animation == ANIMATION_WARP_STANDING
+  ;
+}
+
+static void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   vec2 acceleration = v2zero;
   vec2 axis = v2x;
+  uint animation_frame = frame - d->start_frame;
 
   if (d->standing) {
     axis = v2norm(v2sub(d->standing->b, d->standing->a));
@@ -121,14 +140,18 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
 
     // double jump
     } else if (d->has_double) {
-      acceleration.y += -d->vel.y + jump_str;
-      d->has_double = FALSE;
-
       if ((d->vel.x < -1 && PRESSED(RIGHT))
       ||  (d->vel.x > 1 && PRESSED(LEFT))
-      ){
-        acceleration.x += -d->vel.x + d->vel.x * -jump_reverse_factor;
+      ) {
+        // I made two animations, why not use them both. One of them rolls, the
+        // other does not. Have fun using this for speedruns somehow :P
+        d->animation = frame % 2 == 0 ?
+          ANIMATION_DOUBLE_JUMP_REVERSE : ANIMATION_DOUBLE_JUMP_REVERSE_2;
+        d->facing = !d->facing;
+      } else {
+        d->animation = ANIMATION_DOUBLE_JUMP;
       }
+      d->has_double = FALSE;
     }
 
   // if we're already jumping, we can hold up to jump farther/higher
@@ -137,15 +160,28 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
   }
 
   // trigger the delayed jump based on the animation frame
-  if (d->animation == ANIMATION_JUMP && frame - d->start_frame <= 6) {
+  if (d->animation == ANIMATION_JUMP && animation_frame <= 6) {
     about_to_jump = TRUE; // prevent later code from changing anim to idle
 
-    if (frame - d->start_frame == 4) {
+    if (animation_frame == 4) {
       acceleration.y += -d->vel.y + jump_str;
       d->airborne = TRUE;
       d->standing = NULL;
     }
   } else
+
+  if ((d->animation == ANIMATION_DOUBLE_JUMP
+  ||   d->animation == ANIMATION_DOUBLE_JUMP_REVERSE
+  ||   d->animation == ANIMATION_DOUBLE_JUMP_REVERSE_2
+  ) && animation_frame == 6
+  ) {
+    acceleration.y += -d->vel.y + jump_str;
+
+    // switch horizontal direction if we're reverse-double-jumping
+    if (d->animation != ANIMATION_DOUBLE_JUMP) {
+      acceleration.x += -d->vel.x + d->vel.x * -jump_reverse_factor;
+    }
+  }
 
   if (!d->standing) {
     acceleration.y += -gravity * dt;
@@ -153,6 +189,7 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
 
   d->vel = v2add(d->vel, acceleration);
 
+  // Apply the cap for maximum velocity
   float walking = PRESSED(DROP) && !d->airborne ? walk_multiplier : 1.0;
   float total_max_vel = max_vel[d->airborne] * walking;
   if (d->vel.x > total_max_vel) {
@@ -161,16 +198,59 @@ static void handle_input(PlayerFrameData* d, float dt, uint inputs, uint frame) 
     d->vel.x = -total_max_vel;
   }
 
-  d->pos = v2add(d->pos, v2scale(d->vel, dt));
-
+  // Manage the type of walk/run animation based on the player's ground speed
   if (!d->airborne && !about_to_jump) {
     float player_speed = v2mag(d->vel);
-    if (player_speed < 1) {
-      d->animation = ANIMATION_IDLE;
-    } else if (player_speed > max_vel[0] - 2) {
-      d->animation = ANIMATION_RUN;
-    } else {
-      d->animation = ANIMATION_WALK;
+
+    // this prevents animation switching from interrupting the sick roll
+    unless((d->animation == ANIMATION_ROLL_INTO_RUN && animation_frame < 60)) {
+
+      // standing still
+      if (player_speed < 1) {
+        // bump into wall and landing animations include idle sequence loop
+        if (d->animation != ANIMATION_BUMP_INTO_WALL
+        &&  d->animation != ANIMATION_LAND
+        ) {
+          d->animation = ANIMATION_IDLE;
+        }
+
+      // running speed
+      } else if (player_speed > max_vel[0] - run_anim_threshold_diff
+      &&        (PRESSED(LEFT) || PRESSED(RIGHT))
+      ) {
+        // roll animation already has the run loop baked into it
+        if (d->animation != ANIMATION_ROLL_INTO_RUN) {
+          d->animation = ANIMATION_RUN;
+        }
+
+      // walking pace
+      } else {
+        if (d->animation != ANIMATION_LAND || animation_frame >= 20) {
+          d->animation = ANIMATION_WALK;
+        }
+      }
+
+    } else if (player_speed < min_roll_velocity) {
+      d->vel.x = min_roll_velocity * (d->facing == FACING_LEFT ? -1 : 1);
+    }
+  }
+
+  // Finally, apply the velocity to the position of the player
+  d->pos = v2add(d->pos, v2scale(d->vel, dt));
+}
+
+void handle_abilities(
+  Game* game, PlayerFrameData* fd, bool block_warp
+) {
+  // if we are warping, don't change the animation no matter what
+  if (game->input.triggered.run_replay && !block_warp) {
+    fd->warp_triggered = TRUE;
+  }
+
+  if (fd->warp_triggered) {
+    if (!warp_anim(fd->animation)) {
+      fd->animation = fd->airborne ?
+        ANIMATION_WARP_AIR : ANIMATION_WARP_STANDING;
     }
   }
 }
@@ -181,6 +261,9 @@ void behavior_player(Entity* e, Game* game, float _) {
   // Convert inputs from source game booleans to bitmask
   uint inputs = get_input_mask(game);
 
+  // Stuipd stuipd stupid
+  uint first_frame = FALSE;
+
   // Initialize the replay data storage on first update
   if (e->replay.data == NULL) {
     vector_init_reserve(&e->replay, sizeof(ReplayNode), 200);
@@ -190,6 +273,8 @@ void behavior_player(Entity* e, Game* game, float _) {
       .buttons = 0,
       .data = e->fd,
     });
+
+    first_frame = TRUE;
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
@@ -246,19 +331,19 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
     dt = dt * game->reverse_speed;
-    handle_input(&updates, dt, inputs, (uint)game->frame);
+    handle_movement(&updates, dt, inputs, (uint)game->frame);
     handle_player_collisions(game, e->fd, &updates);
+    handle_abilities(game, &updates, first_frame);
     e->fd = updates;
 
-    // If we started a new animation on this frame, update the anim start frame
+    // special cases with animations...
     uint prev_anim = prev_node->data.animation;
     uint next_anim = e->fd.animation;
 
-    if (prev_anim != next_anim) {
+    // If we started a new animation on this frame, update the anim start frame
+    if (prev_anim != e->fd.animation) {
       // walk and run map onto each other, so don't update the start frame
-      unless ((prev_anim == ANIMATION_WALK || prev_anim == ANIMATION_RUN)
-      &&      (next_anim == ANIMATION_WALK || next_anim == ANIMATION_RUN)
-      ) {
+      unless ((ground_move_anim(prev_anim) && ground_move_anim(next_anim))) {
         e->fd.start_frame = game->frame;
       }
     }
@@ -311,8 +396,9 @@ void behavior_player(Entity* e, Game* game, float _) {
         until(node.frame++ >= node.frame_until);
 
         PlayerFrameData updates = node.data;
-        handle_input(&updates, dt, node.buttons, (uint)game->frame);
+        handle_movement(&updates, dt, node.buttons, node.frame);
         handle_player_collisions(game, node.data, &updates);
+        handle_abilities(game, &updates, TRUE);
         node.data = updates;
       }
     }
@@ -340,6 +426,13 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Finally, set the location of the entity
     e->fd = node.data;
+
+    // And change the warp animations for the "ghosts"
+    if (warp_anim(e->fd.animation)) {
+      if (e != vector_get_back(&game->entities)) {
+        e->fd.animation += 1;
+      }
+    }
 
     //* Handle regular forward playback
     if (!game->reverse_playback) {

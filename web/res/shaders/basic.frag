@@ -28,6 +28,9 @@ void main() {
 
   fragColor = vec4(vUV, 0.0, 1.0) * (ambient + diffuse + specular);
   fragColor.xyz = albedo.xyz * (ambient + diffuse + specular);
+
+  // multiply with transparency value because PDN uses transparent white :/
+  fragColor.xyz *= albedo.w;
   fragColor.w = albedo.w;
 
   //fragColor = vec4(normalize(vNormal.xyz) * 0.5 + vec3(0.5, 0.5, 0.5), 1);
