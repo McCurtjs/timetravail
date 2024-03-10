@@ -3,11 +3,11 @@
 #include "wasm.h"
 #include "draw.h"
 
-int handle_player_collisions(
+bool handle_player_collisions(
   Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd
 ) {
   const Line* was_standing = new_fd->standing;
-  int ret = 0;
+  bool move_cancel = FALSE;
 
   if (new_fd->standing) {
     // If you're on the platform and it's moving, apply that movement
@@ -27,10 +27,13 @@ int handle_player_collisions(
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
       new_fd->animation = ANIMATION_FALL;
+      move_cancel = TRUE;
     }
 
     // Drop through the platform if it's droppable and you press down
-    if (game->input.pressed.back && was_standing->droppable) {
+    if (game->input.pressed.back
+    && !new_fd->in_combat && was_standing->droppable
+    ) {
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
       new_fd->animation = ANIMATION_FALL;
@@ -75,6 +78,7 @@ int handle_player_collisions(
       new_fd->standing = closest_line;
       new_fd->airborne = FALSE;
       new_fd->has_double = TRUE;
+      move_cancel = TRUE;
     }
 
     new_fd->pos = v2add(closest_p, v2scale(closest_n, 0.01));
@@ -94,27 +98,25 @@ int handle_player_collisions(
         new_fd->animation = ANIMATION_BUMP_INTO_WALL;
       }
     }
-
-    ret = 1;
   }
 
   if (new_fd->pos.y <= 0) {
+    if (new_fd->airborne) move_cancel = TRUE;
     new_fd->pos.y = 0;
     new_fd->vel.y = 0;
     new_fd->airborne = FALSE;
     new_fd->has_double = TRUE;
-    ret = 1;
   }
 
   float player_speed = v2mag(new_fd->vel);
 
   // Handle special animations for landing
   if (old_fd.airborne && !new_fd->airborne) {
+    move_cancel = TRUE;
 
     // if we're at running speed and in hangtime-2, land into a sick roll
-    if (player_speed > max_vel[0] - roll_anim_threshold_diff
-    && ( new_fd->animation == ANIMATION_DOUBLE_JUMP
-      || new_fd->animation == ANIMATION_DOUBLE_JUMP_REVERSE)
+    if (player_speed > max_vel[1] - roll_anim_threshold_diff
+    &&  anim_is_hangtime_2(new_fd->animation)
     ) {
       new_fd->animation = ANIMATION_ROLL_INTO_RUN;
 
@@ -128,5 +130,5 @@ int handle_player_collisions(
     // (if we're at running speed in hangtime-1, just go straight to running)
   }
 
-  return ret;
+  return move_cancel;
 }

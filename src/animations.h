@@ -15,6 +15,7 @@ typedef enum Anims {
   ANIMATION_RUN,
   ANIMATION_JUMP,
   ANIMATION_FALL, // uses same hangtime as jump, but a slip when you go off platforms?
+  ANIMATION_FALL_2, // uses the hangtime 2 animation (the one that rolls)
   ANIMATION_DOUBLE_JUMP, // includes different hangtime (arm flaps?)
   ANIMATION_DOUBLE_JUMP_REVERSE,
   ANIMATION_DOUBLE_JUMP_REVERSE_2,
@@ -26,8 +27,11 @@ typedef enum Anims {
   ANIMATION_WARP_AIR_FADE,
   ANIMATION_LAND, // land into idle
 
+  ANIMATION_N_AIR,
+  ANIMATION_F_AIR,
+  ANIMATION_B_AIR,
   ANIMATION_KICK,
-  ANIMATION_KICK_AIR,
+  ANIMATION_KICK_RUN,
 
   ANIMATION_TURN, // slow and fast for walk and run?
   ANIMATION_SKID, // skid to stop/idle
@@ -67,5 +71,9 @@ extern Animation player_animations[];
 bool anim_is_idle(uint animation);
 bool anim_is_ground(uint animation);
 bool anim_is_warp(uint animation);
+bool anim_is_double_jump(uint animation);
+bool anim_is_attack(uint animation);
+bool anim_is_hangtime_2(uint animation);
+bool anim_finished(uint animation, uint frame);
 
 #endif

@@ -25,8 +25,8 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   if (PRESSED(RIGHT)) {
     acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
 
-
-    if (!d->airborne) {
+    // extra button check here prevents moonwalking when holding both
+    if (!d->airborne && !PRESSED(LEFT)) {
       d->facing = FACING_RIGHT;
       // need to set animation direction in these, independent of velocity
       // have a turnaround animation based on velocity?
@@ -46,7 +46,7 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
     acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
 
 
-    if (!d->airborne) {
+    if (!d->airborne && !PRESSED(RIGHT)) {
       d->facing = FACING_LEFT;
       //d->animation = ANIMATION_RUN;
     }
@@ -73,7 +73,7 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   }
 
   bool about_to_jump = FALSE;
-  if (TRIGGERED(JUMP)) {
+  if (TRIGGERED(JUMP) && !d->in_combat) {
 
     // regular jump has a delay to match the frame
     if (!d->airborne) {
@@ -117,11 +117,9 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
     }
 
   // trigger delayed jump velocity for double-jumps
-  } else if (animation_frame == jump_double_accel_frame
-  && (d->animation == ANIMATION_DOUBLE_JUMP
-  ||  d->animation == ANIMATION_DOUBLE_JUMP_REVERSE
-  ||  d->animation == ANIMATION_DOUBLE_JUMP_REVERSE_2
-  )) {
+  } else if (anim_is_double_jump(d->animation)
+  &&         animation_frame == jump_double_accel_frame
+  ) {
     acceleration.y += -d->vel.y + jump_str;
 
     // switch horizontal direction if we're reverse-double-jumping
@@ -148,7 +146,7 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   }
 
   // Manage the type of walk/run animation based on the player's ground speed
-  if (!d->airborne && !about_to_jump) {
+  if (!d->airborne && !d->in_combat && !about_to_jump) {
     float player_speed = v2mag(d->vel);
 
     // this prevents animation switching from interrupting the sick roll

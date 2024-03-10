@@ -3,16 +3,16 @@
 #define ROW 16
 
 static Frame player_idle[] = {
-  { .frame = ROW*0 + 0 },
-  { .frame = ROW*0 + 1 },
-  { .frame = ROW*0 + 2 },
-  { .frame = ROW*0 + 3 },
-  { .frame = ROW*0 + 4 },
-  { .frame = ROW*0 + 5 },
-  { .frame = ROW*0 + 6 },
-  { .frame = ROW*0 + 7 },
-  { .frame = ROW*0 + 8 },
-  { .frame = ROW*0 + 9 },
+  { .frame = ROW*0 +  0 },
+  { .frame = ROW*0 +  1 },
+  { .frame = ROW*0 +  2 },
+  { .frame = ROW*0 +  3 },
+  { .frame = ROW*0 +  4 },
+  { .frame = ROW*0 +  5 },
+  { .frame = ROW*0 +  6 },
+  { .frame = ROW*0 +  7 },
+  { .frame = ROW*0 +  8 },
+  { .frame = ROW*0 +  9 },
   { .frame = ROW*0 + 10 },
   { .frame = ROW*0 + 11 },
   { .frame = ROW*0 + 12 },
@@ -22,6 +22,7 @@ static Frame player_idle[] = {
 };
 
 static Frame player_idle2[] = {
+  // beleaguered sigh
   { .frame = ROW*9 + 10 },
   { .frame = ROW*9 + 11 },
   { .frame = ROW*9 + 12 },
@@ -34,16 +35,17 @@ static Frame player_idle2[] = {
   { .frame = ROW*10+ 13 },
   { .frame = ROW*10+ 14 },
   { .frame = ROW*10+ 15 },
-  { .frame = ROW*0 + 0 },
-  { .frame = ROW*0 + 1 },
-  { .frame = ROW*0 + 2 },
-  { .frame = ROW*0 + 3 },
-  { .frame = ROW*0 + 4 },
-  { .frame = ROW*0 + 5 },
-  { .frame = ROW*0 + 6 },
-  { .frame = ROW*0 + 7 },
-  { .frame = ROW*0 + 8 },
-  { .frame = ROW*0 + 9 },
+  // regular idle anim
+  { .frame = ROW*0 +  0 },
+  { .frame = ROW*0 +  1 },
+  { .frame = ROW*0 +  2 },
+  { .frame = ROW*0 +  3 },
+  { .frame = ROW*0 +  4 },
+  { .frame = ROW*0 +  5 },
+  { .frame = ROW*0 +  6 },
+  { .frame = ROW*0 +  7 },
+  { .frame = ROW*0 +  8 },
+  { .frame = ROW*0 +  9 },
   { .frame = ROW*0 + 10 },
   { .frame = ROW*0 + 11 },
   { .frame = ROW*0 + 12 },
@@ -53,16 +55,16 @@ static Frame player_idle2[] = {
 };
 
 static Frame player_walk[] = {
-  { .frame = ROW*1 + 0 },
-  { .frame = ROW*1 + 1 },
-  { .frame = ROW*1 + 2 },
-  { .frame = ROW*1 + 3 },
-  { .frame = ROW*1 + 4 },
-  { .frame = ROW*1 + 5 },
-  { .frame = ROW*1 + 6 },
-  { .frame = ROW*1 + 7 },
-  { .frame = ROW*1 + 8 },
-  { .frame = ROW*1 + 9 },
+  { .frame = ROW*1 +  0 },
+  { .frame = ROW*1 +  1 },
+  { .frame = ROW*1 +  2 },
+  { .frame = ROW*1 +  3 },
+  { .frame = ROW*1 +  4 },
+  { .frame = ROW*1 +  5 },
+  { .frame = ROW*1 +  6 },
+  { .frame = ROW*1 +  7 },
+  { .frame = ROW*1 +  8 },
+  { .frame = ROW*1 +  9 },
   { .frame = ROW*1 + 10 },
   { .frame = ROW*1 + 11 },
   { .frame = ROW*1 + 12 },
@@ -72,16 +74,16 @@ static Frame player_walk[] = {
 };
 
 static Frame player_run[] = {
-  { .frame = ROW*2 + 0 },
-  { .frame = ROW*2 + 1 },
-  { .frame = ROW*2 + 2 },
-  { .frame = ROW*2 + 3 },
-  { .frame = ROW*2 + 4 },
-  { .frame = ROW*2 + 5 },
-  { .frame = ROW*2 + 6 },
-  { .frame = ROW*2 + 7 },
-  { .frame = ROW*2 + 8 },
-  { .frame = ROW*2 + 9 },
+  { .frame = ROW*2 +  0 },
+  { .frame = ROW*2 +  1 },
+  { .frame = ROW*2 +  2 },
+  { .frame = ROW*2 +  3 },
+  { .frame = ROW*2 +  4 },
+  { .frame = ROW*2 +  5 },
+  { .frame = ROW*2 +  6 },
+  { .frame = ROW*2 +  7 },
+  { .frame = ROW*2 +  8 },
+  { .frame = ROW*2 +  9 },
   { .frame = ROW*2 + 10 },
   { .frame = ROW*2 + 11 },
   { .frame = ROW*2 + 12 },
@@ -91,12 +93,14 @@ static Frame player_run[] = {
 };
 
 static Frame player_jump[] = {
+  // lifdoff
   { .frame = ROW*3 +  0 },
   { .frame = ROW*3 +  1 },
   { .frame = ROW*3 +  2 },
   { .frame = ROW*3 +  3 },
   { .frame = ROW*3 +  4 }, { .frame = ROW*3 +  4 },
   { .frame = ROW*3 +  5 }, { .frame = ROW*3 +  5 },
+  // hangtime 1 (leaning slightly forward)
   { .frame = ROW*3 +  6 }, { .frame = ROW*3 +  6 },
   { .frame = ROW*3 +  7 }, { .frame = ROW*3 +  7 },
   { .frame = ROW*3 +  8 }, { .frame = ROW*3 +  8 },
@@ -110,10 +114,11 @@ static Frame player_jump[] = {
 };
 
 static Frame player_fall[] = {
-  { .frame = ROW*3 + 6 },
-  { .frame = ROW*3 + 7 },
-  { .frame = ROW*3 + 8 },
-  { .frame = ROW*3 + 9 },
+  // hangtime 1 (leaning slightly forward)
+  { .frame = ROW*3 +  6 },
+  { .frame = ROW*3 +  7 },
+  { .frame = ROW*3 +  8 },
+  { .frame = ROW*3 +  9 },
   { .frame = ROW*3 + 10 },
   { .frame = ROW*3 + 11 },
   { .frame = ROW*3 + 12 },
@@ -122,7 +127,22 @@ static Frame player_fall[] = {
   { .frame = ROW*3 + 15 },
 };
 
+static Frame player_fall_2[] = {
+  // hangtime 2 (leaning slightly back)
+  { .frame = ROW*5 + 0 },
+  { .frame = ROW*5 + 1 },
+  { .frame = ROW*5 + 2 },
+  { .frame = ROW*5 + 3 },
+  { .frame = ROW*5 + 4 },
+  { .frame = ROW*5 + 5 },
+  { .frame = ROW*5 + 6 },
+  { .frame = ROW*5 + 7 },
+  { .frame = ROW*5 + 8 },
+  { .frame = ROW*5 + 9 },
+};
+
 static Frame player_jump_double[] = {
+  // jellyfish arm flail
   { .frame = ROW*4 + 0 },
   { .frame = ROW*4 + 1 },
   { .frame = ROW*4 + 2 },
@@ -133,6 +153,7 @@ static Frame player_jump_double[] = {
   { .frame = ROW*4 + 7 }, { .frame = ROW*4 + 7 },
   { .frame = ROW*4 + 8 }, { .frame = ROW*4 + 8 },
   { .frame = ROW*4 + 9 }, { .frame = ROW*4 + 9 },
+  // hangtime 2 (leaning slightly back)
   { .frame = ROW*5 + 0 }, { .frame = ROW*5 + 0 },
   { .frame = ROW*5 + 1 }, { .frame = ROW*5 + 1 },
   { .frame = ROW*5 + 2 }, { .frame = ROW*5 + 2 },
@@ -146,6 +167,7 @@ static Frame player_jump_double[] = {
 };
 
 static Frame player_jump_double_reverse[] = {
+  // do a little pirouette (it's backwards because reasons)
   { .frame = ROW*6 + 9 },
   { .frame = ROW*6 + 8 },
   { .frame = ROW*6 + 7 },
@@ -156,6 +178,7 @@ static Frame player_jump_double_reverse[] = {
   { .frame = ROW*6 + 2 }, { .frame = ROW*6 + 2 },
   { .frame = ROW*6 + 1 }, { .frame = ROW*6 + 1 },
   { .frame = ROW*6 + 0 }, { .frame = ROW*6 + 0 },
+  // hangtime 2 (leaning slightly back)
   { .frame = ROW*5 + 0 }, { .frame = ROW*5 + 0 },
   { .frame = ROW*5 + 1 }, { .frame = ROW*5 + 1 },
   { .frame = ROW*5 + 2 }, { .frame = ROW*5 + 2 },
@@ -169,6 +192,7 @@ static Frame player_jump_double_reverse[] = {
 };
 
 static Frame player_jump_double_reverse_2[] = {
+  // do a little pirouette (it's backwards because reasons)
   { .frame = ROW*6 +  9 },
   { .frame = ROW*6 +  8 },
   { .frame = ROW*6 +  7 },
@@ -176,9 +200,11 @@ static Frame player_jump_double_reverse_2[] = {
   { .frame = ROW*6 +  5 }, { .frame = ROW*6 +  5 },
   { .frame = ROW*6 +  4 }, { .frame = ROW*6 +  4 },
   { .frame = ROW*6 +  3 }, { .frame = ROW*6 +  3 },
+  // last 3 frames set up for other hangtime anim
   { .frame = ROW*7 +  2 }, { .frame = ROW*7 +  2 },
   { .frame = ROW*7 +  1 }, { .frame = ROW*7 +  1 },
   { .frame = ROW*7 +  0 }, { .frame = ROW*7 +  0 },
+  // hangtime 1 (leaning slightly forward)
   { .frame = ROW*3 +  6 }, { .frame = ROW*3 +  6 },
   { .frame = ROW*3 +  7 }, { .frame = ROW*3 +  7 },
   { .frame = ROW*3 +  8 }, { .frame = ROW*3 +  8 },
@@ -192,6 +218,7 @@ static Frame player_jump_double_reverse_2[] = {
 };
 
 static Frame player_roll_into_run[] = {
+  // roll
   { .frame = ROW*8 +  0 },
   { .frame = ROW*8 +  1 },
   { .frame = ROW*8 +  2 },
@@ -208,6 +235,7 @@ static Frame player_roll_into_run[] = {
   { .frame = ROW*8 + 13 },
   { .frame = ROW*8 + 14 },
   { .frame = ROW*8 + 15 },
+  // run
   { .frame = ROW*2 +  0 },
   { .frame = ROW*2 +  1 },
   { .frame = ROW*2 +  2 },
@@ -227,12 +255,14 @@ static Frame player_roll_into_run[] = {
 };
 
 static Frame player_bump_into_wall[] = {
+  // bomp
   { .frame = ROW*4 + 10 },
   { .frame = ROW*4 + 11 },
   { .frame = ROW*4 + 12 },
   { .frame = ROW*4 + 13 },
   { .frame = ROW*4 + 14 },
   { .frame = ROW*4 + 15 },
+  // idle
   { .frame = ROW*0 + 0 },
   { .frame = ROW*0 + 1 },
   { .frame = ROW*0 + 2 },
@@ -252,6 +282,7 @@ static Frame player_bump_into_wall[] = {
 };
 
 static Frame player_warp_standing[] = {
+  // countdown to warp from standing
   { .frame = ROW*9 +  0 },
   { .frame = ROW*9 +  1 }, { .frame = ROW*9 +  1 },
   { .frame = ROW*9 +  2 }, { .frame = ROW*9 +  2 }, { .frame = ROW*9 +  2 },
@@ -262,7 +293,7 @@ static Frame player_warp_standing[] = {
   { .frame = ROW*9 +  7 }, { .frame = ROW*9 +  7 },
   { .frame = ROW*9 +  8 },
   { .frame = ROW*9 +  9 },
-
+  // warp mid
   { .frame = ROW*7 +  8 },
   { .frame = ROW*7 +  9 },
   { .frame = ROW*7 + 10 },
@@ -271,6 +302,7 @@ static Frame player_warp_standing[] = {
   { .frame = ROW*7 + 13 },
   { .frame = ROW*7 + 14 },
   { .frame = ROW*7 + 15 },
+  // warp tail (active)
   { .frame = ROW*6 + 10 },
   { .frame = ROW*6 + 11 },
   { .frame = ROW*6 + 12 },
@@ -280,6 +312,7 @@ static Frame player_warp_standing[] = {
 };
 
 static Frame player_warp_standing_fade[] = {
+  // countdown to warp from standing
   { .frame = ROW*9 +  0 },
   { .frame = ROW*9 +  1 },
   { .frame = ROW*9 +  2 },
@@ -290,7 +323,7 @@ static Frame player_warp_standing_fade[] = {
   { .frame = ROW*9 +  7 },
   { .frame = ROW*9 +  8 },
   { .frame = ROW*9 +  9 },
-
+  // warp mid
   { .frame = ROW*7 +  8 },
   { .frame = ROW*7 +  9 },
   { .frame = ROW*7 + 10 },
@@ -299,6 +332,7 @@ static Frame player_warp_standing_fade[] = {
   { .frame = ROW*7 + 13 },
   { .frame = ROW*7 + 14 },
   { .frame = ROW*7 + 15 },
+  // warp tail (fade)
   { .frame = ROW*5 + 10 },
   { .frame = ROW*5 + 11 },
   { .frame = ROW*5 + 12 },
@@ -308,6 +342,7 @@ static Frame player_warp_standing_fade[] = {
 };
 
 static Frame player_warp_air[] = {
+  // countdown to warp while in air
   { .frame = ROW*10+  0 },
   { .frame = ROW*10+  1 },
   { .frame = ROW*10+  2 }, { .frame = ROW*10+  2 },
@@ -318,7 +353,7 @@ static Frame player_warp_air[] = {
   { .frame = ROW*10+  7 }, { .frame = ROW*10+  7 },
   { .frame = ROW*10+  8 }, { .frame = ROW*10+  8 },
   { .frame = ROW*10+  9 },
-
+  // warp mid
   { .frame = ROW*7 +  8 },
   { .frame = ROW*7 +  9 },
   { .frame = ROW*7 + 10 },
@@ -327,6 +362,7 @@ static Frame player_warp_air[] = {
   { .frame = ROW*7 + 13 },
   { .frame = ROW*7 + 14 },
   { .frame = ROW*7 + 15 },
+  // warp tail (active)
   { .frame = ROW*6 + 10 },
   { .frame = ROW*6 + 11 },
   { .frame = ROW*6 + 12 },
@@ -336,6 +372,7 @@ static Frame player_warp_air[] = {
 };
 
 static Frame player_warp_air_fade[] = {
+  // countdown to warp while in air
   { .frame = ROW*10+  0 },
   { .frame = ROW*10+  1 },
   { .frame = ROW*10+  2 },
@@ -346,7 +383,7 @@ static Frame player_warp_air_fade[] = {
   { .frame = ROW*10+  7 },
   { .frame = ROW*10+  8 },
   { .frame = ROW*10+  9 },
-
+  // warp mid
   { .frame = ROW*7 +  8 },
   { .frame = ROW*7 +  9 },
   { .frame = ROW*7 + 10 },
@@ -355,6 +392,7 @@ static Frame player_warp_air_fade[] = {
   { .frame = ROW*7 + 13 },
   { .frame = ROW*7 + 14 },
   { .frame = ROW*7 + 15 },
+  // warp tail (fading)
   { .frame = ROW*5 + 10 },
   { .frame = ROW*5 + 11 },
   { .frame = ROW*5 + 12 },
@@ -364,12 +402,15 @@ static Frame player_warp_air_fade[] = {
 };
 
 static Frame player_landing[] = {
+  // cronch
   { .frame = ROW*7 +  3 },
   { .frame = ROW*7 +  4 },
   { .frame = ROW*7 +  5 },
   { .frame = ROW*7 +  6 },
   { .frame = ROW*7 +  7 },
+  // walk animation
   { .frame = ROW*1 +  0 },
+  // idle
   { .frame = ROW*0 +  0 },
   { .frame = ROW*0 +  1 },
   { .frame = ROW*0 +  2 },
@@ -386,6 +427,80 @@ static Frame player_landing[] = {
   { .frame = ROW*0 + 13 },
   { .frame = ROW*0 + 14 },
   { .frame = ROW*0 + 15 },
+};
+
+static Frame player_b_air[] = {
+  // woprek! (it's backwards because reasons)
+  { .frame = ROW*11+ 13 },
+  { .frame = ROW*11+ 12 },
+  { .frame = ROW*11+ 11 },
+  { .frame = ROW*11+ 10 },
+  { .frame = ROW*11+  9 },
+  { .frame = ROW*11+  8 },
+  { .frame = ROW*11+  7 },
+  { .frame = ROW*11+  6 },
+  { .frame = ROW*11+  5 },
+  { .frame = ROW*11+  4 },
+  { .frame = ROW*11+  3 },
+  { .frame = ROW*11+  2 },
+  { .frame = ROW*11+  1 },
+  { .frame = ROW*11+  0 },
+};
+
+static Frame player_f_air[] = {
+  // kerpow!
+  { .frame = ROW*12+  0 },
+  { .frame = ROW*12+  1 },
+  { .frame = ROW*12+  2 },
+  { .frame = ROW*12+  3 },
+  { .frame = ROW*12+  4 },
+  { .frame = ROW*12+  5 },
+  { .frame = ROW*12+  6 },
+  { .frame = ROW*12+  7 },
+  { .frame = ROW*12+  8 },
+  { .frame = ROW*12+  9 },
+  { .frame = ROW*12+ 10 },
+};
+
+static Frame player_n_air[] = {
+  // klonk!
+  { .frame = ROW*13+  0 },
+  { .frame = ROW*13+  1 },
+  { .frame = ROW*13+  2 },
+  { .frame = ROW*13+  3 },
+  { .frame = ROW*13+  4 },
+  { .frame = ROW*13+  5 },
+  { .frame = ROW*13+  6 },
+  { .frame = ROW*13+  7 },
+  { .frame = ROW*13+  8 },
+  { .frame = ROW*13+  9 },
+  { .frame = ROW*13+ 10 },
+};
+
+static Frame player_kick[] = {
+  // bonk!
+  { .frame = ROW*14+  0 },
+  { .frame = ROW*14+  1 },
+  { .frame = ROW*14+  2 },
+  { .frame = ROW*14+  3 },
+  { .frame = ROW*14+  4 },
+  { .frame = ROW*14+  5 },
+  { .frame = ROW*14+  6 },
+  { .frame = ROW*14+  7 },
+  { .frame = ROW*14+  8 },
+  { .frame = ROW*14+  9 },
+  { .frame = ROW*14+ 10 },
+};
+
+static Frame player_kick_run[] = {
+  // donk!
+  { .frame = ROW*12+ 11 },
+  { .frame = ROW*12+ 12 },
+  { .frame = ROW*12+ 13 },
+  { .frame = ROW*12+ 14 },
+  { .frame = ROW*12+ 15 },
+  { .frame = ROW*11+ 14 },
+  { .frame = ROW*11+ 15 },
 };
 
 //static Hitbox hitbox_player_punch = {
@@ -407,6 +522,7 @@ Animation player_animations[] = {
   { FRAMES(player_run), .rate = 4 },
   { FRAMES(player_jump), .rate = 2, .repeat = 8 },
   { FRAMES(player_fall), .rate = 4 },
+  { FRAMES(player_fall_2), .rate = 4 },
   { FRAMES(player_jump_double), .rate = 2, .repeat = 19 },
   { FRAMES(player_jump_double_reverse), .rate = 2, .repeat = 19 },
   { FRAMES(player_jump_double_reverse_2), .rate = 2, .repeat = 19 },
@@ -417,6 +533,11 @@ Animation player_animations[] = {
   { FRAMES(player_warp_air), .rate = 1, .repeat = -1 },
   { FRAMES(player_warp_air_fade), .rate = 2, .repeat = -1 },
   { FRAMES(player_landing), .rate = 4, .repeat = 6},
+  { FRAMES(player_n_air), .rate = 3, .repeat = -1},
+  { FRAMES(player_f_air), .rate = 3, .repeat = -1},
+  { FRAMES(player_b_air), .rate = 3, .repeat = -1},
+  { FRAMES(player_kick), .rate = 3, .repeat = -1},
+  { FRAMES(player_kick_run), .rate = 3, .repeat = -1},
 };
 
 // Used to tell if an animation contains an idle sequence
@@ -442,4 +563,44 @@ bool anim_is_warp(uint animation) {
   return animation == ANIMATION_WARP_AIR
   ||     animation == ANIMATION_WARP_STANDING
   ;
+}
+
+// Double jump animations
+bool anim_is_double_jump(uint animation) {
+  return animation == ANIMATION_DOUBLE_JUMP
+  ||     animation == ANIMATION_DOUBLE_JUMP_REVERSE
+  ||     animation == ANIMATION_DOUBLE_JUMP_REVERSE_2
+  ;
+}
+
+// These are attacks!
+bool anim_is_attack(uint animation) {
+  return animation == ANIMATION_N_AIR
+  ||     animation == ANIMATION_F_AIR
+  ||     animation == ANIMATION_B_AIR
+  ||     animation == ANIMATION_KICK
+  ||     animation == ANIMATION_KICK_RUN
+  ;
+}
+
+// Hangtime 2 is the one where you lean back slightly, and leads into
+// the roll animation on landing into run
+bool anim_is_hangtime_2(uint animation) {
+  return animation == ANIMATION_DOUBLE_JUMP
+  ||     animation == ANIMATION_DOUBLE_JUMP_REVERSE
+  ||     animation == ANIMATION_N_AIR
+  ||     animation == ANIMATION_F_AIR
+  ||     animation == ANIMATION_B_AIR
+  ||     animation == ANIMATION_FALL_2
+  ;
+}
+
+// Returns true if the given animation is finished before this frame
+// If the animation repeats, returns true if it's passed the intro
+// The frame passed in is real-time frame (ie, 2 images at rate 3 is 6 frames)
+bool anim_finished(uint animation, uint frame) {
+  Animation* anim = &player_animations[animation];
+  if (anim->repeat > 0)
+    return frame / anim->rate >= (uint)anim->repeat;
+  return frame / anim->rate >= anim->count - anim->repeat;
 }

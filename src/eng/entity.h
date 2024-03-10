@@ -20,6 +20,7 @@ typedef struct PlayerFrameData {
   uint animation;
   bool warp_triggered;
   bool facing;
+  bool in_combat;
 } PlayerFrameData;
 
 typedef struct TransformIndex {

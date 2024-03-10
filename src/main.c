@@ -49,7 +49,7 @@ void export(wasm_preload) (uint w, uint h) {
     },
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},
-    .input.mapping.keys = {'w', 's', 'a', 'd', 'c', 'r'},
+    .input.mapping.keys = {'w', 's', 'a', 'd', 'c', 'r', 'f'},
     .entities = {
       .data = NULL
     }
