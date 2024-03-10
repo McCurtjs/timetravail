@@ -21,6 +21,37 @@ static Frame player_idle[] = {
   { .frame = ROW*0 + 15 },
 };
 
+static Frame player_idle2[] = {
+  { .frame = ROW*9 + 10 },
+  { .frame = ROW*9 + 11 },
+  { .frame = ROW*9 + 12 },
+  { .frame = ROW*9 + 13 },
+  { .frame = ROW*9 + 14 },
+  { .frame = ROW*9 + 15 },
+  { .frame = ROW*10+ 10 },
+  { .frame = ROW*10+ 11 },
+  { .frame = ROW*10+ 12 },
+  { .frame = ROW*10+ 13 },
+  { .frame = ROW*10+ 14 },
+  { .frame = ROW*10+ 15 },
+  { .frame = ROW*0 + 0 },
+  { .frame = ROW*0 + 1 },
+  { .frame = ROW*0 + 2 },
+  { .frame = ROW*0 + 3 },
+  { .frame = ROW*0 + 4 },
+  { .frame = ROW*0 + 5 },
+  { .frame = ROW*0 + 6 },
+  { .frame = ROW*0 + 7 },
+  { .frame = ROW*0 + 8 },
+  { .frame = ROW*0 + 9 },
+  { .frame = ROW*0 + 10 },
+  { .frame = ROW*0 + 11 },
+  { .frame = ROW*0 + 12 },
+  { .frame = ROW*0 + 13 },
+  { .frame = ROW*0 + 14 },
+  { .frame = ROW*0 + 15 },
+};
+
 static Frame player_walk[] = {
   { .frame = ROW*1 + 0 },
   { .frame = ROW*1 + 1 },
@@ -371,6 +402,7 @@ static Frame player_landing[] = {
 
 Animation player_animations[] = {
   { FRAMES(player_idle), .rate = 6 },
+  { FRAMES(player_idle2), .rate = 6, .repeat = 13 },
   { FRAMES(player_walk), .rate = 4 },
   { FRAMES(player_run), .rate = 4 },
   { FRAMES(player_jump), .rate = 2, .repeat = 8 },
@@ -386,3 +418,28 @@ Animation player_animations[] = {
   { FRAMES(player_warp_air_fade), .rate = 2, .repeat = -1 },
   { FRAMES(player_landing), .rate = 4, .repeat = 6},
 };
+
+// Used to tell if an animation contains an idle sequence
+bool anim_is_idle(uint animation) {
+  return animation == ANIMATION_IDLE
+  ||     animation == ANIMATION_IDLE_2
+  ||     animation == ANIMATION_LAND
+  ||     animation == ANIMATION_BUMP_INTO_WALL
+  ;
+}
+
+// Used to track these animations whose frames map onto each other and
+// don't need to have the start frame updated as a result
+bool anim_is_ground(uint animation) {
+  return animation == ANIMATION_WALK
+  ||     animation == ANIMATION_RUN
+  ||     animation == ANIMATION_ROLL_INTO_RUN
+  ;
+}
+
+// Similarly used to determine if the player is in a warp animation
+bool anim_is_warp(uint animation) {
+  return animation == ANIMATION_WARP_AIR
+  ||     animation == ANIMATION_WARP_STANDING
+  ;
+}

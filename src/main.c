@@ -144,6 +144,8 @@ int export(wasm_load) (int await_count, float dt) {
     { .a = (vec2){ -15, 4}, .b = (vec2){ -15, -0.5}, .wall = TRUE },
     { .a = (vec2){ -15, -0.5}, .b = (vec2){ -15, 4}, .wall = TRUE },
 
+    { .a = (vec2){ 30, 30}, .b = (vec2){ 60, 10} },
+
     { .a = (vec2){ 5, 13}, .b = (vec2){ 10, 13} },
     { .a = (vec2){ 5, 20}, .b = (vec2){ 10, 20} },
     { .a = (vec2){ 15, 25}, .b = (vec2){ 20, 25} },

@@ -69,7 +69,7 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
 
     // If we're reverseing, flip back to forward and create a player instance
     if (game->reverse_playback) {
-      print("Going to forward playback");
+      //print("Going to forward playback");
       PlayerFrameData new_fd = active.e->fd;
       new_fd.warp_triggered = 0;
 
@@ -89,7 +89,7 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
 
     // Otherwise, initialize the playback reversal
     } else {
-      print("Entering reverse playback");
+      //print("Entering reverse playback");
 
       //((PlayerRef*)vector_get_back(&game->timeguys))->e->playback = TRUE;
     }

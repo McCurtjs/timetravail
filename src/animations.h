@@ -10,6 +10,7 @@
 
 typedef enum Anims {
   ANIMATION_IDLE,
+  ANIMATION_IDLE_2,
   ANIMATION_WALK,
   ANIMATION_RUN,
   ANIMATION_JUMP,
@@ -25,17 +26,12 @@ typedef enum Anims {
   ANIMATION_WARP_AIR_FADE,
   ANIMATION_LAND, // land into idle
 
-
   ANIMATION_KICK,
   ANIMATION_KICK_AIR,
 
   ANIMATION_TURN, // slow and fast for walk and run?
   ANIMATION_SKID, // skid to stop/idle
 
-  ANIMATION_LAND_HARD, // land at high velocity
-  ANIMATION_LAND_ROLL, // land at high horizontal velocity
-
-  ANIMATION_CRASH, // brace with hands when you run into wall, ends with idle
   ANIMATION_THROW,
 
   ANIMATION_COUNT // end of list
@@ -67,5 +63,9 @@ typedef struct AnimationData {
 } AnimationData;
 
 extern Animation player_animations[];
+
+bool anim_is_idle(uint animation);
+bool anim_is_ground(uint animation);
+bool anim_is_warp(uint animation);
 
 #endif

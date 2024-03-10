@@ -112,14 +112,14 @@ int handle_player_collisions(
   if (old_fd.airborne && !new_fd->airborne) {
 
     // if we're at running speed and in hangtime-2, land into a sick roll
-    if (player_speed > 12
+    if (player_speed > max_vel[0] - roll_anim_threshold_diff
     && ( new_fd->animation == ANIMATION_DOUBLE_JUMP
       || new_fd->animation == ANIMATION_DOUBLE_JUMP_REVERSE)
     ) {
       new_fd->animation = ANIMATION_ROLL_INTO_RUN;
 
     // if we're at a walking or idle pace, regular land
-    } else if (player_speed < 18
+    } else if (player_speed < max_vel[0] - run_anim_threshold_diff
     || !(game->input.pressed.left || game->input.pressed.right)
     ) {
       new_fd->animation = ANIMATION_LAND;
