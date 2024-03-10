@@ -16,12 +16,13 @@ void finish_rendering_sprites(
   Game* game, const Model_Sprites* sprites, const Texture* texture);
 
 vec2 platform_pos_at_frame(Movement* m, float frame);
+
 bool handle_player_collisions(
-  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd);
+  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs);
 
 void handle_abilities(
-  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd,
-  bool block_warp, bool move_cancel);
+  PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs,
+  uint frame, bool block_warp, bool move_cancel);
 
 #define accel ((float[2]){45, 16}) // [0] = ground, [1] = air
 #define max_vel ((float[2]){20, 23})
@@ -35,8 +36,31 @@ void handle_abilities(
 #define gravity 9.8 * 5.0
 #define jump_str 16.0
 #define jump_reverse_factor 0.2
+#define max_replay_temp 120
 
 #define jump_accel_frame 4
 #define jump_double_accel_frame 6
+
+// Masks for reading the replay-packed input value
+#define SHIFT_JUMP    0
+#define SHIFT_RIGHT   1
+#define SHIFT_LEFT    2
+#define SHIFT_DROP    3
+#define SHIFT_KICK    4
+#define SHIFT_REPLAY  16
+#define SHIFT_TRIGGER 0
+#define SHIFT_PRESSED 8
+
+//                                                        triggered -> |=======|
+//                                                 pressed-> |=======| |       |
+#define JUMP    (1 << SHIFT_JUMP)     // 0000 0000 0000 0000 0000 0001 0000 000t
+#define RIGHT   (1 << SHIFT_RIGHT)    // 0000 0000 0000 0000 0000 0010 0000 00t0
+#define LEFT    (1 << SHIFT_LEFT)     // 0000 0000 0000 0000 0000 0100 0000 0t00
+#define DROP    (1 << SHIFT_DROP)     // 0000 0000 0000 0000 0000 1000 0000 t000
+#define KICK    (1 << SHIFT_KICK)     // 0000 0000 0000 0000 0001 0000 000t 0000
+#define REPLAY  (1 << SHIFT_REPLAY)   // 0000 0000 0000 000t 0000 0000 0000 0000
+
+#define PRESSED(mask) (inputs & ((mask) << SHIFT_PRESSED))
+#define TRIGGERED(mask) (inputs & ((mask) << SHIFT_TRIGGER))
 
 #endif

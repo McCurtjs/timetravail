@@ -2,6 +2,7 @@
 #include "../types.h"
 #include "../wasm.h"
 #include <stdlib.h>
+#include <ctype.h>
 
 void export(wasm_push_window_event) (uint event_type, int x, int y) {
   SDL_WindowEvent event = {
@@ -46,13 +47,13 @@ void export(wasm_push_mouse_motion_event) (
 }
 
 void export(wasm_push_keyboard_event) (
-  uint event_type, uint key, uint mod, uint repeat
+  uint event_type, int key, uint mod, uint repeat
 ) {
   SDL_KeyboardEvent event = {
     .type = event_type,
     .state = SDL_EVENT_KEY_DOWN ? SDL_PRESSED : SDL_RELEASED,
     .repeat = repeat,
-    .keysym = { .sym = key, .mod = mod }
+    .keysym = { .sym = tolower(key), .mod = mod }
   };
 
   SDL_PushEvent((SDL_Event*)&event);

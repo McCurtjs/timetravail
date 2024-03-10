@@ -4,7 +4,7 @@
 #include "draw.h"
 
 bool handle_player_collisions(
-  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd
+  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs
 ) {
   const Line* was_standing = new_fd->standing;
   bool move_cancel = FALSE;
@@ -31,9 +31,7 @@ bool handle_player_collisions(
     }
 
     // Drop through the platform if it's droppable and you press down
-    if (game->input.pressed.back
-    && !new_fd->in_combat && was_standing->droppable
-    ) {
+    if (PRESSED(DROP) && !new_fd->in_combat && was_standing->droppable) {
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
       new_fd->animation = ANIMATION_FALL;
@@ -60,7 +58,7 @@ bool handle_player_collisions(
       vec2 dir = v2sub(new_fd->pos, old_fd.pos);
       vec2 n = v2perp(v2norm(v2sub(line.b, line.a)));
 
-      if (v2dot(dir, n) < 0 && !(line.droppable && game->input.pressed.back)) {
+      if (v2dot(dir, n) < 0 && !(line.droppable && PRESSED(DROP))) {
 
         float dist = v2dist(new_fd->pos, p);
         if (closest_line == NULL || dist < closest) {
@@ -122,7 +120,7 @@ bool handle_player_collisions(
 
     // if we're at a walking or idle pace, regular land
     } else if (player_speed < max_vel[0] - run_anim_threshold_diff
-    || !(game->input.pressed.left || game->input.pressed.right)
+    || !(PRESSED(LEFT) || PRESSED(RIGHT))
     ) {
       new_fd->animation = ANIMATION_LAND;
     }

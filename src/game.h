@@ -33,28 +33,28 @@ typedef struct Game_Textures {
 
 typedef struct Game_Buttons {
   union {
-    uint buttons[game_button_input_count];
+    int buttons[game_button_input_count];
     struct {
       // keyboard
       union {
-        uint keys[game_key_count];
+        int keys[game_key_count];
         struct {
-          uint forward;
-          uint back;
-          uint left;
-          uint right;
-          uint camera_lock;
-          uint run_replay;
-          uint kick;
+          int forward;
+          int back;
+          int left;
+          int right;
+          int camera_lock;
+          int run_replay;
+          int kick;
         };
       };
       // mouse
       union {
-        uint mouse[game_mouse_button_count];
+        int mouse[game_mouse_button_count];
         struct {
-          uint lmb;
-          uint mmb;
-          uint rmb;
+          int lmb;
+          int mmb;
+          int rmb;
         };
       };
     };

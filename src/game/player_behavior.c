@@ -10,19 +10,19 @@
 #include <math.h>
 #include <stdlib.h>
 
-const static int max_replay_temp = 120;
-
 uint get_input_mask(Game* game) {
   uint inputs = 0;
-  inputs |= game->input.pressed.forward << 0;
-  inputs |= game->input.pressed.right << 1;
-  inputs |= game->input.pressed.left << 2;
-  inputs |= game->input.pressed.back << 3;
-  inputs |= game->input.triggered.forward << 4;
-  inputs |= game->input.triggered.right << 5;
-  inputs |= game->input.triggered.left << 6;
-  inputs |= game->input.triggered.back << 7;
-  inputs |= game->input.triggered.run_replay << 8;
+  inputs |= game->input.pressed.forward   << (SHIFT_JUMP  + SHIFT_PRESSED);
+  inputs |= game->input.pressed.right     << (SHIFT_RIGHT + SHIFT_PRESSED);
+  inputs |= game->input.pressed.left      << (SHIFT_LEFT  + SHIFT_PRESSED);
+  inputs |= game->input.pressed.back      << (SHIFT_DROP  + SHIFT_PRESSED);
+  inputs |= game->input.pressed.kick      << (SHIFT_KICK  + SHIFT_PRESSED);
+  inputs |= game->input.triggered.forward << (SHIFT_JUMP  + SHIFT_TRIGGER);
+  inputs |= game->input.triggered.right   << (SHIFT_RIGHT + SHIFT_TRIGGER);
+  inputs |= game->input.triggered.left    << (SHIFT_LEFT  + SHIFT_TRIGGER);
+  inputs |= game->input.triggered.back    << (SHIFT_DROP  + SHIFT_TRIGGER);
+  inputs |= game->input.triggered.kick    << (SHIFT_KICK  + SHIFT_TRIGGER);
+  inputs |= game->input.triggered.run_replay << (SHIFT_REPLAY);
   return inputs;
 }
 
@@ -110,10 +110,9 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
     dt = dt * game->reverse_speed;
-    bool move_cancel = FALSE;
     handle_movement(&updates, dt, inputs, (uint)game->frame);
-    move_cancel = handle_player_collisions(game, e->fd, &updates);
-    handle_abilities(game, e->fd, &updates, first_frame, move_cancel);
+    bool cancel = handle_player_collisions(game, e->fd, &updates, inputs);
+    handle_abilities(e->fd, &updates, inputs, game->frame, first_frame, cancel);
     e->fd = updates;
 
     // special cases with animations...
@@ -186,10 +185,9 @@ void behavior_player(Entity* e, Game* game, float _) {
         until(node.frame++ >= node.frame_until);
 
         PlayerFrameData updates = node.data;
-        bool move_cancel = FALSE;
         handle_movement(&updates, dt, node.buttons, node.frame);
-        move_cancel = handle_player_collisions(game, node.data, &updates);
-        handle_abilities(game, node.data, &updates, TRUE, move_cancel);
+        bool cancel = handle_player_collisions(game, node.data, &updates, node.buttons);
+        handle_abilities(node.data, &updates, node.buttons, node.frame, TRUE, cancel);
         node.data = updates;
       }
     }

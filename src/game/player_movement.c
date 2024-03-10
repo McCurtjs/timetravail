@@ -2,17 +2,6 @@
 
 #include <math.h>
 
-//         pressed v
-//      triggered v|
-#define JUMP  0x0001
-#define RIGHT 0x0002
-#define LEFT  0x0004
-#define DROP  0x0008
-#define REPLAY (1 << 8)
-
-#define PRESSED(mask) (inputs & (mask))
-#define TRIGGERED(mask) (inputs & ((mask) << 4))
-
 void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   vec2 acceleration = v2zero;
   vec2 axis = v2x;

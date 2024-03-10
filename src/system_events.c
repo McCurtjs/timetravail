@@ -61,8 +61,9 @@ void process_system_events(Game* game) {
 
       case SDL_EVENT_KEY_DOWN: {
         if (event.key.repeat) break;
-        for (int i = 0; i < game_key_count; ++i) {
+        for (uint i = 0; i < game_key_count; ++i) {
           if (event.key.keysym.sym == game->input.mapping.keys[i]) {
+            if (game->input.pressed.keys[i]) return;
             game->input.pressed.keys[i] = TRUE;
             game->input.triggered.keys[i] = TRUE;
           }
@@ -70,7 +71,7 @@ void process_system_events(Game* game) {
       }; break;
 
       case SDL_EVENT_KEY_UP: {
-        for (int i = 0; i < game_key_count; ++i) {
+        for (uint i = 0; i < game_key_count; ++i) {
           if (event.key.keysym.sym == game->input.mapping.keys[i]) {
             game->input.pressed.keys[i] = FALSE;
             game->input.released.keys[i] = TRUE;

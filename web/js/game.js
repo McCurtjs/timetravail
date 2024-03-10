@@ -125,7 +125,7 @@ class Game {
     });
 
     let keyboard_event = (e, event_type) => {
-      let k = e.key.toLowerCase().charCodeAt(0);
+      let k = e.keyCode;
       let mod = 0;
       mod |= e.shiftKey ? sdl.keymod.lshift : 0;
       mod |= e.ctrlKey ? sdl.keymod.lctrl : 0;

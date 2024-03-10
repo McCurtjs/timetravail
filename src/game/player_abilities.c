@@ -1,13 +1,13 @@
 #include "game_behaviors.h"
 
 void handle_abilities(
-  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd,
-  bool block_warp, bool move_cancel
+  PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs,
+  uint frame, bool block_warp, bool move_cancel
 ) {
-  uint animation_frame = game->frame - old_fd.start_frame;
+  uint animation_frame = frame - old_fd.start_frame;
 
   // If we are warping, don't change the animation no matter what
-  if (game->input.triggered.run_replay && !block_warp) {
+  if (TRIGGERED(REPLAY) && !block_warp) {
     new_fd->warp_triggered = TRUE;
   }
 
@@ -37,21 +37,21 @@ void handle_abilities(
   if (!new_fd->in_combat) {
 
     // there is only one attack button, it is kick
-    if (game->input.triggered.kick == TRUE) {
+    if (TRIGGERED(KICK)) {
       new_fd->in_combat = TRUE;
 
       // in-air
       if (new_fd->airborne) {
 
         // trigger forward-air
-        if ((game->input.pressed.left && new_fd->facing == FACING_LEFT)
-        ||  (game->input.pressed.right && new_fd->facing == FACING_RIGHT)
+        if ((PRESSED(LEFT) && new_fd->facing == FACING_LEFT)
+        ||  (PRESSED(RIGHT) && new_fd->facing == FACING_RIGHT)
         ) {
           new_fd->animation = ANIMATION_F_AIR;
 
         // trigger back-air, do a turnaround
-        } else if ((game->input.pressed.left && new_fd->facing == FACING_RIGHT)
-        ||         (game->input.pressed.right && new_fd->facing == FACING_LEFT)
+        } else if ((PRESSED(LEFT) && new_fd->facing == FACING_RIGHT)
+        ||         (PRESSED(RIGHT) && new_fd->facing == FACING_LEFT)
         ) {
           new_fd->animation = ANIMATION_B_AIR;
           new_fd->facing = !new_fd->facing;
@@ -63,13 +63,14 @@ void handle_abilities(
 
       // ground attacks
       } else {
-        float ground_speed = v2mag(new_fd->vel);
-        float threshold = max_vel[0] - run_anim_threshold_diff;
 
-        if (ground_speed < threshold) {
-          new_fd->animation = ANIMATION_KICK;
-        } else {
+        // forward/dash attack
+        if (PRESSED(LEFT) || PRESSED(RIGHT)) {
           new_fd->animation = ANIMATION_KICK_RUN;
+
+        // neutral attack
+        } else {
+          new_fd->animation = ANIMATION_KICK;
         }
       }
     }
