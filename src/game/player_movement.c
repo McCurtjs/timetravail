@@ -2,118 +2,124 @@
 
 #include <math.h>
 
+#include "wasm.h"
+
 void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   vec2 acceleration = v2zero;
   vec2 axis = v2x;
   uint animation_frame = frame - d->start_frame;
+  bool about_to_jump = FALSE;
 
   if (d->standing) {
     axis = v2norm(v2sub(d->standing->b, d->standing->a));
   }
 
-  if (PRESSED(RIGHT)) {
-    acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
+  // player inputs are disabled while in hitstun
+  if (!d->hitstun) {
 
-    // extra button check here prevents moonwalking when holding both
-    if (!d->airborne && !PRESSED(LEFT)) {
-      d->facing = FACING_RIGHT;
-      // need to set animation direction in these, independent of velocity
-      // have a turnaround animation based on velocity?
-      //d->animation = ANIMATION_RUN;
+    if (PRESSED(RIGHT)) {
+      acceleration = v2add(acceleration, v2scale(axis, accel[d->airborne] * dt));
+
+      // extra button check here prevents moonwalking when holding both
+      if (!d->airborne && !PRESSED(LEFT)) {
+        d->facing = FACING_RIGHT;
+        // need to set animation direction in these, independent of velocity
+        // have a turnaround animation based on velocity?
+        //d->animation = ANIMATION_RUN;
+      }
+
+      //acceleration.x +=
+      //  (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
+      //  ? max_vel[d->airborne] - d->vel.x
+      //  : accel[d->airborne] * dt;
+      //if (!d->airborne && TRIGGERED(RIGHT) && d->vel.x < -16) {
+      //  acceleration.x += -d->vel.x / 3;
+      //}
     }
 
-    //acceleration.x +=
-    //  (d->vel.x + accel[d->airborne] * dt > max_vel[d->airborne])
-    //  ? max_vel[d->airborne] - d->vel.x
-    //  : accel[d->airborne] * dt;
-    //if (!d->airborne && TRIGGERED(RIGHT) && d->vel.x < -16) {
-    //  acceleration.x += -d->vel.x / 3;
-    //}
-  }
-
-  if (PRESSED(LEFT)) {
-    acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
+    if (PRESSED(LEFT)) {
+      acceleration = v2add(acceleration, v2scale(axis, -accel[d->airborne] * dt));
 
 
-    if (!d->airborne && !PRESSED(RIGHT)) {
-      d->facing = FACING_LEFT;
-      //d->animation = ANIMATION_RUN;
+      if (!d->airborne && !PRESSED(RIGHT)) {
+        d->facing = FACING_LEFT;
+        //d->animation = ANIMATION_RUN;
+      }
+
+      //acceleration.x +=
+      //  d->vel.x - accel[d->airborne] * dt < -max_vel[d->airborne]
+      //  ? -max_vel[d->airborne] - d->vel.x
+      //  : -accel[d->airborne] * dt;
+      //if (!d->airborne && TRIGGERED(LEFT) && d->vel.x > 16) {
+      //  acceleration.x += -d->vel.x / 3;
+      //}
     }
 
-    //acceleration.x +=
-    //  d->vel.x - accel[d->airborne] * dt < -max_vel[d->airborne]
-    //  ? -max_vel[d->airborne] - d->vel.x
-    //  : -accel[d->airborne] * dt;
-    //if (!d->airborne && TRIGGERED(LEFT) && d->vel.x > 16) {
-    //  acceleration.x += -d->vel.x / 3;
-    //}
-  }
-
-  if (!PRESSED(LEFT) && !PRESSED(RIGHT)) {
-    if (!d->airborne) {
-      acceleration = v2add(acceleration, v2scale(v2neg(d->vel), skid * dt));
-      //acceleration.x += -d->vel.x * skid * dt;
+    if (!PRESSED(LEFT) && !PRESSED(RIGHT)) {
+      if (!d->airborne) {
+        acceleration = v2add(acceleration, v2scale(v2neg(d->vel), skid * dt));
+        //acceleration.x += -d->vel.x * skid * dt;
+      }
     }
-  }
 
-  if (TRIGGERED(DROP) && d->airborne && d->vel.y < 0.2) {
-    acceleration = v2add(acceleration, v2scale(v2down, drop));
-    //acceleration.y += -drop;
-  }
+    if (TRIGGERED(DROP) && d->airborne && d->vel.y < 0.2) {
+      acceleration = v2add(acceleration, v2scale(v2down, drop));
+      //acceleration.y += -drop;
+    }
 
-  bool about_to_jump = FALSE;
-  if (TRIGGERED(JUMP) && !d->in_combat) {
+    if (TRIGGERED(JUMP) && !d->in_combat) {
 
-    // regular jump has a delay to match the frame
-    if (!d->airborne) {
-      d->animation = ANIMATION_JUMP;
+      // regular jump has a delay to match the frame
+      if (!d->airborne) {
+        d->animation = ANIMATION_JUMP;
+        about_to_jump = TRUE;
+
+      // double jump
+      } else if (d->has_double) {
+        if ((d->vel.x < -1 && PRESSED(RIGHT))
+        ||  (d->vel.x > 1 && PRESSED(LEFT))
+        ) {
+          // I made two animations, why not use them both. One of them rolls,
+          // the other does not. Have fun using this for speedruns somehow :P
+          d->animation = frame % 2 == 0 ?
+            ANIMATION_DOUBLE_JUMP_REVERSE : ANIMATION_DOUBLE_JUMP_REVERSE_2;
+          d->facing = !d->facing;
+        } else {
+          d->animation = ANIMATION_DOUBLE_JUMP;
+        }
+        d->has_double = FALSE;
+      }
+
+    // if we're already jumping, we can hold up to jump farther/higher
+    } else if (PRESSED(JUMP) && d->airborne) {
+      acceleration.y += lift * dt;
+    }
+
+    // trigger the delayed jump based on the animation frame
+    if (d->animation == ANIMATION_JUMP && animation_frame <= jump_accel_frame) {
+      // prevent later code from changing anim to idle before we actually jump
       about_to_jump = TRUE;
 
-    // double jump
-    } else if (d->has_double) {
-      if ((d->vel.x < -1 && PRESSED(RIGHT))
-      ||  (d->vel.x > 1 && PRESSED(LEFT))
-      ) {
-        // I made two animations, why not use them both. One of them rolls, the
-        // other does not. Have fun using this for speedruns somehow :P
-        d->animation = frame % 2 == 0 ?
-          ANIMATION_DOUBLE_JUMP_REVERSE : ANIMATION_DOUBLE_JUMP_REVERSE_2;
-        d->facing = !d->facing;
-      } else {
-        d->animation = ANIMATION_DOUBLE_JUMP;
+      if (animation_frame == jump_accel_frame) {
+        //if (d->vel.y < -1) {
+          acceleration.y += -d->vel.y + jump_str;
+        //} else {
+        //  acceleration = v2add(acceleration, v2scale(v2perp(axis), jump_str));
+        //}
+        d->airborne = TRUE;
+        d->standing = NULL;
       }
-      d->has_double = FALSE;
-    }
 
-  // if we're already jumping, we can hold up to jump farther/higher
-  } else if (PRESSED(JUMP) && d->airborne) {
-    acceleration.y += lift * dt;
-  }
+    // trigger delayed jump velocity for double-jumps
+    } else if (anim_is_double_jump(d->animation)
+    &&         animation_frame == jump_double_accel_frame
+    ) {
+      acceleration.y += -d->vel.y + jump_str;
 
-  // trigger the delayed jump based on the animation frame
-  if (d->animation == ANIMATION_JUMP && animation_frame <= jump_accel_frame) {
-    // prevent later code from changing anim to idle before we actually jump
-    about_to_jump = TRUE;
-
-    if (animation_frame == jump_accel_frame) {
-      //if (d->vel.y < -1) {
-        acceleration.y += -d->vel.y + jump_str;
-      //} else {
-      //  acceleration = v2add(acceleration, v2scale(v2perp(axis), jump_str));
-      //}
-      d->airborne = TRUE;
-      d->standing = NULL;
-    }
-
-  // trigger delayed jump velocity for double-jumps
-  } else if (anim_is_double_jump(d->animation)
-  &&         animation_frame == jump_double_accel_frame
-  ) {
-    acceleration.y += -d->vel.y + jump_str;
-
-    // switch horizontal direction if we're reverse-double-jumping
-    if (d->animation != ANIMATION_DOUBLE_JUMP) {
-      acceleration.x += -d->vel.x + d->vel.x * -jump_reverse_factor;
+      // switch horizontal direction if we're reverse-double-jumping
+      if (d->animation != ANIMATION_DOUBLE_JUMP) {
+        acceleration.x += -d->vel.x + d->vel.x * -jump_reverse_factor;
+      }
     }
   }
 
@@ -126,7 +132,9 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   // Apply the cap for maximum velocity (only horizontally)
   float walking = PRESSED(DROP) && !d->airborne ? walk_multiplier : 1.0;
   float total_max_v = max_vel[d->airborne] * walking;
-  float v_along_axis = v2dot(d->vel, axis);
+  float v_along_axis = v2dot(d->vel, axis) / (1 + (float)d->hitstun / 4);
+
+  if (d->hitstun) print_float(v_along_axis);
 
   if (v_along_axis > total_max_v) {
     d->vel = v2add(d->vel, v2scale(axis, total_max_v - v_along_axis));

@@ -74,12 +74,14 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
       new_fd.warp_triggered = 0;
 
       game_add_entity(game, &(Entity) {
+        .type = ENTITY_PLAYER,
         .shader = &game->shaders.light,
         .model = &game->models.player,
         .fd = new_fd,
         .anim_data = {
           .anim_count = ANIMATION_COUNT,
           .animations = player_animations,
+          .hitboxes = player_hitboxes,
         },
         .replay = { .data = NULL },
         .replay_temp = { .data = NULL },

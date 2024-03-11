@@ -440,8 +440,8 @@ static Frame player_b_air[] = {
   { .frame = ROW*11+  9 },
   { .frame = ROW*11+  8 },
   { .frame = ROW*11+  7 },
-  { .frame = ROW*11+  6 },
-  { .frame = ROW*11+  5 },
+  { .frame = ROW*11+  6, .hitbox = HITBOX_BAIR },
+  { .frame = ROW*11+  5, .hitbox = HITBOX_BAIR2 },
   { .frame = ROW*11+  4 },
   { .frame = ROW*11+  3 },
   { .frame = ROW*11+  2 },
@@ -455,9 +455,9 @@ static Frame player_f_air[] = {
   { .frame = ROW*12+  1 },
   { .frame = ROW*12+  2 },
   { .frame = ROW*12+  3 },
-  { .frame = ROW*12+  4 },
-  { .frame = ROW*12+  5 },
-  { .frame = ROW*12+  6 },
+  { .frame = ROW*12+  4, .hitbox = HITBOX_FAIR },
+  { .frame = ROW*12+  5, .hitbox = HITBOX_FAIR },
+  { .frame = ROW*12+  6, .hitbox = HITBOX_FAIR },
   { .frame = ROW*12+  7 },
   { .frame = ROW*12+  8 },
   { .frame = ROW*12+  9 },
@@ -469,9 +469,9 @@ static Frame player_n_air[] = {
   { .frame = ROW*13+  0 },
   { .frame = ROW*13+  1 },
   { .frame = ROW*13+  2 },
-  { .frame = ROW*13+  3 },
-  { .frame = ROW*13+  4 },
-  { .frame = ROW*13+  5 },
+  { .frame = ROW*13+  3, .hitbox = HITBOX_NAIR },
+  { .frame = ROW*13+  4, .hitbox = HITBOX_NAIR },
+  { .frame = ROW*13+  5, .hitbox = HITBOX_NAIR },
   { .frame = ROW*13+  6 },
   { .frame = ROW*13+  7 },
   { .frame = ROW*13+  8 },
@@ -481,17 +481,17 @@ static Frame player_n_air[] = {
 
 static Frame player_kick[] = {
   // bonk!
-  { .frame = ROW*14+  0, .hitbox = 1 },
-  { .frame = ROW*14+  1, .hitbox = 1 },
-  { .frame = ROW*14+  2, .hitbox = 1 },
-  { .frame = ROW*14+  3, .hitbox = 1 },
-  { .frame = ROW*14+  4, .hitbox = 1 },
-  { .frame = ROW*14+  5, .hitbox = 1 },
-  { .frame = ROW*14+  6, .hitbox = 1 },
-  { .frame = ROW*14+  7, .hitbox = 1 },
-  { .frame = ROW*14+  8, .hitbox = 1 },
-  { .frame = ROW*14+  9, .hitbox = 1 },
-  { .frame = ROW*14+ 10, .hitbox = 1 },
+  { .frame = ROW*14+  0 },
+  { .frame = ROW*14+  1 },
+  { .frame = ROW*14+  2 },
+  { .frame = ROW*14+  3, .hitbox = HITBOX_KICK },
+  { .frame = ROW*14+  4, .hitbox = HITBOX_KICK },
+  { .frame = ROW*14+  5, .hitbox = HITBOX_KICK },
+  { .frame = ROW*14+  6 },
+  { .frame = ROW*14+  7 },
+  { .frame = ROW*14+  8 },
+  { .frame = ROW*14+  9 },
+  { .frame = ROW*14+ 10 },
 };
 
 static Frame player_kick_run[] = {
@@ -499,20 +499,11 @@ static Frame player_kick_run[] = {
   { .frame = ROW*12+ 11 },
   { .frame = ROW*12+ 12 },
   { .frame = ROW*12+ 13 },
-  { .frame = ROW*12+ 14 },
-  { .frame = ROW*12+ 15 },
-  { .frame = ROW*11+ 14 },
+  { .frame = ROW*12+ 14, .hitbox = HITBOX_DASH },
+  { .frame = ROW*12+ 15, .hitbox = HITBOX_DASH },
+  { .frame = ROW*11+ 14, .hitbox = HITBOX_DASH },
   { .frame = ROW*11+ 15 },
 };
-
-//static Hitbox hitbox_player_punch = {
-//  .pos = (vec2){ 0.5, 0.5 },
-//  .ext = (vec2){ 0.5, 1.0 },
-//};
-//
-//static Frame player_punch[] = {
-//  { .frame = 15, .hitbox = &hitbox_player_punch },
-//};
 
 #define ANIM_SIZE(FRAMES) (sizeof(FRAMES) / sizeof(Frame))
 #define FRAMES(F) .frames = F, .count = ANIM_SIZE(F)
@@ -544,7 +535,13 @@ Animation player_animations[] = {
 
 Hitbox player_hitboxes[] = {
   { }, // placeholder - index 0 is no hitbox
-  { .pos = (vec2){ 0.75, 0.625}, .radius = 0.25 },
+  //   center          radius   knockback   hitstun
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 15 }, 20 }, // KICK
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 30, 10 }, 40 }, // DASH
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 10, 30 }, 40 }, // NAIR
+  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 50,  0 }, 20 }, // FAIR
+  { (vec2){ 0.90,-0.1 }, .3, (vec2){ 60, 10 }, 99 }, // BAIR sweetspot
+  { (vec2){ 0.90, 0.3 }, .8, (vec2){  5, 20 }, 30 }, // BAIR sourspot
 };
 
 // Used to tell if an animation contains an idle sequence
@@ -569,6 +566,8 @@ bool anim_is_ground(uint animation) {
 bool anim_is_warp(uint animation) {
   return animation == ANIMATION_WARP_AIR
   ||     animation == ANIMATION_WARP_STANDING
+  ||     animation == ANIMATION_WARP_AIR_FADE
+  ||     animation == ANIMATION_WARP_STANDING_FADE
   ;
 }
 
@@ -612,7 +611,9 @@ bool anim_finished(uint animation, uint frame) {
   return frame / anim->rate >= anim->count - anim->repeat;
 }
 
-uint anim_frame_index(const Animation* a, uint time_playing) {
+uint anim_frame_index(uint animation, uint time_playing) {
+  Animation* a = &player_animations[animation];
+
   // non-repeating frame, hangs on last frame.
   if (a->repeat < 0)
     return MIN(time_playing / a->rate, a->count - 1);
@@ -631,12 +632,15 @@ uint anim_frame_index(const Animation* a, uint time_playing) {
   ;
 }
 
-const Frame* anim_frame(const Animation* a, uint time_playing) {
-  return &a->frames[anim_frame_index(a, time_playing)];
+const Frame* anim_frame(uint animation, uint time_playing) {
+  Animation* a = &player_animations[animation];
+  return &a->frames[anim_frame_index(animation, time_playing)];
 }
 
-const Hitbox* anim_hitbox(const Animation* a, uint time_playing) {
-  return &player_hitboxes[anim_frame(a, time_playing)->hitbox];
+const Hitbox* anim_hitbox(uint animation, uint time_playing) {
+  const Frame* f = anim_frame(animation, time_playing);
+  if (f->hitbox == 0) return NULL;
+  return &player_hitboxes[f->hitbox];
 }
 
 const Animation* anim_current(const Entity* e) {

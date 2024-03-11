@@ -31,9 +31,8 @@ void render_sprites(Entity* e, Game* g) {
   vec2 pos = mv4mul(e->transform, p4origin).xy;
   vec2 scale = mv4mul(e->transform, (vec4){1, 1, 0, 0}).xy;
 
-  Animation* a = &e->anim_data.animations[e->fd.animation];
   uint current_frame = g->frame - e->fd.start_frame;
-  uint frame_index = anim_frame(a, current_frame)->frame;
+  uint frame_index = anim_frame(e->fd.animation, current_frame)->frame;
 
   model_sprites_draw(&e->model->sprites, pos, scale, frame_index, e->fd.facing);
 }

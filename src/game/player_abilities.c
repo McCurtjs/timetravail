@@ -83,5 +83,9 @@ void handle_abilities(
   // Manage any ongoing combat from the previous frames
   } else if (anim_finished(old_fd.animation, animation_frame)) {
     new_fd->in_combat = FALSE;
+
+  // While in combat, prevent ground moves from turning around
+  } else if (!new_fd->airborne && new_fd->facing != old_fd.facing) {
+    new_fd->facing = old_fd.facing;
   }
 }

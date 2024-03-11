@@ -49,7 +49,13 @@ void export(wasm_preload) (uint w, uint h) {
     },
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},
-    .input.mapping.keys = {'w', 's', 'a', 'd', 'c', 'r', SDLK_LEFT},
+    .input.mapping.keys = {'w', 's', 'a', 'd', 'c', 'r',
+      /*
+      'f'
+      /*/
+      SDLK_LEFT
+      //*/
+    },
     .entities = {
       .data = NULL
     }
@@ -195,6 +201,7 @@ int export(wasm_load) (int await_count, float dt) {
 
   // Moving platforms
   game_add_entity(&game, &(Entity) { // horizontal
+    .type = ENTITY_PLATFORM,
     .movement_params = {
       .line = &game.colliders[0],
       .move_once = TRUE,
@@ -206,6 +213,7 @@ int export(wasm_load) (int await_count, float dt) {
   });
 
   game_add_entity(&game, &(Entity) { // vertical
+    .type = ENTITY_PLATFORM,
     .movement_params = {
       .line = &game.colliders[1],
       .target = (vec2){30, 30},
@@ -215,6 +223,7 @@ int export(wasm_load) (int await_count, float dt) {
   });
 
   game_add_entity(&game, &(Entity) { // fast
+    .type = ENTITY_PLATFORM,
     .movement_params = {
       .line = &game.colliders[2],
       .move_once = TRUE,
@@ -227,6 +236,7 @@ int export(wasm_load) (int await_count, float dt) {
 
   // Player
   game_add_entity(&game, &(Entity) {
+    .type = ENTITY_PLAYER,
     .shader = &game.shaders.light,
     .model = &game.models.player,
     .fd = {
@@ -260,7 +270,6 @@ void export(wasm_update) (float dt) {
 }
 
 void export(wasm_render) () {
-  draw_circle(v3zero, 5);
   game_render(&game);
 }
 

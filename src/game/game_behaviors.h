@@ -20,6 +20,8 @@ vec2 platform_pos_at_frame(Movement* m, float frame);
 bool handle_player_collisions(
   Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs);
 
+bool handle_player_combat(Game* game, const Entity* e, PlayerFrameData* fd);
+
 void handle_abilities(
   PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs,
   uint frame, bool block_warp, bool move_cancel);

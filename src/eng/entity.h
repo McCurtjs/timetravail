@@ -10,6 +10,12 @@
 #include "../animations.h"
 typedef struct Line Line;
 
+typedef enum EntityType {
+  ENTITY_OTHER,
+  ENTITY_PLAYER,
+  ENTITY_PLATFORM,
+} EntityType;
+
 typedef struct PlayerFrameData {
   vec2 pos;
   vec2 vel;
@@ -21,6 +27,7 @@ typedef struct PlayerFrameData {
   bool warp_triggered;
   bool facing;
   bool in_combat;
+  uint hitstun;
 } PlayerFrameData;
 
 typedef struct TransformIndex {
@@ -47,6 +54,8 @@ typedef struct Movement {
 } Movement;
 
 typedef struct Entity {
+  uint type;
+
   union {
     PlayerFrameData fd;
     vec3 pos;

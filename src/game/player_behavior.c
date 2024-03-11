@@ -110,8 +110,10 @@ void behavior_player(Entity* e, Game* game, float _) {
     // Simulate movement based on inputs
     PlayerFrameData updates = e->fd;
     dt = dt * game->reverse_speed;
+    bool cancel = 0;
+    cancel |= handle_player_combat(game, e, &updates);
     handle_movement(&updates, dt, inputs, (uint)game->frame);
-    bool cancel = handle_player_collisions(game, e->fd, &updates, inputs);
+    cancel |= handle_player_collisions(game, e->fd, &updates, inputs);
     handle_abilities(e->fd, &updates, inputs, game->frame, first_frame, cancel);
     e->fd = updates;
 
@@ -186,7 +188,9 @@ void behavior_player(Entity* e, Game* game, float _) {
 
         PlayerFrameData updates = node.data;
         handle_movement(&updates, dt, node.buttons, node.frame);
-        bool cancel = handle_player_collisions(game, node.data, &updates, node.buttons);
+        bool cancel = FALSE;
+        cancel |= handle_player_combat(game, NULL, &node.data);
+        cancel |= handle_player_collisions(game, node.data, &updates, node.buttons);
         handle_abilities(node.data, &updates, node.buttons, node.frame, TRUE, cancel);
         node.data = updates;
       }

@@ -43,6 +43,16 @@ typedef enum Anims {
   ANIMATION_COUNT // end of list
 } Anims;
 
+typedef enum Hitboxes {
+  HITBOX_NONE,
+  HITBOX_KICK,
+  HITBOX_DASH,
+  HITBOX_NAIR,
+  HITBOX_FAIR,
+  HITBOX_BAIR,
+  HITBOX_BAIR2,
+} Hitboxes;
+
 //typedef enum HitboxType {
 //  HITBOX_CIRCLE,
 //  HITBOX_AABB,
@@ -51,6 +61,8 @@ typedef enum Anims {
 typedef struct Hitbox {
   vec2 pos;
   float radius;
+  vec2 knockback;
+  uint hitstun;
 } Hitbox;
 
 typedef struct Frame {
@@ -84,9 +96,9 @@ bool anim_is_double_jump(uint animation);
 bool anim_is_attack(uint animation);
 bool anim_is_hangtime_2(uint animation);
 bool anim_finished(uint animation, uint frame);
-uint anim_frame_index(const Animation* a, uint time_playing);
-const Frame* anim_frame(const Animation* a, uint time_playing);
-const Hitbox* anim_hitbox(const Animation* a, uint time_playing);
+uint anim_frame_index(uint animation, uint time_playing);
+const Frame* anim_frame(uint animation, uint time_playing);
+const Hitbox* anim_hitbox(uint animation, uint time_playing);
 const Animation* anim_current(const Entity* e);
 
 #endif
