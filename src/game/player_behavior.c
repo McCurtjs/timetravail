@@ -272,17 +272,15 @@ void behavior_player(Entity* e, Game* game, float _) {
 }
 
 // TODO:
-//  - hitboxes
-//    - spawn transient hitbox object in vector in game
-//      - check active player against all hitboxes for detection
-//      - use a tick-down timer in fd to maintain hitbox duration
-//        - (spawn a 1-frame box as long as count is positive, set to n on attack)
-//    + alternatively, tie hitboxes directly to animation frames
-//      - give specific frames of animation pointers to hitbox data
-//      - accuracy of boxes should be maintained because animations should be accurate
+//  - level object for loading different kinds of levels
+//    - will also need an entity delete function to clean up temp things
+//  - "end of level" entity, probably just a "touch and you win" for now
+//  - debug time nodes to see if any are being missed causing the desyncs on hit
+//  - genericize entity replay a bit, or copy it to work with oths (like keys)
 //  - stopwatch model and effect (maybe just do the hand spin first)
 //    - yeah, we're gonna need model loading most likely...
 //    - CRT static and film-roll rewind effect when playing backwards
 //  - differentiate platform types/reactions based on their angle
 //    - steep slopes (walk up slower)
 //    - give Line its own "behavior" setup to react when collided with?
+//  - make b-air even stronger

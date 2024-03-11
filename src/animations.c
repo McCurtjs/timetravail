@@ -536,12 +536,12 @@ Animation player_animations[] = {
 Hitbox player_hitboxes[] = {
   { }, // placeholder - index 0 is no hitbox
   //   center          radius   knockback   hitstun
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 15 }, 20 }, // KICK
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 30, 10 }, 40 }, // DASH
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 10, 30 }, 40 }, // NAIR
-  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 50,  0 }, 20 }, // FAIR
-  { (vec2){ 0.90,-0.1 }, .3, (vec2){ 60, 10 }, 99 }, // BAIR sweetspot
-  { (vec2){ 0.90, 0.3 }, .8, (vec2){  5, 20 }, 30 }, // BAIR sourspot
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 25, 12 }, 65 }, // KICK
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 38 }, 50 }, // DASH
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){  5, 30 }, 20 }, // NAIR
+  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 40,  5 }, 45 }, // FAIR
+  { (vec2){ 0.90,-0.1 }, .3, (vec2){ 60, 25 }, 120}, // BAIR sweetspot
+  { (vec2){ 0.90, 0.3 }, .8, (vec2){  8, 20 }, 30 }, // BAIR sourspot
 };
 
 // Used to tell if an animation contains an idle sequence

@@ -131,8 +131,9 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
 
   // Apply the cap for maximum velocity (only horizontally)
   float walking = PRESSED(DROP) && !d->airborne ? walk_multiplier : 1.0;
-  float total_max_v = max_vel[d->airborne] * walking;
-  float v_along_axis = v2dot(d->vel, axis) / (1 + (float)d->hitstun / 4);
+  float hsmod = 1 + (float)d->hitstun / 5;
+  float total_max_v = max_vel[d->airborne] * walking * hsmod;
+  float v_along_axis = v2dot(d->vel, axis);
 
   if (d->hitstun) print_float(v_along_axis);
 

@@ -4,37 +4,38 @@
 #include "entity.h"
 #include "../game.h"
 
-void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame);
+// Player behaviors and helpers
 void behavior_player(Entity* entity, Game* game, float dt);
+void render_sprites(Entity* entity, Game* game);
+
+bool handle_player_combat(Game* game, const Entity* e, PlayerFrameData* fd);
+void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame);
+bool handle_player_collisions(Game* game, PlayerFrameData old_fd,
+                              PlayerFrameData* new_fd, uint inputs);
+void handle_abilities(PlayerFrameData old_fd, PlayerFrameData* new_fd,
+                      uint inputs, uint frame, bool block_warp, bool cancel);
+
+// Other entity controllers
 void behavior_time_controller(Entity* entity, Game* game, float dt);
 void behavior_draw_physics_colliders(Entity* entity, Game* game, float dt);
 void behavior_moving_platform(Entity* entity, Game* game, float dt);
 
-void render_sprites(Entity* entity, Game* game);
+vec2 platform_pos_at_frame(Movement* m, float frame);
 
+// Not actually a controller...
 void finish_rendering_sprites(
   Game* game, const Model_Sprites* sprites, const Texture* texture);
 
-vec2 platform_pos_at_frame(Movement* m, float frame);
-
-bool handle_player_collisions(
-  Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs);
-
-bool handle_player_combat(Game* game, const Entity* e, PlayerFrameData* fd);
-
-void handle_abilities(
-  PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs,
-  uint frame, bool block_warp, bool move_cancel);
-
-#define accel ((float[2]){45, 16}) // [0] = ground, [1] = air
-#define max_vel ((float[2]){20, 23})
-#define min_roll_velocity 8.0
+// Player stats for movement and such
+#define accel   ((float[2]){ 40, 12 }) // [0] = ground, [1] = air
+#define max_vel ((float[2]){ 13, 15 })
+#define min_roll_velocity (max_vel[0] * 2.0/5.0)
 #define run_anim_threshold_diff 2.0
 #define roll_anim_threshold_diff 4.0
 #define walk_multiplier 0.5
 #define lift 17.0
 #define skid 9.0
-#define drop 10.0
+#define drop 8.0
 #define gravity 9.8 * 5.0
 #define jump_str 16.0
 #define jump_reverse_factor 0.2
