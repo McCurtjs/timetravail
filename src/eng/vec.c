@@ -94,7 +94,7 @@ vec2 v2dir(float theta) {
 vec2 v2rot(vec2 v, float theta) {
   float sint, cost;
   //sincosf(theta, &sint, &cost);
-  sint = sinf(theta); cost = sinf(theta);
+  sint = sinf(theta); cost = cosf(theta);
   return (vec2){cost * v.x - sint * v.y, sint * v.x + cost * v.y};
 }
 

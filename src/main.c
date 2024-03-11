@@ -236,8 +236,9 @@ int export(wasm_load) (int await_count, float dt) {
       .has_double = TRUE
     },
     .anim_data = {
-      .anim_count = ANIMATION_COUNT,
       .animations = player_animations,
+      .hitboxes = player_hitboxes,
+      .anim_count = ANIMATION_COUNT,
     },
     .replay = { .data = NULL },
     .replay_temp = { .data = NULL },
@@ -259,6 +260,7 @@ void export(wasm_update) (float dt) {
 }
 
 void export(wasm_render) () {
+  draw_circle(v3zero, 5);
   game_render(&game);
 }
 

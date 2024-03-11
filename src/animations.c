@@ -1,5 +1,7 @@
 #include "animations.h"
 
+#include "entity.h"
+
 #define ROW 16
 
 static Frame player_idle[] = {
@@ -479,17 +481,17 @@ static Frame player_n_air[] = {
 
 static Frame player_kick[] = {
   // bonk!
-  { .frame = ROW*14+  0 },
-  { .frame = ROW*14+  1 },
-  { .frame = ROW*14+  2 },
-  { .frame = ROW*14+  3 },
-  { .frame = ROW*14+  4 },
-  { .frame = ROW*14+  5 },
-  { .frame = ROW*14+  6 },
-  { .frame = ROW*14+  7 },
-  { .frame = ROW*14+  8 },
-  { .frame = ROW*14+  9 },
-  { .frame = ROW*14+ 10 },
+  { .frame = ROW*14+  0, .hitbox = 1 },
+  { .frame = ROW*14+  1, .hitbox = 1 },
+  { .frame = ROW*14+  2, .hitbox = 1 },
+  { .frame = ROW*14+  3, .hitbox = 1 },
+  { .frame = ROW*14+  4, .hitbox = 1 },
+  { .frame = ROW*14+  5, .hitbox = 1 },
+  { .frame = ROW*14+  6, .hitbox = 1 },
+  { .frame = ROW*14+  7, .hitbox = 1 },
+  { .frame = ROW*14+  8, .hitbox = 1 },
+  { .frame = ROW*14+  9, .hitbox = 1 },
+  { .frame = ROW*14+ 10, .hitbox = 1 },
 };
 
 static Frame player_kick_run[] = {
@@ -538,6 +540,11 @@ Animation player_animations[] = {
   { FRAMES(player_b_air), .rate = 3, .repeat = -1},
   { FRAMES(player_kick), .rate = 3, .repeat = -1},
   { FRAMES(player_kick_run), .rate = 3, .repeat = -1},
+};
+
+Hitbox player_hitboxes[] = {
+  { }, // placeholder - index 0 is no hitbox
+  { .pos = (vec2){ 0.75, 0.625}, .radius = 0.25 },
 };
 
 // Used to tell if an animation contains an idle sequence
@@ -603,4 +610,35 @@ bool anim_finished(uint animation, uint frame) {
   if (anim->repeat > 0)
     return frame / anim->rate >= (uint)anim->repeat;
   return frame / anim->rate >= anim->count - anim->repeat;
+}
+
+uint anim_frame_index(const Animation* a, uint time_playing) {
+  // non-repeating frame, hangs on last frame.
+  if (a->repeat < 0)
+    return MIN(time_playing / a->rate, a->count - 1);
+
+  // regular animation where whole animation loops, or where we haven't gotten
+  // to the loop point on a delayed loop
+  if (a->repeat == 0 || time_playing < (uint)a->repeat * a->rate)
+    return (time_playing / a->rate) % a->count;
+
+  // case where repeat counter is positive, plays the beginning, loops the rest.
+  // basically, pretend the intro didn't exist, and adjust the numbers to clip
+  // it out so we're really only using the looping section
+  return ((time_playing / a->rate) - a->repeat) // conv to anim time, drop intro
+  %      (a->count - a->repeat) // effectively lower the number of frames
+  +      a->repeat // add the offset to account for the missing frames
+  ;
+}
+
+const Frame* anim_frame(const Animation* a, uint time_playing) {
+  return &a->frames[anim_frame_index(a, time_playing)];
+}
+
+const Hitbox* anim_hitbox(const Animation* a, uint time_playing) {
+  return &player_hitboxes[anim_frame(a, time_playing)->hitbox];
+}
+
+const Animation* anim_current(const Entity* e) {
+  return &e->anim_data.animations[e->fd.animation];
 }

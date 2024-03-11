@@ -5,6 +5,8 @@
 
 #include "vec.h"
 
+typedef struct Entity Entity;
+
 #define FACING_RIGHT 0
 #define FACING_LEFT 1
 
@@ -41,13 +43,19 @@ typedef enum Anims {
   ANIMATION_COUNT // end of list
 } Anims;
 
+//typedef enum HitboxType {
+//  HITBOX_CIRCLE,
+//  HITBOX_AABB,
+//} HitboxType;
+
 typedef struct Hitbox {
-  vec2 pos, ext;
+  vec2 pos;
+  float radius;
 } Hitbox;
 
 typedef struct Frame {
   byte frame;
-  Hitbox* hitbox;
+  byte hitbox;
 } Frame;
 
 typedef struct Animation {
@@ -61,12 +69,13 @@ typedef struct AnimationData {
   Animation* animations;
   uint anim_count;
 
-  //Hitbox* hitboxes;
+  Hitbox* hitboxes;
   //uint hitbox_count;
 
 } AnimationData;
 
 extern Animation player_animations[];
+extern Hitbox player_hitboxes[];
 
 bool anim_is_idle(uint animation);
 bool anim_is_ground(uint animation);
@@ -75,5 +84,9 @@ bool anim_is_double_jump(uint animation);
 bool anim_is_attack(uint animation);
 bool anim_is_hangtime_2(uint animation);
 bool anim_finished(uint animation, uint frame);
+uint anim_frame_index(const Animation* a, uint time_playing);
+const Frame* anim_frame(const Animation* a, uint time_playing);
+const Hitbox* anim_hitbox(const Animation* a, uint time_playing);
+const Animation* anim_current(const Entity* e);
 
 #endif

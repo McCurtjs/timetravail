@@ -10,7 +10,7 @@ typedef struct DrawState {
   vec3 offset;
   float scale;
 } DrawState;
-static DrawState draw_state;
+static DrawState dstate;
 
 typedef struct Vert {
   vec3    pos;
@@ -28,7 +28,7 @@ static uint gl_buffer = 0;
 static void draw_init() {
   if (geometry) return;
 
-  draw_state = (DrawState){v3x, v3x, v3zero, 0.1};
+  dstate = (DrawState){v3x, v3x, v3zero, 0.1};
 
   geom_size = page_size;
   geom_tail = 0;
@@ -73,7 +73,7 @@ static void draw_init_gl() {
 // State functions
 
 void draw_offset(vec3 offset) {
-  draw_state.offset = offset;
+  dstate.offset = offset;
 }
 
 void draw_color(color3 color) {
@@ -81,34 +81,44 @@ void draw_color(color3 color) {
 }
 
 void draw_colors(color3 color1, color3 color2) {
-  draw_state.color1 = color1;
-  draw_state.color2 = color2;
+  dstate.color1 = color1;
+  dstate.color2 = color2;
 }
 
 void draw_color_start(color3 color) {
-  draw_state.color1 = color;
+  dstate.color1 = color;
 }
 
 void draw_color_end(color3 color) {
-  draw_state.color2 = color;
+  dstate.color2 = color;
 }
 
 void draw_scale(float s) {
-  draw_state.scale = s;
+  dstate.scale = s;
 }
 
 // Draw functions
 
 void draw_point(vec3 p) {
   vec3 a, b;
-  float s = draw_state.scale;
+  float s = dstate.scale;
   vec3 x = v3scale(v3x, s), y = v3scale(v3y, s), z = v3scale(v3z, s);
   a = v3sub(p, x); b = v3add(p, x);
-  draw_line_solid(a, b, draw_state.color2);
+  draw_line_solid(a, b, dstate.color2);
   a = v3sub(p, y); b = v3add(p, y);
-  draw_line_solid(a, b, draw_state.color2);
+  draw_line_solid(a, b, dstate.color2);
   a = v3sub(p, z); b = v3add(p, z);
-  draw_line_solid(a, b, draw_state.color2);
+  draw_line_solid(a, b, dstate.color2);
+}
+
+void draw_circle(vec3 center, float radius) {
+  vec3 prev = v3scale(v3x, radius);
+
+  for (uint i = 0; i < 32; ++i) {
+    vec3 next = v2v3(v2rot(prev.xy, TAU / 32), 0);
+    draw_line_solid(v3add(center, prev), v3add(center, next), dstate.color1);
+    prev = next;
+  }
 }
 
 void draw_line_solid(vec3 a, vec3 b, color3 color_override) {
@@ -117,30 +127,30 @@ void draw_line_solid(vec3 a, vec3 b, color3 color_override) {
 }
 
 void draw_line(vec3 a, vec3 b) {
-  draw_push(a, draw_state.color1);
-  draw_push(b, draw_state.color2);
+  draw_push(a, dstate.color1);
+  draw_push(b, dstate.color2);
 }
 
 void draw_vector(vec3 v) {
-  vec3 target = v3add(draw_state.offset, v);
-  draw_line(draw_state.offset, target);
-  vec3 base = v3add(draw_state.offset, v3scale(v, 1.0 - draw_state.scale));
-  float base_scale = v3mag(v) * draw_state.scale * 0.75;
+  vec3 target = v3add(dstate.offset, v);
+  draw_line(dstate.offset, target);
+  vec3 base = v3add(dstate.offset, v3scale(v, 1.0 - dstate.scale));
+  float base_scale = v3mag(v) * dstate.scale * 0.75;
   vec3 perp = v3scale(v3norm(v3perp(v)), base_scale);
   vec3 pcrs = v3scale(v3norm(v3cross(v, perp)), base_scale);
-  draw_line_solid(target, v3add(base, perp), draw_state.color2);
-  draw_line_solid(base,   v3add(base, perp), draw_state.color2);
-  draw_line_solid(target, v3sub(base, perp), draw_state.color2);
-  draw_line_solid(base,   v3sub(base, perp), draw_state.color2);
-  draw_line_solid(target, v3add(base, pcrs), draw_state.color2);
-  draw_line_solid(base,   v3add(base, pcrs), draw_state.color2);
-  draw_line_solid(target, v3sub(base, pcrs), draw_state.color2);
-  draw_line_solid(base,   v3sub(base, pcrs), draw_state.color2);
+  draw_line_solid(target, v3add(base, perp), dstate.color2);
+  draw_line_solid(base,   v3add(base, perp), dstate.color2);
+  draw_line_solid(target, v3sub(base, perp), dstate.color2);
+  draw_line_solid(base,   v3sub(base, perp), dstate.color2);
+  draw_line_solid(target, v3add(base, pcrs), dstate.color2);
+  draw_line_solid(base,   v3add(base, pcrs), dstate.color2);
+  draw_line_solid(target, v3sub(base, pcrs), dstate.color2);
+  draw_line_solid(base,   v3sub(base, pcrs), dstate.color2);
 
-  draw_line_solid(v3add(base, pcrs), v3add(base, perp), draw_state.color2);
-  draw_line_solid(v3sub(base, pcrs), v3sub(base, perp), draw_state.color2);
-  draw_line_solid(v3sub(base, pcrs), v3add(base, perp), draw_state.color2);
-  draw_line_solid(v3add(base, pcrs), v3sub(base, perp), draw_state.color2);
+  draw_line_solid(v3add(base, pcrs), v3add(base, perp), dstate.color2);
+  draw_line_solid(v3sub(base, pcrs), v3sub(base, perp), dstate.color2);
+  draw_line_solid(v3sub(base, pcrs), v3add(base, perp), dstate.color2);
+  draw_line_solid(v3add(base, pcrs), v3sub(base, perp), dstate.color2);
 }
 
 void draw_dir(vec3 v) {
@@ -150,9 +160,9 @@ void draw_dir(vec3 v) {
 void draw_rect(vec3 pos, vec3 a, vec3 b) {
   vec3 end = v3add(v3add(pos, a), b);
   draw_line(pos, v3add(pos, a));
-  draw_line_solid(pos, v3add(pos, b), draw_state.color1);
+  draw_line_solid(pos, v3add(pos, b), dstate.color1);
   draw_line(v3add(pos, b), end);
-  draw_line_solid(v3add(pos, a), end, draw_state.color2);
+  draw_line_solid(v3add(pos, a), end, dstate.color2);
 }
 
 // Rendering and cleanup
@@ -170,7 +180,7 @@ void draw_render() {
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  draw_state = (DrawState){v3x, v3x, v3zero, 0.1};
+  dstate = (DrawState){v3x, v3x, v3zero, 0.1};
   geom_tail = 0;
 }
 

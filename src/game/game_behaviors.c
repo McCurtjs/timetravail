@@ -10,7 +10,7 @@
 void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
 #pragma clang diagnostic pop
 
-  float z = 0.1;
+  float z = 0.01;
 
   for (uint i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
@@ -21,9 +21,9 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
     vec2 mid = v2add(line.a, v);
     v = v2norm(v2perp(v));
 
-    draw_offset(v2v3(mid, z));
+    draw_offset(v2v3(mid, z * 2));
     draw_color(c4yellow.rgb);
-    draw_vector(v2v3(v, z));
+    draw_vector(v2v3(v, 0));
   }
 }
 
@@ -33,30 +33,7 @@ void render_sprites(Entity* e, Game* g) {
 
   Animation* a = &e->anim_data.animations[e->fd.animation];
   uint current_frame = g->frame - e->fd.start_frame;
-  uint frame_index;
-
-  // if the repeat value is negative, do not repeat - hang on the last frame
-  if (a->repeat < 0) {
-    frame_index = a->frames[MIN(current_frame / a->rate, a->count - 1)].frame;
-
-  // if the repeat value is zero, play the basic case (repeat whole animation)
-  } else if (a->repeat == 0 || current_frame < (uint)a->repeat * a->rate) {
-    frame_index = a->frames[(current_frame / a->rate) % a->count].frame;
-
-  // if the repeat value is above zero, play up to that point, repeat the rest
-  } else {
-    // basically, if we have lead-in frames, we want to play those then repeat
-    // the remainder forever. To do that we basically clip the whole animation
-    // into just the looping portion and pretend the early frames didn't exist
-    frame_index =
-      ((current_frame / a->rate) - a->repeat) // set new current frame to 0
-      %
-      (a->count - a->repeat) // lower the total number of frames
-      +
-      a->repeat; // add an offset to account for the now missing frames
-
-    frame_index = a->frames[frame_index].frame;
-  }
+  uint frame_index = anim_frame(a, current_frame)->frame;
 
   model_sprites_draw(&e->model->sprites, pos, scale, frame_index, e->fd.facing);
 }

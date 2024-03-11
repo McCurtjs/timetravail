@@ -11,6 +11,7 @@ void draw_color_end(color3 end);
 void draw_scale(float s);
 
 void draw_point(vec3 p);
+void draw_circle(vec3 p, float radius);
 void draw_line(vec3 a, vec3 b);
 void draw_line_solid(vec3 a, vec3 b, color3 color);
 void draw_vector(vec3 v);
