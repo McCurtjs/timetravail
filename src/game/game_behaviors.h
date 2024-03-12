@@ -19,8 +19,9 @@ void handle_abilities(PlayerFrameData old_fd, PlayerFrameData* new_fd,
 // Other entity controllers
 void behavior_time_controller(Entity* entity, Game* game, float dt);
 void behavior_draw_physics_colliders(Entity* entity, Game* game, float dt);
-void behavior_moving_platform(Entity* entity, Game* game, float dt);
 
+void behavior_moving_platform(Entity* entity, Game* game, float dt);
+void delete_moving_platform(Entity* entity);
 vec2 platform_pos_at_frame(Movement* m, float frame);
 
 // Not actually a controller...

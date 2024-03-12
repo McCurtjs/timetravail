@@ -46,6 +46,7 @@ typedef enum {
 #define SDLK_UP     38
 #define SDLK_RIGHT  39
 #define SDLK_DOWN   40
+#define SDLK_MINUS  189
 
 /**
  * Enumeration of valid key mods (possibly OR'd together).

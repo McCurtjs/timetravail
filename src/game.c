@@ -6,6 +6,7 @@
 
 void game_init(Game* game) {
   vector_init(&game->entities, sizeof(Entity));
+  game->frame = 0;
 }
 
 void game_add_entity(Game* game, const Entity* entity) {
@@ -26,6 +27,8 @@ void game_update(Game* game, float dt) {
     game->input.triggered.buttons[i] = FALSE;
     game->input.released.buttons[i] = FALSE;
   }
+
+  game->input.mouse.move = v2zero;
 }
 
 void game_render(Game* game) {

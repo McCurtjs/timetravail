@@ -14,7 +14,7 @@ void level_load_test(Game* game) {
 
   static Line colliders[] = {
     { .a = (vec2){-20, 5}, .b = (vec2){-15, 5} }, // Moving platform vertical
-    { .a = (vec2){ 10, 10}, .b = (vec2){ 14, 10} }, // Moving platform horizontal
+    { .a = (vec2){ 10, 10}, .b = (vec2){ 14, 10} }, // Moving platform diagonal
     { .a = (vec2){-20, 10}, .b = (vec2){-15, 10} }, // Moving platform fast
 
     { .a = (vec2){-4, 3}, .b = (vec2){-1, 3} },
@@ -77,7 +77,7 @@ void level_load_test(Game* game) {
   });
 
   // Moving platforms
-  game_add_entity(game, &(Entity) { // horizontal
+  game_add_entity(game, &(Entity) { // vertical
     .type = ENTITY_PLATFORM,
     .movement_params = {
       .line = &game->colliders[0],
@@ -87,9 +87,10 @@ void level_load_test(Game* game) {
       .duration = 20,
     },
     .behavior = behavior_moving_platform,
+    .delete = delete_moving_platform,
   });
 
-  game_add_entity(game, &(Entity) { // vertical
+  game_add_entity(game, &(Entity) { // diagonal
     .type = ENTITY_PLATFORM,
     .movement_params = {
       .line = &game->colliders[1],
@@ -97,6 +98,7 @@ void level_load_test(Game* game) {
       .duration = 10,
     },
     .behavior = behavior_moving_platform,
+    .delete = delete_moving_platform,
   });
 
   game_add_entity(game, &(Entity) { // fast
@@ -109,6 +111,7 @@ void level_load_test(Game* game) {
       .duration = 5,
     },
     .behavior = behavior_moving_platform,
+    .delete = delete_moving_platform,
   });
 
   // Player

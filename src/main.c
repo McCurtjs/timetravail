@@ -58,7 +58,7 @@ void export(wasm_preload) (uint w, uint h) {
       SDLK_LEFT,
       //*/
       'p', // restart level
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' // level select
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', SDLK_MINUS // level select
     },
     .level = 0,
   };

@@ -2,19 +2,37 @@
 
 #include <GL/gl.h>
 
+#include "types.h"
 #include "draw.h"
 
 void behavior_test_camera(Entity* _, Game* game, float dt) {
+
+  float xrot = d2r(-game->input.mouse.move.y * 180 / (float)game->window.h);
+  float yrot = d2r(-game->input.mouse.move.x * 180 / (float)game->window.x);
+
+  if (game->input.pressed.lmb) {
+    vec3 angles = (vec3){xrot, yrot, 0};
+    camera_orbit(&game->camera, game->target, angles.xy);
+  }
+
+  if (game->input.pressed.rmb) {
+    mat4 light_rotation = m4rotation(v3y, yrot);
+    game->light_pos = mv4mul(light_rotation, game->light_pos);
+  }
+
   if (game->input.pressed.forward)
     game->camera.pos.xyz = v3add(game->camera.pos.xyz, v3scale(game->camera.front.xyz, dt));
+
   if (game->input.pressed.back)
     game->camera.pos.xyz = v3add(game->camera.pos.xyz, v3scale(game->camera.front.xyz, -dt));
+
   if (game->input.pressed.right) {
     vec3 right = v3norm(v3cross(game->camera.front.xyz, game->camera.up.xyz));
     right = v3scale(right, dt);
     game->camera.pos.xyz = v3add(game->camera.pos.xyz, right);
     game->target = v3add(game->target, right);
   }
+
   if (game->input.pressed.left) {
     vec3 left = v3norm(v3cross(game->camera.front.xyz, game->camera.up.xyz));
     left = v3scale(left, -dt);

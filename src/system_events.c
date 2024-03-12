@@ -45,25 +45,24 @@ void process_system_events(Game* game) {
       } break;
 
       case SDL_EVENT_MOUSE_MOTION: {
-        float xrot = d2r(-event.motion.yrel * 180 / (float)game->window.h);
-        float yrot = d2r(-event.motion.xrel * 180 / (float)game->window.x);
+        game->input.mouse.pos = (vec2){ event.motion.x, event.motion.y };
 
-        if (game->input.pressed.lmb) {
-          vec3 angles = (vec3){xrot, yrot, 0};
-          camera_orbit(&game->camera, game->target, angles.xy);
-        }
-
-        if (game->input.pressed.rmb) {
-          mat4 light_rotation = m4rotation(v3y, yrot);
-          game->light_pos = mv4mul(light_rotation, game->light_pos);
-        }
+        // you can get many mouse move inputs per frame, so accumulate motion
+        game->input.mouse.move.x += event.motion.xrel;
+        game->input.mouse.move.y += event.motion.yrel;
       } break;
 
       case SDL_EVENT_KEY_DOWN: {
         if (event.key.repeat) break;
         for (uint i = 0; i < game_key_count; ++i) {
           if (event.key.keysym.sym == game->input.mapping.keys[i]) {
+
+            // sometimes when getting a key-up event, it'll also send a
+            // "helpful" reminder that other keys are still down... avoid double
+            // triggering when that happens (makes the repeat check redundant,
+            // but at least that check intuitively makes sense)
             if (game->input.pressed.keys[i]) return;
+
             game->input.pressed.keys[i] = TRUE;
             game->input.triggered.keys[i] = TRUE;
           }

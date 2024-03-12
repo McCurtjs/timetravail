@@ -8,6 +8,8 @@
 #include "shader.h"
 #include "texture.h"
 
+#include "game/levels.h"
+
 typedef struct Game_Shaders {
   ShaderProgram basic;
   ShaderProgram light;
@@ -27,7 +29,7 @@ typedef struct Game_Textures {
   Texture player;
 } Game_Textures;
 
-#define game_key_count 18
+#define game_key_count (8 + LEVEL_COUNT)
 #define game_mouse_button_count 3
 #define game_button_input_count (game_key_count + game_mouse_button_count)
 
@@ -50,7 +52,7 @@ typedef struct Game_Buttons {
 
           // level skip buttons
           int level_reload;
-          int levels[10];
+          int levels[LEVEL_COUNT];
         };
       };
       // mouse
@@ -66,11 +68,17 @@ typedef struct Game_Buttons {
   };
 } Game_Buttons;
 
+typedef struct Game_Mouse {
+  vec2 pos;
+  vec2 move;
+} Game_Mouse;
+
 typedef struct Game_Inputs {
   Game_Buttons mapping;
   Game_Buttons pressed;
   Game_Buttons triggered;
   Game_Buttons released;
+  Game_Mouse   mouse;
 } Game_Inputs;
 
 typedef struct PlayerRef {
