@@ -59,3 +59,14 @@ void finish_rendering_sprites(
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+// Delete fns
+void delete_player(Entity* entity) {
+  if (entity->replay.data) {
+    vector_delete(&entity->replay);
+  }
+
+  if (entity->replay_temp.data) {
+    vector_delete(&entity->replay_temp);
+  }
+}
+

@@ -27,10 +27,11 @@ typedef struct Game_Textures {
   Texture player;
 } Game_Textures;
 
-#define game_key_count 7
+#define game_key_count 18
 #define game_mouse_button_count 3
 #define game_button_input_count (game_key_count + game_mouse_button_count)
 
+// TODO: should have a generic buttons poller separate from the keymapping
 typedef struct Game_Buttons {
   union {
     int buttons[game_button_input_count];
@@ -46,6 +47,10 @@ typedef struct Game_Buttons {
           int camera_lock;
           int run_replay;
           int kick;
+
+          // level skip buttons
+          int level_reload;
+          int levels[10];
         };
       };
       // mouse
@@ -107,6 +112,7 @@ typedef struct Game {
   bool reverse_triggered;
   float reverse_speed;
   Vector timeguys;
+  uint level;
 
   Line* colliders;
   uint collider_count;
@@ -118,5 +124,6 @@ void game_add_entity(Game* game, const Entity* entity);
 
 void game_update(Game* game, float dt);
 void game_render(Game* game);
+void game_cleanup(Game* game);
 
 #endif

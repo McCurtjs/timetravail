@@ -9,10 +9,11 @@ clang -Oz --target=wasm32-wasi \
   -Wall -Wextra -Wno-missing-braces \
   -Wl,--allow-undefined -Wl,--no-entry \
   -isystem lib/wasi-libc/sysroot/include/wasm32-wasi \
-  -I src/eng -I src/eng/wasm \
+  -I src -I src/eng -I src/eng/wasm \
   -o build/test.wasm \
   src/*.c \
   src/game/*.c \
+  src/levels/*.c \
   src/eng/*.c \
   src/eng/wasm/*.c \
   src/eng/wasm/sdl/*.c \

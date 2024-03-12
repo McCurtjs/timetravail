@@ -13,11 +13,13 @@
     "sdl.h": "c",
     "math.h": "c",
     "functional": "c",
-    "game_behaviors.h": "c"
+    "game_behaviors.h": "c",
+    "test_behaviors.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",
-    "src/eng"
+    "src/eng",
+    "src/"
   ],
   "files.eol": "\n"
 }

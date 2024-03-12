@@ -7,6 +7,7 @@
 // Player behaviors and helpers
 void behavior_player(Entity* entity, Game* game, float dt);
 void render_sprites(Entity* entity, Game* game);
+void delete_player(Entity* entity);
 
 bool handle_player_combat(Game* game, const Entity* e, PlayerFrameData* fd);
 void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame);

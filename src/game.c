@@ -6,8 +6,6 @@
 
 void game_init(Game* game) {
   vector_init(&game->entities, sizeof(Entity));
-
-  camera_look_at(&game->camera, game->target);
 }
 
 void game_add_entity(Game* game, const Entity* entity) {
@@ -33,7 +31,7 @@ void game_update(Game* game, float dt) {
 void game_render(Game* game) {
   game->camera.projview = camera_projection_view(&game->camera);
 
-  for (uint i = 0 ; i < game->entities.size; ++i) {
+  for (uint i = 0; i < game->entities.size; ++i) {
     Entity* entity = vector_get(&game->entities, i);
 
     if (entity->render && !entity->hidden) {
@@ -43,4 +41,17 @@ void game_render(Game* game) {
 
   // render the resulting sprite sheet
   finish_rendering_sprites(game, &game->models.player.sprites, &game->textures.player);
+}
+
+void game_cleanup(Game* game) {
+  for (uint i = 0; i < game->entities.size; ++i) {
+    Entity* e = vector_get(&game->entities, i);
+
+    if (e->delete) {
+      e->delete(e);
+    }
+  }
+
+  vector_delete(&game->timeguys);
+  vector_delete(&game->entities);
 }

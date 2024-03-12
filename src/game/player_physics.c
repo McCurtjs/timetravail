@@ -31,11 +31,11 @@ bool handle_player_collisions(
     }
 
     // Drop through the platform if it's droppable and you press down
-    if (PRESSED(DROP) && !new_fd->in_combat && was_standing->droppable) {
+    if (TRIGGERED(DROP) && !new_fd->in_combat && was_standing->droppable) {
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
       new_fd->animation = ANIMATION_FALL;
-      new_fd->vel.y -= 10;
+      //new_fd->vel.y -= 10;
     }
   }
 

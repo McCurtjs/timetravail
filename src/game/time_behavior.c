@@ -87,6 +87,7 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
         .replay_temp = { .data = NULL },
         .render = render_sprites,
         .behavior = behavior_player,
+        .delete = delete_player,
       });
 
     // Otherwise, initialize the playback reversal

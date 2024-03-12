@@ -135,8 +135,6 @@ void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
   float total_max_v = max_vel[d->airborne] * walking * hsmod;
   float v_along_axis = v2dot(d->vel, axis);
 
-  if (d->hitstun) print_float(v_along_axis);
-
   if (v_along_axis > total_max_v) {
     d->vel = v2add(d->vel, v2scale(axis, total_max_v - v_along_axis));
   } else if (v_along_axis < -total_max_v) {
