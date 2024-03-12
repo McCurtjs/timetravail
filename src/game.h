@@ -29,7 +29,7 @@ typedef struct Game_Textures {
   Texture player;
 } Game_Textures;
 
-#define game_key_count (8 + LEVEL_COUNT)
+#define game_key_count (9 + LEVEL_COUNT)
 #define game_mouse_button_count 3
 #define game_button_input_count (game_key_count + game_mouse_button_count)
 
@@ -49,6 +49,7 @@ typedef struct Game_Buttons {
           int camera_lock;
           int run_replay;
           int kick;
+          int shift;
 
           // level skip buttons
           int level_reload;

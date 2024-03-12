@@ -510,7 +510,7 @@ static Frame player_kick_run[] = {
 
 Animation player_animations[] = {
   { FRAMES(player_idle), .rate = 6 },
-  { FRAMES(player_idle2), .rate = 6, .repeat = 13 },
+  { FRAMES(player_idle2), .rate = 6, .repeat = 12 },
   { FRAMES(player_walk), .rate = 4 },
   { FRAMES(player_run), .rate = 4 },
   { FRAMES(player_jump), .rate = 2, .repeat = 8 },

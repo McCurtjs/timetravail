@@ -45,6 +45,7 @@ void finish_rendering_sprites(
 
 #define jump_accel_frame 4
 #define jump_double_accel_frame 6
+#define physics_epsilon 0.01
 
 // Masks for reading the replay-packed input value
 #define SHIFT_JUMP    0

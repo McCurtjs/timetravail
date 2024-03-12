@@ -35,6 +35,8 @@ LoadLevelFn game_levels[LEVEL_COUNT] = {
   NULL,
   NULL,
   NULL,
+  NULL,
   level_load_editor,
+  level_load_editor_test,
   level_load_og_test,
 };

@@ -103,12 +103,17 @@ vec2 v2lerp(vec2 p1, vec2 p2, float t) {
   return v2add(p1, v);
 }
 
-float v2closest_t(vec2 P, vec2 Q, vec2 u) {
-  return v2dot(v2norm(u), v2sub(P, Q)) * v2mag(u);
+float v2line_dist(vec2 P, vec2 v, vec2 Q) {
+  return v2cross(v2sub(Q, P), v) / v2mag(v);
 }
 
-vec2 v2closest(vec2 P, vec2 Q, vec2 u) {
-  return v2add(Q, v2scale(u, v2closest_t(P, Q, u)));
+// todo: change return types, look up other version of formula that uses t?
+float v2line_closest(vec2 P, vec2 v, vec2 Q, vec2* R_out) {
+  float d = v2line_dist(P, v, Q);
+  if (!R_out) return d;
+  vec2 n = v2norm(v2perp(v));
+  *R_out = v2add(Q, v2scale(n, d));
+  return d;
 }
 
 // t = (P.x * u.y - P.y * u.x + u.x * Q.y - u.y * Q.x) / (u.x * v.y - u.y * v.x)
@@ -225,6 +230,32 @@ vec3 v3perp(vec3 v) {
 
 float v3angle(vec3 a, vec3 b) {
   return acosf(v3dot(a, b) / (v3mag(a) * v3mag(b)));
+}
+
+float v3line_dist(vec3 P, vec3 v, vec3 Q) {
+  return v3mag(v3cross(v3sub(Q, P), v)) / v3mag(v);
+}
+
+// Gets intersection between the line [P, v] and plane [R, n]
+// Intersection point is defined by P + t_out * v
+bool v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
+  vec3 norm = v3norm(n);
+  float vdotn = v3dot(v, norm);
+  if (vdotn == 0) return FALSE;
+  vec3 PtoR = v3sub(R, P);
+  float PRdotn = v3dot(PtoR, norm);
+  // if (lpdotn == 0) return TRALUSE? // line contained in plane
+  float t = PRdotn / vdotn;
+  if (t_out) *t_out = t;
+  return t != 0;
+}
+
+bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
+  float t;
+  if (!v3line_plane(P, v, R, n, &t)) return FALSE;
+  if (t < 0) return FALSE;
+  if (t_out) *t_out = t;
+  return TRUE;
 }
 
 vec4 v3v4(vec3 v, float w) {

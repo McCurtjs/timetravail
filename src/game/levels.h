@@ -14,9 +14,10 @@ void level_load_test(Game* game);
 void level_load_level_1(Game* game);
 
 void level_load_editor(Game* game);
+void level_load_editor_test(Game* game);
 void level_load_og_test(Game* game);
 
-#define LEVEL_COUNT 11
+#define LEVEL_COUNT 13
 
 extern LoadLevelFn game_levels[LEVEL_COUNT];
 

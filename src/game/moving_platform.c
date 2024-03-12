@@ -7,18 +7,20 @@
 void behavior_moving_platform(Entity* e, Game* game, float _) {
   Movement* m = &e->movement_params;
 
-  if (!m->line->moving) {
+  if (!m->line) {
+    print("Moving platform: no defined line");
+    return;
+  } else if (!m->line->moving) {
     m->line->moving = m;
     m->origin = m->line->a;
     m->v_plat = v2sub(m->line->b, m->line->a);
     m->v_rail = v2sub(m->target, m->line->a);
-  } else {
-    print("Moving platform: assigned line already moving. Forgot cleanup?");
+  } else if (m->line->moving != m) {
+    print("Moving platform: line already has pointer; forgot delete fn?");
+    return;
   }
 
   m->line->a = platform_pos_at_frame(m, game->frame);
-
-  print_float(m->line->a.y);
 
   m->line->b = v2add(m->line->a, m->v_plat);
 }

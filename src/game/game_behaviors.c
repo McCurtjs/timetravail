@@ -14,8 +14,14 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
 
   for (uint i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
+    vec3 color = (vec3){0.5, 0.5, 1};
 
-    draw_line_solid(v2v3(line.a, z), v2v3(line.b, z), (vec3){0.5, 0.5, 1});
+    if (line.droppable) color = (vec3) {76/255.0, 229/255.0, 209/255.0};
+    if (line.wall) color = (vec3) {250/255.0, 128/255.0, 114/255.0};
+    if (line.moving) color = (vec3) {173/255.0, 229/255.0, 76/255.0};
+    if (line.bouncy) color = (vec3) {202/255.0, 193/255.0, 150/255.0};
+
+    draw_line_solid(v2v3(line.a, z), v2v3(line.b, z), color);
 
     vec2 v = v2scale(v2sub(line.b, line.a), 0.5);
     vec2 mid = v2add(line.a, v);

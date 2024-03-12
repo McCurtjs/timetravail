@@ -27,6 +27,10 @@ void process_system_events(Game* game) {
           game->input.pressed.lmb = TRUE;
           game->input.triggered.lmb = TRUE;
         }
+        if (event.button.button & SDL_BUTTON_MMASK) {
+          game->input.pressed.mmb = TRUE;
+          game->input.triggered.mmb = TRUE;
+        }
         if (event.button.button & SDL_BUTTON_RMASK) {
           game->input.pressed.rmb = TRUE;
           game->input.triggered.rmb = TRUE;
@@ -37,6 +41,10 @@ void process_system_events(Game* game) {
         if (!(event.button.button & SDL_BUTTON_LMASK)) {
           game->input.pressed.lmb = FALSE;
           game->input.released.lmb = TRUE;
+        }
+        if (!(event.button.button & SDL_BUTTON_MMASK)) {
+          game->input.pressed.mmb = FALSE;
+          game->input.released.mmb = TRUE;
         }
         if (!(event.button.button & SDL_BUTTON_RMASK)) {
           game->input.pressed.rmb = FALSE;

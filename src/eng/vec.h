@@ -143,6 +143,7 @@ typedef vec4 color4;
 #define v2down    ((vec2){ 0,-1 })
 #define v3ones    ((vec3){ 1, 1, 1 })
 #define v3zero    ((vec3){ 0, 0, 0 })
+#define v3origin  ((vec3){ 0, 0, 0 })
 #define v3x       ((vec3){ 1, 0, 0 })
 #define v3y       ((vec3){ 0, 1, 0 })
 #define v3z       ((vec3){ 0, 0, 1 })
@@ -209,8 +210,8 @@ vec2  v2dir(float theta);
 vec2  v2rot(vec2 v, float theta);
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
 vec2  v2lerp(vec2 a, vec2 b, float t);
-float v2closest_t(vec2 P, vec2 Q, vec2 u);
-vec2  v2closest(vec2 P, vec2 Q, vec2 u);
+float v2line_dist(vec2 P, vec2 v, vec2 Q);
+float v2line_closest(vec2 P, vec2 v, vec2 Q, vec2* R_out);
 bool  v2line_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
 bool  v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out);
 bool  v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
@@ -234,6 +235,8 @@ vec3  v3perp(vec3 v);
 //quat  v3mul(vec3 a, vec3 b);
 float v3angle(vec3 a, vec3 b);
 //vec3  v3rot(vec3 v, vec3 axis, float theta);
+bool  v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
+bool  v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 vec4  v3v4(vec3 xyz, float w);
 
 #endif

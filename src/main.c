@@ -55,10 +55,13 @@ void export(wasm_preload) (uint w, uint h) {
       /* // Attack button, useful on F for testing
       'f',
       /*/
-      SDLK_LEFT,
+      SDLK_LEFT, // kick button
       //*/
+      16, // shift keky, for editor
       'p', // restart level
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', SDLK_MINUS // level select
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', // level select
+      SDLK_MINUS, SDLK_EQUALS, // editor levels
+      SDLK_HOME // go home
     },
     .level = 0,
   };
