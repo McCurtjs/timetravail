@@ -55,18 +55,6 @@ void behavior_editor(Entity* e, Game* game, float dt) {
   draw_color(c4green.rgb);
   draw_circle(cursor, 0.25);
 
-  if (editor_colliders.size > 0) {
-    Line line; vector_read(&editor_colliders, 0, &line);
-    vec2 p;
-    vec2 v = v2sub(line.b, line.a);
-    //vec2 n = v2norm(v2perp(v));
-    v2line_closest(line.a, v, cursor.xy, &p);
-    //float f = v2line_dist(line.a, v, cursor.xy);
-    //p = v2add(cursor.xy, v2scale(n, f));
-    //draw_circle(v2v3(p, 0), 0.5);
-    draw_line(v2v3(cursor.xy, 0), v2v3(p, 0));
-  }
-
   if (game->input.triggered.mmb) {
     player_start = cursor.xy;
   }
@@ -76,7 +64,6 @@ void behavior_editor(Entity* e, Game* game, float dt) {
   draw_circle(v2v3(v2add(player_start, (vec2){0, 1.5}), 0), 1.5);
 
   if (game->input.pressed.lmb) {
-
     end_point = cursor.xy;
 
     if (game->input.triggered.lmb) {

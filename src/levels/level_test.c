@@ -17,6 +17,9 @@ void level_load_test(Game* game) {
     { .a = (vec2){ 10, 10}, .b = (vec2){ 14, 10} }, // Moving platform diagonal
     { .a = (vec2){-20, 10}, .b = (vec2){-15, 10} }, // Moving platform fast
 
+    // ground plane because it's not implicit anymore :v
+    { .a = (vec2){-100, 0}, .b = (vec2){100, 0} },
+
     { .a = (vec2){-4, 3}, .b = (vec2){-1, 3} },
     { .a = (vec2){ 1, 6}, .b = (vec2){ 4, 6} },
     { .a = (vec2){ 4.0, 6}, .b = (vec2){ 10, 6} },

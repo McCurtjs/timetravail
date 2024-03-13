@@ -40,26 +40,19 @@ bool handle_player_collisions(
     }
   }
 
-  float closest = 99999;
-  Line* closest_line = NULL;
-
-//*
+  // only check against standable platforms first
   for (uint i = 0; i < game->collider_count; ++i) {
     Line* line = &game->colliders[i];
     vec2 p;
 
+    if (line == new_fd->standing) continue;
     if (line->droppable && PRESSED(DROP)) continue;
+    if (line->bouncy || line->wall) continue;
 
     if (v2seg_seg(old_fd.pos, new_fd->pos, line->a, line->b, &p)) {
       // we are intentionally dopping through this platform, so skip it
       if (drop_platform == &game->colliders[i]) {
         continue;
-      }
-
-      float dist = v2dist(new_fd->pos, p);
-
-      if (dist < closest) {
-        closest_line = &game->colliders[i];
       }
 
       vec2 dir = v2sub(new_fd->pos, old_fd.pos);
@@ -68,15 +61,10 @@ bool handle_player_collisions(
       vec2 n = v2perp(v_unit);
 
       if (v2dot(dir, n) < 0) {
+        // account for length of chopped off segment?
         new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
 
-        if (line->bouncy) {
-          new_fd->vel = v2reflect(new_fd->vel, v_unit);
-        //} else if (second_pass) {
-        //  new_fd->vel = v2zero;
-        } else {
-          new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
-        }
+        new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
 
         if (!line->wall && !line->bouncy) {
           new_fd->standing = line;
@@ -88,9 +76,86 @@ bool handle_player_collisions(
     }
   }
 
+  vec2 stand_v = v2zero;
+  vec2 stand_n = v2zero;
+
+  if (new_fd->standing) {
+    stand_v = v2norm(v2sub(new_fd->standing->b, new_fd->standing->a));
+    stand_n = v2perp(stand_v);
+  }
+
+  // now check for non-standable colliders, handle them slightly differently
+  for (uint i = 0; i < game->collider_count; ++i) {
+    Line* line = &game->colliders[i];
+    vec2 p;
+
+    if (line->droppable && PRESSED(DROP)) continue;
+    if (!line->bouncy && !line->wall) continue;
+
+    if (v2seg_seg(old_fd.pos, new_fd->pos, line->a, line->b, &p)) {
+      // we are intentionally dopping through this platform, so skip it
+      if (drop_platform == &game->colliders[i]) {
+        continue;
+      }
+
+      vec2 dir = v2sub(new_fd->pos, old_fd.pos);
+      vec2 v = v2sub(line->b, line->a);
+      vec2 v_unit = v2norm(v);
+      vec2 n = v2perp(v_unit);
+
+      // collision with the test line
+      if (v2dot(dir, n) < 0) {
+
+        // Handle the case where you land on a bouncy platform
+        if (line->bouncy) {
+          //new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
+          new_fd->vel = v2reflect(new_fd->vel, v_unit);
+          new_fd->standing = NULL;
+          new_fd->airborne = TRUE;
+
+        // Handle the regular case where we slide along the line
+        } else {
+          new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
+          new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
+        }
+
+        // If we're standing on a platform and hit a wall...
+        if (new_fd->standing && new_fd->standing == old_fd.standing) {
+
+          vec2 new_dir = v2sub(new_fd->pos, old_fd.pos);
+
+          // if it's a wedge and you're now sliding through the ground...
+          if (v2dot(new_dir, stand_n) < physics_epsilon) {
+            // make a line one epsilon away from the wall, and use that to find
+            // the point that's one epsilon away from both the wall and platform
+            float t;
+            v2line_line(old_fd.pos, dir, new_fd->pos, v_unit, &t, NULL);
+            new_fd->pos = v2add(old_fd.pos, v2scale(dir, t));
+
+            if (v2dot(new_fd->vel, stand_n) < -physics_epsilon) {
+              new_fd->vel = v2zero;
+            }
+
+            if (new_fd->animation != ANIMATION_JUMP
+            && v2mag(new_fd->vel) < physics_epsilon
+            ) {
+              new_fd->animation = ANIMATION_BUMP_INTO_WALL;
+            }
+
+          //if it's a slope, you're being propelled up away from the platform
+          } else {
+            new_fd->standing = NULL;
+            new_fd->airborne = TRUE;
+          }
+        }
+      }
+    }
+  }
+
   // After all that, if we're still standing on something, make sure we're
   // really locked down to it
-  if (new_fd->standing) {
+  if (new_fd->standing && new_fd->standing == old_fd.standing
+  && v2dot(new_fd->vel, stand_n) < physics_epsilon) {
     vec2 p;
     vec2 v = v2sub(new_fd->standing->b, new_fd->standing->a);
     v2line_closest(new_fd->standing->a, v, new_fd->pos, &p);
@@ -98,90 +163,26 @@ bool handle_player_collisions(
     new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
   }
 
-  if (!old_fd.airborne && !new_fd->airborne
-  &&  new_fd->animation != ANIMATION_JUMP && closest_line && closest_line->wall
-  ) {
-    new_fd->animation = ANIMATION_BUMP_INTO_WALL;
-  }
-
-/*/
-  vec2 closest_p;
-  vec2 closest_n;
-
-  for (uint i = 0; i < game->collider_count; ++i) {
-
-    Line line = game->colliders[i];
-    vec2 p;
-
-    if (v2seg_seg(old_fd.pos, new_fd->pos, line.a, line.b, &p)) {
-
-      if (drop_platform == &game->colliders[i]) {
-        continue;
-      }
-
-      vec2 dir = v2sub(new_fd->pos, old_fd.pos);
-      vec2 n = v2perp(v2norm(v2sub(line.b, line.a)));
-
-      if (v2dot(dir, n) < 0 && !(line.droppable && PRESSED(DROP))) {
-
-        float dist = v2dist(new_fd->pos, p);
-        if (closest_line == NULL || dist < closest) {
-          closest = dist;
-          closest_p = p;
-          closest_n = n;
-          closest_line = &game->colliders[i];
-        }
-      }
-    }
-  }
-
-  if (closest_line) {
-    if (!closest_line->wall && !closest_line->bouncy) {
-      new_fd->standing = closest_line;
-      new_fd->airborne = FALSE;
-      new_fd->has_double = TRUE;
-      move_cancel = TRUE;
-    }
-
-    new_fd->pos = v2add(closest_p, v2scale(closest_n, 0.01));
-
-    vec2 v = v2sub(closest_line->b, closest_line->a);
-    vec2 v_unit = v2norm(v);
-
-    if (closest_line->bouncy) {
-      new_fd->vel = v2reflect(new_fd->vel, v_unit);
-    } else {
-      new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
-
-      // if we're fully grounded and bump into a wall, play a little animation
-      if (!old_fd.airborne && !new_fd->airborne && closest_line->wall
-      && new_fd->animation != ANIMATION_JUMP
-      ) {
-        new_fd->animation = ANIMATION_BUMP_INTO_WALL;
-      }
-    }
-  }
-//*/
-
   if (fall_off_edge && !new_fd->standing) {
-    print("This is happening here");
+  //  print("This is happening here");
     new_fd->airborne = TRUE;
     new_fd->animation = ANIMATION_FALL;
     move_cancel = TRUE;
-    print_int((uint)game->frame);
+  //  print_int((uint)game->frame);
   }
 
-  if (new_fd->standing && new_fd->standing != old_fd.standing) {
-    print_int((uint)game->frame);
-  }
+  //if (new_fd->standing && new_fd->standing != old_fd.standing) {
+  //  print_int((uint)game->frame);
+  //}
 
-  if (new_fd->pos.y <= 0) {
-    if (new_fd->airborne) move_cancel = TRUE;
-    new_fd->pos.y = 0;
-    new_fd->vel.y = 0;
-    new_fd->airborne = FALSE;
-    new_fd->has_double = TRUE;
-  }
+  // implicit ground plane
+  //if (new_fd->pos.y <= 0) {
+  //  if (new_fd->airborne) move_cancel = TRUE;
+  //  new_fd->pos.y = 0;
+  //  new_fd->vel.y = 0;
+  //  new_fd->airborne = FALSE;
+  //  new_fd->has_double = TRUE;
+  //}
 
   float player_speed = v2mag(new_fd->vel);
 
