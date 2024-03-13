@@ -1,6 +1,8 @@
 #ifndef __WASM_DEFS_
 #define __WASM_DEFS_
 
+#include "types.h"
+
 // allgedly supposed to work, but doesn't
 //#define export __attribute__((used))
 
@@ -13,6 +15,7 @@
 void print(const char* str);
 void print_int(int i);
 void print_float(float f);
+void print_floats(const float* f, uint count);
 void alert(const char* str);
 
 #endif

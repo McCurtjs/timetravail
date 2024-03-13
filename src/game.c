@@ -13,6 +13,19 @@ void game_add_entity(Game* game, const Entity* entity) {
   vector_push_back(&game->entities, entity);
 }
 
+Entity* game_get_active_player(Game* game) {
+  PlayerRef active = { NULL, 0, 0 }, temp;
+  for (uint index = 0; index < game->timeguys.size; ++index) {
+    vector_read(&game->timeguys, index, &temp);
+
+    if (index == 0 || temp.start_frame <= game->frame) {
+      active = temp;
+    }
+  }
+
+  return active.e;
+}
+
 void game_update(Game* game, float dt) {
   for (uint i = 0 ; i < game->entities.size; ++i) {
     Entity* entity = vector_get(&game->entities, i);

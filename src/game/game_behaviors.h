@@ -18,6 +18,7 @@ void handle_abilities(PlayerFrameData old_fd, PlayerFrameData* new_fd,
 
 // Other entity controllers
 void behavior_time_controller(Entity* entity, Game* game, float dt);
+void behavior_goal(Entity* e, Game* _, float dt);
 void behavior_draw_physics_colliders(Entity* entity, Game* game, float dt);
 
 void behavior_moving_platform(Entity* entity, Game* game, float dt);

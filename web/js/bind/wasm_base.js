@@ -17,6 +17,23 @@ function wasm_import_base(imports, game) {
   imports['js_log_num'] = (i) => {
     console.log(i);
   }
+
+  imports['js_log_num_array'] = (ptr, count) => {
+    let arr = [...game.memory_f(ptr, count)];
+    arr = arr.map((f) => {
+      return parseFloat(f.toFixed(4));
+    });
+    console.log(arr);
+    //console.log([...game.memory_f(ptr, count)]);
+  }
+
+  //imports['js_log_lines'] = (ptr, count) => {
+  //  let arr = [];
+  //}
+
+//  imports['js_log_bytes'] = (ptr, count) => {
+//    console.log([...game.memory(ptr, count)]);
+//  }
 }
 
 export { wasm_import_base };

@@ -1,4 +1,5 @@
 #include "game_behaviors.h"
+#include "test_behaviors.h"
 
 #include "GL/gl.h"
 
@@ -63,6 +64,20 @@ void finish_rendering_sprites(
   model_render((Model*)sprites);
 
   glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void behavior_goal(Entity* e, Game* game, float dt) {
+  behavior_cubespin(e, game, dt);
+
+  Entity* player = game_get_active_player(game);
+  if (player == NULL) return;
+
+  vec2 player_pos = player->fd.pos;
+  player_pos.y += 1.5;
+
+  if (v2dist(player_pos, e->pos.xy) < 0.5) {
+    level_switch(game, game->level + 1);
+  }
 }
 
 // Delete fns

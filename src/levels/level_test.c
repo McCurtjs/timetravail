@@ -117,6 +117,17 @@ void level_load_test(Game* game) {
     .delete = delete_moving_platform,
   });
 
+  // Goal
+  game_add_entity(game, &(Entity) {
+    .type = ENTITY_OTHER,
+    .shader = &game->shaders.basic,
+    .model = &game->models.color_cube,
+    .pos = (vec3){0, 45, 0},
+    .transform = m4identity,
+    .render = render_basic,
+    .behavior = behavior_goal,
+  });
+
   // Player
   game_add_entity(game, &(Entity) {
     .type = ENTITY_PLAYER,

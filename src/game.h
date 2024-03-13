@@ -83,9 +83,9 @@ typedef struct Game_Inputs {
 } Game_Inputs;
 
 typedef struct PlayerRef {
+  Entity* e;
   uint start_frame;
   uint end_frame;
-  Entity* e;
 } PlayerRef;
 
 typedef struct Line {
@@ -94,6 +94,7 @@ typedef struct Line {
   bool droppable;
   bool wall;
   bool bouncy;
+  bool unused_padding;
 
   Movement* moving;
 } Line;
@@ -130,6 +131,7 @@ typedef struct Game {
 
 void game_init(Game* game);
 void game_add_entity(Game* game, const Entity* entity);
+Entity* game_get_active_player(Game* game);
 
 void game_update(Game* game, float dt);
 void game_render(Game* game);

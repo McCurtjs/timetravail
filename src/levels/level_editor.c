@@ -66,8 +66,10 @@ void behavior_editor(Entity* e, Game* game, float dt) {
   if (game->input.pressed.lmb) {
     end_point = cursor.xy;
 
+
     if (game->input.triggered.lmb) {
       start_point = cursor.xy;
+      print_floats(start_point.f, 2);
     } else {
       draw_line_solid(v2v3(start_point, 0), v2v3(end_point, 0), c4magenta.rgb);
     }
@@ -85,6 +87,11 @@ void behavior_editor(Entity* e, Game* game, float dt) {
 
     // update count and reset collider data pointer in case it resized
     game->colliders = editor_colliders.data;
+    game->collider_count = editor_colliders.size;
+  }
+
+  if (game->input.triggered.run_replay && editor_colliders.size) {
+    vector_pop_back(&editor_colliders, NULL);
     game->collider_count = editor_colliders.size;
   }
 }

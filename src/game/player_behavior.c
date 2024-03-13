@@ -251,23 +251,14 @@ void behavior_player(Entity* e, Game* game, float _) {
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering
   // when the player moves after the camera in update sequence)
-  PlayerRef active, temp;
-  for (uint index = 0; index < game->timeguys.size; ++index) {
-    vector_read(&game->timeguys, index, &temp);
-
-    if (index == 0 || temp.start_frame <= game->frame) {
-      active = temp;
-    }
-  }
-
-  if (active.e == e) {
-    static int lock_camera = FALSE;
-    if (lock_camera) {
-      game->camera.pos.xy = e->fd.pos;
-    }
-    if (game->input.triggered.camera_lock) {
-      lock_camera = !lock_camera;
-    }
+  if (e == game_get_active_player(game)) {
+    //static int lock_camera = FALSE;
+    //if (lock_camera) {
+      game->camera.pos.xy = v2add(e->fd.pos, v2scale(v2y, 3));
+    //}
+    //if (game->input.triggered.camera_lock) {
+    //  lock_camera = !lock_camera;
+    //}
   }
 }
 
