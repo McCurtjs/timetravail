@@ -47,7 +47,7 @@ void level_load_level_1(Game* game) {
     .behavior = behavior_draw_physics_colliders
   });
 
-  //*/ // Level model
+  /*/ // Level model
   game_add_entity(game, &(Entity) {
     .type = ENTITY_OTHER,
     .texture = &game->textures.level,

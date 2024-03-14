@@ -28,10 +28,10 @@ static Game game;
 static File file_vert;
 static File file_frag;
 static File file_model_test;
-static File file_model_level_1;
+//static File file_model_level_1;
 static File file_model_gear;
 static Image image_crate;
-static Image image_level;
+//static Image image_level;
 static Image image_tiles;
 static Image image_brass;
 static Image image_anim_test;
@@ -116,7 +116,7 @@ int export(wasm_load) (int await_count, float dt) {
 
   model_load_obj(&game.models.level_test, &file_model_test);
   model_load_obj(&game.models.gear, &file_model_gear);
-  model_load_obj(&game.models.level_1, &file_model_level_1);
+  //model_load_obj(&game.models.level_1, &file_model_level_1);
 
   shader_program_build(&game.shaders.light, &light_vert, &light_frag);
   shader_program_load_uniforms(&game.shaders.light, UNIFORMS_PHONG);

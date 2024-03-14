@@ -23,13 +23,14 @@ void level_switch(Game* game, uint level) {
   game_cleanup(game);
   game_init(game);
   game_levels[level](game);
+  game->level = level;
 }
 
 LoadLevelFn game_levels[LEVEL_COUNT] = {
   level_load_level_1,
-  level_load_level_2,
   level_load_level_3,
   level_load_test,
+  NULL,//level_load_level_2,
   NULL,
   NULL,
   NULL,

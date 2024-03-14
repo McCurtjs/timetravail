@@ -114,7 +114,7 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
   }
 
   // Debug draw attached to the "active" entity only
-  //*
+  /*
   draw_color(v3x);
   draw_offset(v2v3(active.e->fd.pos, 0));
   draw_vector(v2v3(v2scale(active.e->fd.vel, 0.5), 0));
