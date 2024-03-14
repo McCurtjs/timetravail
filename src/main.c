@@ -28,16 +28,20 @@ static Game game;
 static File file_vert;
 static File file_frag;
 static File file_model_test;
+static File file_model_gear;
 static Image image_crate;
 static Image image_tiles;
+static Image image_brass;
 static Image image_anim_test;
 
 void export(wasm_preload) (uint w, uint h) {
   file_open_async(&file_vert, "./res/shaders/basic.vert");
   file_open_async(&file_frag, "./res/shaders/basic.frag");
-  file_open_async(&file_model_test, "./res/models/test_sphere.obj");
+  file_open_async(&file_model_test, "./res/models/test.obj");
+  file_open_async(&file_model_gear, "./res/models/gear.obj");
 
   image_open_async(&image_crate, "./res/textures/crate.png");
+  image_open_async(&image_brass, "./res/textures/brass.jpg");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
   image_open_async(&image_anim_test, "./res/textures/spritesheet.png");
 
@@ -48,7 +52,7 @@ void export(wasm_preload) (uint w, uint h) {
       .pos = (vec4){0, 0, 60, 1},
       .front = v4front,
       .up = v4y,
-      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1, 100}
+      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1, 500}
       //.ortho = {-6 * i2aspect(windim), 6 * i2aspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
@@ -106,17 +110,14 @@ int export(wasm_load) (int await_count, float dt) {
   shader_build_from_file(&light_frag, &file_frag);
 
   model_load_obj(&game.models.level_test, &file_model_test);
-
-  print_int(game.models.level_test.obj.verts.size);
-  print_int(game.models.level_test.obj.faces.size);
-  print_int(game.models.level_test.obj.norms.size);
-  print_int(game.models.level_test.obj.uvs.size);
+  model_load_obj(&game.models.gear, &file_model_gear);
 
   shader_program_build(&game.shaders.light, &light_vert, &light_frag);
   shader_program_load_uniforms(&game.shaders.light, UNIFORMS_PHONG);
 
   // Build textures from async data
   texture_build_from_image(&game.textures.crate, &image_crate);
+  texture_build_from_image(&game.textures.brass, &image_brass);
   texture_build_from_image(&game.textures.tiles, &image_tiles);
   texture_build_from_image(&game.textures.player, &image_anim_test);
 
@@ -124,6 +125,7 @@ int export(wasm_load) (int await_count, float dt) {
   file_delete(&file_vert);
   file_delete(&file_frag);
   file_delete(&file_model_test);
+  file_delete(&file_model_gear);
   image_delete(&image_crate);
   image_delete(&image_tiles);
   image_delete(&image_anim_test);
@@ -144,6 +146,7 @@ int export(wasm_load) (int await_count, float dt) {
 
   model_build(&game.models.player);
   model_build(&game.models.level_test);
+  model_build(&game.models.gear);
   model_grid_set_default(&game.models.gizmo, -2);
   game.models.box.type = MODEL_CUBE;
   model_build(&game.models.box);

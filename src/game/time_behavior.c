@@ -11,6 +11,29 @@ const static float reverse_jolt = 0.0007;
 const static float reverse_accel_start = 0.0;
 static float reverse_accel = 0.0;
 
+static void create_new_player(Game* game, Entity* e) {
+  //print("Going to forward playback");
+  PlayerFrameData new_fd = e->fd;
+  new_fd.warp_triggered = 0;
+
+  game_add_entity(game, &(Entity) {
+    .type = ENTITY_PLAYER,
+    .shader = &game->shaders.light,
+    .model = &game->models.player,
+    .fd = new_fd,
+    .anim_data = {
+      .anim_count = ANIMATION_COUNT,
+      .animations = player_animations,
+      .hitboxes = player_hitboxes,
+    },
+    .replay = { .data = NULL },
+    .replay_temp = { .data = NULL },
+    .render = render_sprites,
+    .behavior = behavior_player,
+    .delete = delete_player,
+  });
+}
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 void behavior_time_controller(Entity* _, Game* game, float dt) {
@@ -50,7 +73,6 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
 
   // Reset forward playback if we get to the beginning of the recording
   } else {
-    game->reverse_playback = FALSE;
     game->frame = 0;
   }
 
@@ -64,31 +86,20 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
     }
   }
 
+  // (Actually do the forward playback reset here so we can use the active)
+  if (game->reverse_playback && game->frame <= 0) {
+    game->reverse_playback = FALSE;
+    game->frame = 0;
+    create_new_player(game, active.e);
+  }
+
   // Active the reverse ability...
   if (game->input.triggered.run_replay && !active.e->fd.warp_triggered) {
 
     // If we're reverseing, flip back to forward and create a player instance
     if (game->reverse_playback) {
-      //print("Going to forward playback");
-      PlayerFrameData new_fd = active.e->fd;
-      new_fd.warp_triggered = 0;
 
-      game_add_entity(game, &(Entity) {
-        .type = ENTITY_PLAYER,
-        .shader = &game->shaders.light,
-        .model = &game->models.player,
-        .fd = new_fd,
-        .anim_data = {
-          .anim_count = ANIMATION_COUNT,
-          .animations = player_animations,
-          .hitboxes = player_hitboxes,
-        },
-        .replay = { .data = NULL },
-        .replay_temp = { .data = NULL },
-        .render = render_sprites,
-        .behavior = behavior_player,
-        .delete = delete_player,
-      });
+      create_new_player(game, active.e);
 
     // Otherwise, initialize the playback reversal
     } else {

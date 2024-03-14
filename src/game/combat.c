@@ -14,13 +14,13 @@ bool handle_player_combat(
     return FALSE;
   }
 
-  vec4 color = c4cyan;
+  //vec4 color = c4cyan;
 
   vec2 hurtbox = (vec2){fd->pos.x, fd->pos.y + 1.5};
   float h_radius = 1.5;
 
   for (uint i = 0; i < game->entities.size; ++i) {
-    draw_color(c4gray.rgb);
+    //draw_color(c4gray.rgb);
     Entity* entity = vector_get(&game->entities, i);
 
     if (entity->type != ENTITY_PLAYER) continue;
@@ -29,7 +29,7 @@ bool handle_player_combat(
     uint current_frame = (uint)game->frame - entity->fd.start_frame;
     vec2 center = v2add(entity->fd.pos, v2scale(v2y, 1.5));
 
-    if (entity != active) draw_circle(v2v3(center, 0), h_radius);
+    //if (entity != active) draw_circle(v2v3(center, 0), h_radius);
 
     const Hitbox* hbox = anim_hitbox(entity->fd.animation, current_frame);
 
@@ -38,13 +38,13 @@ bool handle_player_combat(
       if (entity->fd.facing == FACING_LEFT) hit_offset.x *= -1;
       vec2 hit_loc = v2add(center, hit_offset);
 
-      draw_color(c4red.rgb); if (entity == active) draw_color(c4green.rgb);
-      draw_circle(v2v3(hit_loc, 0), hbox->radius * PLAYER_SCALE);
+      //draw_color(c4red.rgb); if (entity == active) draw_color(c4green.rgb);
+      //draw_circle(v2v3(hit_loc, 0), hbox->radius * PLAYER_SCALE);
 
       if (entity == active) continue;
 
       float distance = v2mag(v2sub(hurtbox, hit_loc));
-      draw_line_solid(v2v3(hit_loc, 0), v2v3(hurtbox, 0), c4green.rgb);
+      //draw_line_solid(v2v3(hit_loc, 0), v2v3(hurtbox, 0), c4green.rgb);
 
       if (distance <= h_radius + hbox->radius) {
         vec2 knockback = hbox->knockback;
@@ -56,13 +56,13 @@ bool handle_player_combat(
         fd->vel = knockback;
         fd->hitstun = hbox->hitstun;
 
-        color = c4red;
+        //color = c4red;
       }
     }
   }
 
-  draw_color(color.rgb);
-  draw_circle(v2v3(hurtbox, 0), h_radius);
+  //draw_color(color.rgb);
+  //draw_circle(v2v3(hurtbox, 0), h_radius);
 
   return FALSE;
 }

@@ -53,17 +53,12 @@ typedef struct Model_Obj {
   uint type;
   uint ready;
   Vector verts;
-  Vector norms;
-  Vector uvs;
-  Vector faces;
+  Vector indices;
   uint vao;
   union {
-    uint buffers[5];
+    uint buffers[2];
     struct {
       uint vert_buffer;
-      uint uv_buffer;
-      uint tri_buffer;
-      uint norm_buffer;
       uint ebo;
     };
   };

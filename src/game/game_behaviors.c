@@ -66,6 +66,13 @@ void finish_rendering_sprites(
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void behavior_gearspin(Entity* e, Game* game, float _) {
+  e->transform = m4translation(e->pos);
+  e->transform = m4mul(e->transform, m4rotation(
+    v3norm((vec3){0, 0, 1}),game->frame / (60 * e->angle))
+  );
+}
+
 void behavior_goal(Entity* e, Game* game, float dt) {
   behavior_cubespin(e, game, dt);
 

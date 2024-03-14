@@ -9,6 +9,7 @@ void level_load_test(Game* game) {
 
   game->camera.pos = (vec4){0, 0, 60, 1};
   game->camera.front = v4front;
+  game->light_pos = (vec4){ -20, 40, 100 };
 
   // Set level geometry
 
@@ -57,12 +58,12 @@ void level_load_test(Game* game) {
   // Establish game entities
 
   // Debug Renderer
-  game_add_entity(game, &(Entity) {
-    .shader = &game->shaders.basic,
-    .model = &game->models.grid,
-    .transform = m4identity,
-    .render = render_debug,
-  });
+  //game_add_entity(game, &(Entity) {
+  //  .shader = &game->shaders.basic,
+  //  .model = &game->models.grid,
+  //  .transform = m4identity,
+  //  .render = render_debug,
+  //});
 
   //// Camera Controller
   //game_add_entity(&game, &(Entity) {
@@ -70,9 +71,9 @@ void level_load_test(Game* game) {
   //});
 
   // Entity to draw physics lines
-  game_add_entity(game, &(Entity) {
-    .behavior = behavior_draw_physics_colliders
-  });
+  //game_add_entity(game, &(Entity) {
+  //  .behavior = behavior_draw_physics_colliders
+  //});
 
   // Time Controller
   game_add_entity(game, &(Entity) {
@@ -88,6 +89,31 @@ void level_load_test(Game* game) {
     .pos = (vec3){0, 0, 0},
     .transform = m4identity,
     .render = render_phong,
+  });
+
+  // Gear model
+  game_add_entity(game, &(Entity) {
+    .type = ENTITY_OTHER,
+    .texture = &game->textures.brass,
+    .shader = &game->shaders.light,
+    .model = &game->models.gear,
+    .pos = (vec3){0, 40, -50},
+    .angle = 5,
+    .transform = m4identity,
+    .render = render_phong,
+    .behavior = behavior_gearspin,
+  });
+
+  game_add_entity(game, &(Entity) {
+    .type = ENTITY_OTHER,
+    .texture = &game->textures.brass,
+    .shader = &game->shaders.light,
+    .model = &game->models.gear,
+    .pos = (vec3){20.8, 31.5, -50},
+    .angle = -5,
+    .transform = m4identity,
+    .render = render_phong,
+    .behavior = behavior_gearspin,
   });
 
   // Moving platforms

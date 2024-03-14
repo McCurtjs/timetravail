@@ -12,9 +12,7 @@
 static Vector editor_colliders;
 static vec2 player_start = v2zero;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-void behavior_editor(Entity* e, Game* game, float dt) {
+void behavior_editor(Entity* _, Game* game, float dt) {
 
   if (game->input.pressed.rmb) {
     vec2* pos = &game->camera.pos.xy;
@@ -95,7 +93,6 @@ void behavior_editor(Entity* e, Game* game, float dt) {
     game->collider_count = editor_colliders.size;
   }
 }
-#pragma clang diagnostic pop
 
 void level_load_editor(Game* game) {
 

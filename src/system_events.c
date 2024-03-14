@@ -38,15 +38,18 @@ void process_system_events(Game* game) {
       } break;
 
       case SDL_EVENT_MOUSE_BUTTON_UP: {
-        if (!(event.button.button & SDL_BUTTON_LMASK)) {
+        // web uses a button id instead of a mask for up events,
+        // but it doesn't even match the mask index -_-
+        print_int(event.button.button);
+        if (event.button.button == 0) {
           game->input.pressed.lmb = FALSE;
           game->input.released.lmb = TRUE;
         }
-        if (!(event.button.button & SDL_BUTTON_MMASK)) {
+        if (event.button.button == 1) {
           game->input.pressed.mmb = FALSE;
           game->input.released.mmb = TRUE;
         }
-        if (!(event.button.button & SDL_BUTTON_RMASK)) {
+        if (event.button.button == 2) {
           game->input.pressed.rmb = FALSE;
           game->input.released.rmb = TRUE;
         }

@@ -151,7 +151,7 @@ class Game {
       let b = game.gl.canvas.getBoundingClientRect();
       let pos = { x: e.clientX - b.x, y: e.clientY - b.y };
       game.wasm.exports.wasm_push_mouse_button_event(
-        sdl.mouse_button_up, e.buttons, pos.x, pos.y);
+        sdl.mouse_button_up, e.button, pos.x, pos.y);
     });
 
     window.addEventListener('mousemove', (e) => {
