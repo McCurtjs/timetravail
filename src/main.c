@@ -27,6 +27,7 @@ static Game game;
 // Async loaders
 static File file_vert;
 static File file_frag;
+static File file_model_test;
 static Image image_crate;
 static Image image_tiles;
 static Image image_anim_test;
@@ -34,6 +35,7 @@ static Image image_anim_test;
 void export(wasm_preload) (uint w, uint h) {
   file_open_async(&file_vert, "./res/shaders/basic.vert");
   file_open_async(&file_frag, "./res/shaders/basic.frag");
+  file_open_async(&file_model_test, "./res/models/test_sphere.obj");
 
   image_open_async(&image_crate, "./res/textures/crate.png");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
@@ -103,6 +105,13 @@ int export(wasm_load) (int await_count, float dt) {
   shader_build_from_file(&light_vert, &file_vert);
   shader_build_from_file(&light_frag, &file_frag);
 
+  model_load_obj(&game.models.level_test, &file_model_test);
+
+  print_int(game.models.level_test.obj.verts.size);
+  print_int(game.models.level_test.obj.faces.size);
+  print_int(game.models.level_test.obj.norms.size);
+  print_int(game.models.level_test.obj.uvs.size);
+
   shader_program_build(&game.shaders.light, &light_vert, &light_frag);
   shader_program_load_uniforms(&game.shaders.light, UNIFORMS_PHONG);
 
@@ -114,6 +123,7 @@ int export(wasm_load) (int await_count, float dt) {
   // Delete async loaded resources
   file_delete(&file_vert);
   file_delete(&file_frag);
+  file_delete(&file_model_test);
   image_delete(&image_crate);
   image_delete(&image_tiles);
   image_delete(&image_anim_test);
@@ -131,7 +141,9 @@ int export(wasm_load) (int await_count, float dt) {
     .grid = {.w = 16, .h = 16},
   };
 
+
   model_build(&game.models.player);
+  model_build(&game.models.level_test);
   model_grid_set_default(&game.models.gizmo, -2);
   game.models.box.type = MODEL_CUBE;
   model_build(&game.models.box);

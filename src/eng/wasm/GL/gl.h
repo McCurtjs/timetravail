@@ -368,6 +368,7 @@ void    glVertexAttribPointer(
 void    glEnableVertexAttribArray(	GLuint index);
 void    glDisableVertexAttribArray(	GLuint index);
 void    glDrawArrays(GLenum mode, GLint first, GLsizei count);
+void    glDrawElements(GLenum mode, GLsizei count, GLenum type, const void* of);
 
 void    glGenTextures(GLsizei n, GLuint* textures);
 void    glActiveTexture(GLenum texture);

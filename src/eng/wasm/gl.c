@@ -67,6 +67,8 @@ extern void   glVertexAttribPointer(
 extern void   glEnableVertexAttribArray(GLuint index);
 extern void   glDisableVertexAttribArray(GLuint index);
 extern void   glDrawArrays(GLenum mode, GLint first, GLsizei count);
+extern void   glDrawElements(GLenum mode, GLsizei count,
+                             GLenum type, const void* offset);
 
 extern int    js_glCreateTexture();
 void          glGenTextures(GLsizei n, GLuint* textures) {

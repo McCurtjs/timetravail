@@ -4,6 +4,7 @@
 #include "types.h"
 #include "mat.h"
 #include "vector.h"
+#include "file.h"
 
 typedef enum ModelType {
   MODEL_NONE = 0,
@@ -11,6 +12,7 @@ typedef enum ModelType {
   MODEL_CUBE,
   MODEL_CUBE_COLOR,
   MODEL_SPRITES,
+  MODEL_OBJ,
   MODEL_TYPES_COUNT
 } ModelType;
 
@@ -47,6 +49,26 @@ typedef struct Model_Sprites {
   Vector verts;
 } Model_Sprites;
 
+typedef struct Model_Obj {
+  uint type;
+  uint ready;
+  Vector verts;
+  Vector norms;
+  Vector uvs;
+  Vector faces;
+  uint vao;
+  union {
+    uint buffers[5];
+    struct {
+      uint vert_buffer;
+      uint uv_buffer;
+      uint tri_buffer;
+      uint norm_buffer;
+      uint ebo;
+    };
+  };
+} Model_Obj;
+
 typedef union Model {
   struct {
     uint type;
@@ -56,10 +78,13 @@ typedef union Model {
   Model_Cube cube;
   Model_CubeColor cube_color;
   Model_Sprites sprites;
+  Model_Obj obj;
 } Model;
 
 int  model_build(Model* model);
 void model_render(const Model* model);
+
+void model_load_obj(Model* model, File* file);
 
 void model_grid_set_default(Model* model, int extent);
 void model_sprites_draw(

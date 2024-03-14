@@ -79,6 +79,17 @@ void level_load_test(Game* game) {
     .behavior = behavior_time_controller,
   });
 
+  // Level model
+  game_add_entity(game, &(Entity) {
+    .type = ENTITY_OTHER,
+    .texture = &game->textures.crate,
+    .shader = &game->shaders.light,
+    .model = &game->models.level_test,
+    .pos = (vec3){0, 0, 0},
+    .transform = m4identity,
+    .render = render_phong,
+  });
+
   // Moving platforms
   game_add_entity(game, &(Entity) { // vertical
     .type = ENTITY_PLATFORM,

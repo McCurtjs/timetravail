@@ -3,6 +3,9 @@
 #include "GL/gl.h"
 
 #include <stdlib.h>
+#include <string.h>
+
+#include "file.h"
 
 #include "wasm.h"
 
@@ -304,6 +307,171 @@ void model_sprites_draw(
   vector_push_back(&spr->verts, &BR);
 }
 
+// Model OBJ
+
+typedef struct ObjVertex {
+  vec3 pos;
+  vec3 color;
+} ObjVertex;
+
+typedef struct ObjFaceElem {
+  uint vert;
+  uint norm;
+  uint uv;
+} ObjFaceElem;
+
+static int model_build_obj(Model_Obj* obj) {
+  glGenVertexArrays(1, &obj->vao);
+  glBindVertexArray(obj->vao);
+
+  glGenBuffers(5, obj->buffers);
+
+  glBindBuffer(GL_ARRAY_BUFFER, obj->vert_buffer);
+  glBufferData(GL_ARRAY_BUFFER, obj->verts.bytes, obj->verts.data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, v3floats, GL_FLOAT, GL_FALSE,
+                        sizeof(ObjVertex), &((ObjVertex*)0)->pos);
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, v3floats, GL_FLOAT, GL_FALSE,
+                        sizeof(ObjVertex), &((ObjVertex*)0)->color);
+
+  glBindBuffer(GL_ARRAY_BUFFER, obj->norm_buffer);
+  glBufferData(GL_ARRAY_BUFFER, obj->norms.bytes, obj->norms.data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, v3floats, GL_FLOAT, GL_FALSE, 0, NULL);
+
+  glBindBuffer(GL_ARRAY_BUFFER, obj->uv_buffer);
+  glBufferData(GL_ARRAY_BUFFER, obj->uvs.bytes, obj->uvs.data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, v2floats, GL_FLOAT, GL_FALSE, 0, NULL);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->faces.bytes, obj->faces.data, GL_STATIC_DRAW);
+
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+  obj->ready = TRUE;
+  return 1;
+}
+
+static void model_render_obj(Model_Obj* obj) {
+  glBindVertexArray(obj->vao);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
+  glDrawElements(GL_TRIANGLES, obj->faces.size, GL_UNSIGNED_INT, 0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+}
+
+// WASI doesn't support stof yet, which is annoying. Too lazy to make a function
+// right now, pulled from Karl Knechtel at:
+// https://stackoverflow.com/questions/4392665/converting-string-to-float-without-stof-in-c
+float stof(const char* s){
+  float rez = 0, fact = 1;
+  if (*s == '-'){
+    s++;
+    fact = -1;
+  };
+  for (int point_seen = 0; *s; s++){
+    if (*s == '.'){
+      point_seen = 1;
+      continue;
+    };
+    int d = *s - '0';
+    if (d >= 0 && d <= 9){
+      if (point_seen) fact /= 10.0f;
+      rez = rez * 10.0f + (float)d;
+    };
+  };
+  return rez * fact;
+};
+
+void model_load_obj(Model* model, File* file) {
+  model->type = MODEL_OBJ;
+
+  file_read(file);
+  if (!file->text) return;
+
+  vector_init(&model->obj.verts, sizeof(ObjVertex));
+  vector_init(&model->obj.norms, sizeof(vec3));
+  vector_init(&model->obj.uvs, sizeof(vec2));
+  vector_init(&model->obj.faces, sizeof(ObjFaceElem));
+
+  char* next = strtok(file->text, " ");
+
+  while (next) {
+
+    // Skip to next line if it's a comment, object name, or whatever s means
+    if (!strcmp(next, "#") || !strcmp(next, "o") || !strcmp(next, "s")) {
+      next = strtok(NULL, "\n");
+
+    // Read a vertex
+    } else if (!strcmp(next, "v")) {
+      ObjVertex vert;
+
+      vert.pos.x = stof(strtok(NULL, " "));
+      vert.pos.y = stof(strtok(NULL, " "));
+      vert.pos.z = stof(strtok(NULL, " "));
+      vert.color.r = stof(strtok(NULL, " "));
+      vert.color.g = stof(strtok(NULL, " "));
+      vert.color.b = stof(strtok(NULL, "\n"));
+
+      vector_push_back(&model->obj.verts, &vert);
+
+    // Read a vertex normal
+    } else if (!strcmp(next, "vn")) {
+      vec3 norm;
+
+      norm.x = stof(strtok(NULL, " "));
+      norm.y = stof(strtok(NULL, " "));
+      norm.z = stof(strtok(NULL, "\n"));
+
+      vector_push_back(&model->obj.norms, &norm);
+
+    // Read a UV coordinate
+    } else if (!strcmp(next, "vt")) {
+      vec2 uv;
+
+      uv.u = stof(strtok(NULL, " "));
+      uv.v = stof(strtok(NULL, "\n"));
+
+      vector_push_back(&model->obj.uvs, &uv);
+
+    // Read a face
+    } else if (!strcmp(next, "f")) {
+      ObjFaceElem elem;
+
+      elem.vert = atoi(strtok(NULL, "/"));
+      elem.uv = atoi(strtok(NULL, "/"));
+      elem.norm = atoi(strtok(NULL, " "));
+      vector_push_back(&model->obj.faces, &elem);
+
+      elem.vert = atoi(strtok(NULL, "/"));
+      elem.uv = atoi(strtok(NULL, "/"));
+      elem.norm = atoi(strtok(NULL, " "));
+      vector_push_back(&model->obj.faces, &elem);
+
+      elem.vert = atoi(strtok(NULL, "/"));
+      elem.uv = atoi(strtok(NULL, "/"));
+      elem.norm = atoi(strtok(NULL, "\n"));
+      vector_push_back(&model->obj.faces, &elem);
+
+    // End of file, end of read
+    } else if (!strcmp(next, "\n")) {
+      break;
+    }
+
+    next = strtok(NULL, " ");
+  }
+
+  for (uint i = 0; i < model->obj.verts.size; ++i) {
+    ObjFaceElem e;
+    vector_read(&model->obj.faces, i, &e);
+    print_int(e.vert);
+  }
+}
+
 // Exported functions
 
 typedef int  (*model_build_pfn)(void* model);
@@ -313,7 +481,8 @@ static model_build_pfn model_build_fns[MODEL_TYPES_COUNT] = {
   (model_build_pfn)model_build_grid,
   (model_build_pfn)model_build_cube,
   (model_build_pfn)model_build_cube_color,
-  (model_build_pfn)model_build_sprites
+  (model_build_pfn)model_build_sprites,
+  (model_build_pfn)model_build_obj,
 };
 
 int model_build(Model* model) {
@@ -326,7 +495,8 @@ static model_render_pfn model_render_fns[MODEL_TYPES_COUNT] = {
   (model_render_pfn)model_render_grid,
   (model_render_pfn)model_render_cube,
   (model_render_pfn)model_render_cube_color,
-  (model_render_pfn)model_render_sprites
+  (model_render_pfn)model_render_sprites,
+  (model_render_pfn)model_render_obj
 };
 
 void model_render(const Model* model) {

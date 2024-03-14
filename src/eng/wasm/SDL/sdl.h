@@ -46,7 +46,7 @@ typedef enum {
 #define SDLK_UP     38
 #define SDLK_RIGHT  39
 #define SDLK_DOWN   40
-#define SDLK_HOME   61
+#define SDLK_HOME   36 // 61
 #define SDLK_EQUALS 187
 #define SDLK_MINUS  189
 

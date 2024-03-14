@@ -21,6 +21,7 @@ typedef struct Game_Models {
   Model grid;
   Model box;
   Model player;
+  Model level_test;
 } Game_Models;
 
 typedef struct Game_Textures {

@@ -188,6 +188,10 @@ function wasm_import_gl(imports, game) {
     game.gl.drawArrays(mode, first, count);
   }
 
+  imports["glDrawElements"] = (mode, count, type, index_offset) => {
+    game.gl.drawElements(mode, count, type, index_offset);
+  }
+
   // Textures
 
   imports["js_glCreateTexture"] = () => {

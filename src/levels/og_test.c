@@ -60,6 +60,15 @@ void level_load_og_test(Game* game) {
   // Crate
   game_add_entity(game, &(Entity) {
     .shader = &game->shaders.light,
+    .model = &game->models.level_test,
+    .texture = &game->textures.crate,
+    .transform = m4translation((vec3){0, 3, 0}),
+    .render = render_phong,
+  });
+
+  // Crate
+  game_add_entity(game, &(Entity) {
+    .shader = &game->shaders.light,
     .model = &game->models.box,
     .texture = &game->textures.crate,
     .transform = m4translation((vec3){0, -0.5, 0}),
