@@ -4,7 +4,7 @@
 #include "test_behaviors.h"
 #include "game/game_behaviors.h"
 
-void level_load_level_1(Game* game) {
+void level_load_level_2(Game* game) {
 
   game->camera.pos = (vec4){0, 0, 60, 1};
   game->camera.front = v4front;
@@ -47,12 +47,12 @@ void level_load_level_1(Game* game) {
     .behavior = behavior_draw_physics_colliders
   });
 
-  //*/ // Level model
+  /*/ // Level model
   game_add_entity(game, &(Entity) {
     .type = ENTITY_OTHER,
-    .texture = &game->textures.level,
+    .texture = &game->textures.crate,
     .shader = &game->shaders.light,
-    .model = &game->models.level_1,
+    .model = &game->models.level_test,
     .pos = (vec3){0, 0, 0},
     .transform = m4identity,
     .render = render_phong,

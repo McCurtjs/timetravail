@@ -23,12 +23,14 @@ typedef struct Game_Models {
   Model gear;
   Model player;
   Model level_test;
+  Model level_1;
 } Game_Models;
 
 typedef struct Game_Textures {
   Texture crate;
   Texture brass;
   Texture tiles;
+  Texture level;
   Texture player;
 } Game_Textures;
 

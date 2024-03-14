@@ -428,7 +428,6 @@ void model_load_obj(Model* model, File* file) {
         vert.color.b = stof(strtok(NULL, "\n"));
 
         next = strtok(NULL, " ");
-        print(next);
       } else {
         vert.color = c4white.rgb;
       }

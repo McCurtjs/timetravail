@@ -536,10 +536,10 @@ Animation player_animations[] = {
 Hitbox player_hitboxes[] = {
   { }, // placeholder - index 0 is no hitbox
   //   center          radius   knockback   hitstun
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 25, 12 }, 65 }, // KICK
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 38 }, 50 }, // DASH
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 25, 12 }, 12 }, // KICK
+  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 38 }, 25 }, // DASH
   { (vec2){ 0.75, 0.2 }, .5, (vec2){  5, 30 }, 20 }, // NAIR
-  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 40,  5 }, 45 }, // FAIR
+  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 40, 20 }, 35 }, // FAIR
   { (vec2){ 0.90,-0.1 }, .3, (vec2){ 60, 25 }, 120}, // BAIR sweetspot
   { (vec2){ 0.90, 0.3 }, .8, (vec2){  8, 20 }, 30 }, // BAIR sourspot
 };

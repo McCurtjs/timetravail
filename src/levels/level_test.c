@@ -11,6 +11,9 @@ void level_load_test(Game* game) {
   game->camera.front = v4front;
   game->light_pos = (vec4){ -20, 40, 100 };
 
+  vec2 player_start = (vec2){0, 20};
+  vec2 goal_loc = (vec2){0, 45};
+
   // Set level geometry
 
   static Line colliders[] = {
@@ -159,7 +162,7 @@ void level_load_test(Game* game) {
     .type = ENTITY_OTHER,
     .shader = &game->shaders.basic,
     .model = &game->models.color_cube,
-    .pos = (vec3){0, 45, 0},
+    .pos = v2v3(goal_loc, 0),
     .transform = m4identity,
     .render = render_basic,
     .behavior = behavior_goal,
@@ -171,7 +174,7 @@ void level_load_test(Game* game) {
     .shader = &game->shaders.light,
     .model = &game->models.player,
     .fd = {
-      .pos = (vec2){0, 20},
+      .pos = player_start,
       .vel = v2zero,
       .airborne = TRUE,
       .has_double = TRUE

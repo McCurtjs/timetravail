@@ -12,6 +12,8 @@ typedef void (*LoadLevelFn)(Game* game);
 
 void level_load_test(Game* game);
 void level_load_level_1(Game* game);
+void level_load_level_2(Game* game);
+void level_load_level_3(Game* game);
 
 void level_load_editor(Game* game);
 void level_load_editor_test(Game* game);
