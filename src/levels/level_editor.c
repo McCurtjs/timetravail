@@ -9,7 +9,7 @@
 #include "draw.h"
 #include "mat.h"
 
-static Vector editor_colliders;
+static Array editor_colliders = NULL;
 static vec2 player_start = v2zero;
 
 void behavior_editor(Entity* _, Game* game, float dt) {
@@ -31,6 +31,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   cursor.xy = game->input.mouse.pos;
   cursor.x =      (cursor.x / (float)game->window.x - 0.5) * 2;
   cursor.y = (1 - (cursor.y / (float)game->window.y) - 0.5) * 2;
+  //cursor.xy = camera_screen_to_ndc(game->window, game->input.mouse.pos);
 
   // find a point 1 unit away on a plane defined by our field of view
   float half_field_of_view = d2r(20) / 2;
@@ -53,7 +54,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   draw_color(c4green.rgb);
   draw_circle(cursor, 0.25);
 
-  if (game->input.triggered.mmb) {
+  if (game->input.pressed.mmb) {
     player_start = cursor.xy;
   }
 
@@ -64,10 +65,8 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   if (game->input.pressed.lmb) {
     end_point = cursor.xy;
 
-
     if (game->input.triggered.lmb) {
       start_point = cursor.xy;
-      print_floats(start_point.f, 2);
     } else {
       draw_line_solid(v23(start_point), v23(end_point), c4magenta.rgb);
     }
@@ -78,19 +77,19 @@ void behavior_editor(Entity* _, Game* game, float dt) {
     bool wall = game->input.pressed.right;
     bool bouncy = game->input.pressed.forward;
 
-    vector_push_back(&editor_colliders, &(Line) {
+    array_push_back(editor_colliders, &(Line) {
       .a = start_point, .b = end_point,
       .bouncy = bouncy, .wall = wall, .droppable = droppable
     });
 
     // update count and reset collider data pointer in case it resized
-    game->colliders = editor_colliders.data;
-    game->collider_count = editor_colliders.size;
+    game->colliders = array_get_front(editor_colliders);
+    game->collider_count = editor_colliders->size;
   }
 
-  if (game->input.triggered.run_replay && editor_colliders.size) {
-    vector_pop_back(&editor_colliders, NULL);
-    game->collider_count = editor_colliders.size;
+  if (game->input.triggered.run_replay && editor_colliders->size) {
+    array_pop_back(editor_colliders);
+    game->collider_count = editor_colliders->size;
   }
 }
 
@@ -99,12 +98,12 @@ void level_load_editor(Game* game) {
   game->camera.pos = (vec4){0, 0, 100, 1};
   game->camera.front = v4front;
 
-  if (!editor_colliders.data) {
-    vector_init(&editor_colliders, sizeof(Line));
+  if (!editor_colliders) {
+    editor_colliders = array_new(sizeof(Line));
   }
 
-  game->colliders = editor_colliders.data;
-  game->collider_count = editor_colliders.size;
+  game->colliders = array_get_front(editor_colliders);
+  game->collider_count = editor_colliders->size;
 
   // Debug Renderer
   game_add_entity(game, &(Entity) {
@@ -127,12 +126,17 @@ void level_load_editor(Game* game) {
 }
 
 void level_load_editor_test(Game* game) {
+  if (!editor_colliders) {
+    print("No level geometry to test:");
+    print("First make a level in the level editor ('-' key to access)");
+    return;
+  }
 
   game->camera.pos = (vec4){0, 0, 60, 1};
   game->camera.front = v4front;
 
-  game->colliders = editor_colliders.data;
-  game->collider_count = editor_colliders.size;
+  game->colliders = array_get_front(editor_colliders);
+  game->collider_count = editor_colliders->size;
 
   // Debug Renderer
   game_add_entity(game, &(Entity) {
@@ -168,17 +172,17 @@ void level_load_editor_test(Game* game) {
       .hitboxes = player_hitboxes,
       .anim_count = ANIMATION_COUNT,
     },
-    .replay = { .data = NULL },
-    .replay_temp = { .data = NULL },
+    .replay = NULL,
+    .replay_temp = NULL,
     .render = render_sprites,
     .behavior = behavior_player,
     .delete = delete_player,
   });
 
-  vector_init(&game->timeguys, sizeof(PlayerRef));
-  vector_push_back(&game->timeguys, &(PlayerRef){
+  game->timeguys = array_new(sizeof(PlayerRef));
+  array_push_back(game->timeguys, &(PlayerRef){
     .start_frame = 0,
-    .e = vector_get_back(&game->entities)
+    .e = array_get_back(game->entities)
   });
 
 }

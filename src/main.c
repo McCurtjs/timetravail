@@ -25,6 +25,9 @@
 
 static Game game;
 
+#define GAME_ON 1
+
+#if GAME_ON == 1
 // Async loaders
 static File file_vert;
 static File file_frag;
@@ -36,8 +39,10 @@ static Image image_crate;
 static Image image_tiles;
 static Image image_brass;
 static Image image_anim_test;
+#endif
 
 void export(wasm_preload) (uint w, uint h) {
+  #if GAME_ON == 1
   file_open_async(&file_vert, "./res/shaders/basic.vert");
   file_open_async(&file_frag, "./res/shaders/basic.frag");
   file_open_async(&file_model_test, "./res/models/test.obj");
@@ -49,6 +54,7 @@ void export(wasm_preload) (uint w, uint h) {
   image_open_async(&image_brass, "./res/textures/brass.jpg");
   image_open_async(&image_tiles, "./res/textures/tiles.png");
   image_open_async(&image_anim_test, "./res/textures/spritesheet.png");
+  #endif
 
   vec2i windim = {w, h};
   game = (Game){
@@ -80,15 +86,21 @@ void export(wasm_preload) (uint w, uint h) {
   camera_build_perspective(&game.camera);
   //camera_build_orthographic(&game.camera);
 
-  //print(ftos(1234567890.0987654321));
-  print(itos(-7452));
-  print(ftos(-15.729));
-
   // load this first since it's the loading screen spinner
   game.models.color_cube.type = MODEL_CUBE_COLOR;
   model_build(&game.models.color_cube);
 
   shader_program_build_basic(&game.shaders.basic);
+
+  Array array = array_new(sizeof(uint));
+  print("Array tests");
+  print_int(array->element_size);
+  print_int(array->size);
+  array_push_back(array, &(uint){5});
+  print_int(array->size);
+  uint i = *(uint*)array_get(array, 0);
+  print_int(i);
+  array_delete(&array);
 }
 
 static void cheesy_loading_animation(float dt) {
@@ -108,10 +120,12 @@ static void cheesy_loading_animation(float dt) {
 }
 
 int export(wasm_load) (int await_count, float dt) {
-  if (await_count) {
+  if (await_count || !GAME_ON) {
     cheesy_loading_animation(dt);
     return 0;
   };
+
+  #if GAME_ON == 1
 
   // Build shaders from async data
   Shader light_vert, light_frag;
@@ -144,6 +158,8 @@ int export(wasm_load) (int await_count, float dt) {
   image_delete(&image_tiles);
   image_delete(&image_anim_test);
 
+
+
   // Set up game models
   game.models.grid.grid = (Model_Grid) {
     .type = MODEL_GRID,
@@ -169,6 +185,8 @@ int export(wasm_load) (int await_count, float dt) {
 
   // Load the first game level
   level_switch(&game, game.level);
+
+  #endif
 
   return 1;
 }

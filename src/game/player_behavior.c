@@ -4,7 +4,7 @@
 #include "draw.h"
 
 #include "../test_behaviors.h"
-#include "vector.h"
+#include "array.h"
 #include "entity.h"
 
 #include <math.h>
@@ -43,9 +43,9 @@ void behavior_player(Entity* e, Game* game, float _) {
   uint first_frame = FALSE;
 
   // Initialize the replay data storage on first update
-  if (e->replay.data == NULL) {
-    vector_init_reserve(&e->replay, sizeof(ReplayNode), 200);
-    vector_push_back(&e->replay, &(ReplayNode) {
+  if (e->replay == NULL) {
+    e->replay = array_new_reserve(sizeof(ReplayNode), 200);
+    array_push_back(e->replay, &(ReplayNode) {
       .frame = game->frame,
       .frame_until = game->frame,
       .buttons = 0,
@@ -56,8 +56,8 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
-    ((PlayerRef*)vector_get_back(&game->timeguys))->end_frame = game->frame;
-    vector_push_back(&game->timeguys, &(PlayerRef) {
+    ((PlayerRef*)array_get_back(game->timeguys))->end_frame = game->frame;
+    array_push_back(game->timeguys, &(PlayerRef) {
       .start_frame = game->frame,
       .e = e,
     });
@@ -70,14 +70,14 @@ void behavior_player(Entity* e, Game* game, float _) {
   draw_color(v3x);
   for (uint i = 0; i < e->replay.size; ++i) {
     ReplayNode node;
-    vector_read(&e->replay, i, &node);
+    array_read(&e->replay, i, &node);
     draw_point(v23f(node.data.pos, 0));
   } //*/
 
 
   // Handle input event recording
   if (!e->playback) {
-    ReplayNode* prev_node = vector_get_back(&e->replay);
+    ReplayNode* prev_node = array_get_back(e->replay);
     bool hit_max_node_time = game->frame - prev_node->frame >= max_replay_temp;
 
     if (hit_max_node_time
@@ -93,7 +93,7 @@ void behavior_player(Entity* e, Game* game, float _) {
       if ((uint)game->frame != prev_node->frame) {
         prev_node->frame_until = game->frame;
 
-        vector_push_back(&e->replay, &(ReplayNode) {
+        array_push_back(e->replay, &(ReplayNode) {
           .frame = game->frame,
           .frame_until = game->frame,
           .buttons = inputs,
@@ -140,16 +140,16 @@ void behavior_player(Entity* e, Game* game, float _) {
     }
 
   // Handle replay playback
-  } else if (e->replay.size) {
-    if (e->replay_temp.data == NULL) {
-      vector_init_reserve(&e->replay_temp, sizeof(ReplayNode), max_replay_temp);
+  } else if (e->replay->size) {
+    if (e->replay_temp == NULL) {
+      e->replay_temp = array_new_reserve(sizeof(ReplayNode), max_replay_temp);
     }
 
     uint index;
     ReplayNode node, next;
 
     // First check if the current frame is before the first playback frame
-    vector_read_front(&e->replay, &node);
+    array_read_front(e->replay, &node);
     if (node.frame > game->frame) {
       e->hidden = TRUE;
       return; // hard exit, don't waste time simulating playback
@@ -159,8 +159,8 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Find the snapshot containing the current frame
     // TODO: replace with binary search, this is gross
-    for (index = 0; index < e->replay.size; ++index) {
-      vector_read(&e->replay, index, &node);
+    for (index = 0; index < e->replay->size; ++index) {
+      array_read(e->replay, index, &node);
 
       if (game->frame >= node.frame && game->frame < node.frame_until) {
         break;
@@ -171,16 +171,16 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // If the current frame is within the bounds of the temp array, get it
     ReplayNode* temp = NULL;
-    if (e->replay_temp.size > 0) {
-      temp = vector_get_front(&e->replay_temp);
+    if (e->replay_temp->size > 0) {
+      temp = array_get_front(e->replay_temp);
     }
 
     // If it's not in the temp buffer, we need to simulate a new range
     if (temp == NULL || temp->frame != node.frame) {
-      vector_clear(&e->replay_temp);
+      array_clear(e->replay_temp);
 
       loop {
-        vector_push_back(&e->replay_temp, &node);
+        array_push_back(e->replay_temp, &node);
 
         // go one past the end so we can be sure the temp buffer also contains
         // the next frame (pre-inc is exact, post-inc overlaps the next block)
@@ -197,12 +197,12 @@ void behavior_player(Entity* e, Game* game, float _) {
     }
 
     // Read the final correct node from the temp buffer
-    if ((game->frame - block_start + 1) < e->replay_temp.size) {
-      vector_read(&e->replay_temp, game->frame - block_start, &node);
-      vector_read(&e->replay_temp, game->frame - block_start + 1, &next);
+    if ((game->frame - block_start + 1) < e->replay_temp->size) {
+      array_read(e->replay_temp, game->frame - block_start, &node);
+      array_read(e->replay_temp, game->frame - block_start + 1, &next);
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
-      vector_read_back(&e->replay, &next);
+      array_read_back(e->replay, &next);
       next = node;
     }
 
@@ -211,7 +211,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     node.data.pos = v2lerp(node.data.pos, next.data.pos, frame_t);
 
     // At this point, "node" should be set to the correct current frame
-    temp = vector_get_back(&e->replay);
+    temp = array_get_back(e->replay);
     if ((uint)game->frame != node.frame && game->frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
       print_int((int)e); print_int(node.frame); print_int(game->frame);
@@ -222,7 +222,7 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // And change the warp animations for the "ghosts"
     if (anim_is_warp(e->fd.animation)) {
-      if (e != vector_get_back(&game->entities)) {
+      if (e != array_get_back(game->entities)) {
         e->fd.animation += 1;
       }
     }
@@ -237,7 +237,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     vec3 _dbg_prev;
     for (uint i = 0; i < e->replay_temp.size; ++i) {
       ReplayNode node;
-      vector_read(&e->replay_temp, i, &node);
+      array_read(e->replay_temp, i, &node);
       draw_point(v23f(node.data.pos, 0));
       if (i > 0) draw_line(_dbg_prev, v23f(node.data.pos, 0));
       _dbg_prev = v23f(node.data.pos, 0);

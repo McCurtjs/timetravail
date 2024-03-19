@@ -5,18 +5,18 @@
 #include "wasm.h"
 
 void game_init(Game* game) {
-  vector_init(&game->entities, sizeof(Entity));
+  game->entities = array_new(sizeof(Entity));
   game->frame = 0;
 }
 
 void game_add_entity(Game* game, const Entity* entity) {
-  vector_push_back(&game->entities, entity);
+  array_push_back(game->entities, entity);
 }
 
 Entity* game_get_active_player(Game* game) {
   PlayerRef active = { NULL, 0, 0 }, temp;
-  for (uint index = 0; index < game->timeguys.size; ++index) {
-    vector_read(&game->timeguys, index, &temp);
+  for (uint index = 0; index < game->timeguys->size; ++index) {
+    array_read(game->timeguys, index, &temp);
 
     if (index == 0 || temp.start_frame <= game->frame) {
       active = temp;
@@ -27,8 +27,8 @@ Entity* game_get_active_player(Game* game) {
 }
 
 void game_update(Game* game, float dt) {
-  for (uint i = 0 ; i < game->entities.size; ++i) {
-    Entity* entity = vector_get(&game->entities, i);
+  for (uint i = 0 ; i < game->entities->size; ++i) {
+    Entity* entity = array_get(game->entities, i);
 
     if (entity->behavior) {
       entity->behavior(entity, game, dt);
@@ -47,8 +47,8 @@ void game_update(Game* game, float dt) {
 void game_render(Game* game) {
   game->camera.projview = camera_projection_view(&game->camera);
 
-  for (uint i = 0; i < game->entities.size; ++i) {
-    Entity* entity = vector_get(&game->entities, i);
+  for (uint i = 0; i < game->entities->size; ++i) {
+    Entity* entity = array_get(game->entities, i);
 
     if (entity->render && !entity->hidden) {
       entity->render(entity, game);
@@ -60,14 +60,16 @@ void game_render(Game* game) {
 }
 
 void game_cleanup(Game* game) {
-  for (uint i = 0; i < game->entities.size; ++i) {
-    Entity* e = vector_get(&game->entities, i);
+  for (uint i = 0; i < game->entities->size; ++i) {
+    Entity* e = array_get(game->entities, i);
 
     if (e->delete) {
       e->delete(e);
     }
   }
 
-  vector_delete(&game->timeguys);
-  vector_delete(&game->entities);
+  array_delete(&game->timeguys);
+  array_delete(&game->entities);
+  game->colliders = NULL;
+  game->collider_count = 0;
 }

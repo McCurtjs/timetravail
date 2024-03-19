@@ -8,6 +8,8 @@ typedef unsigned int jshandle;
 typedef unsigned char byte;
 typedef unsigned char bool;
 
+#define CV const volatile
+
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
@@ -39,7 +41,9 @@ typedef unsigned char bool;
 
 #define loop while (TRUE)
 #define until(condition) if (condition) break;
-
 #define unless(condition) if (!(condition))
+
+#define MACRO_CONCAT_RECUR(X, Y) X ## Y
+#define MACRO_CONCAT(X, Y) MACRO_CONCAT_RECUR(X, Y)
 
 #endif

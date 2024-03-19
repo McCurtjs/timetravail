@@ -2,7 +2,7 @@
 #define _GAME_H_
 
 #include "vec.h"
-#include "vector.h"
+#include "array.h"
 #include "camera.h"
 #include "entity.h"
 #include "shader.h"
@@ -117,8 +117,8 @@ typedef struct Game {
   Game_Models models;
   Game_Textures textures;
 
-  // Vector levels; // list of levels with hot-swapping?
-  Vector entities;
+  // Array levels; // list of levels with hot-swapping?
+  Array entities;
 
   // Game specific shenanigans
   // Probably move all of these to a level class?
@@ -126,7 +126,7 @@ typedef struct Game {
   bool reverse_playback;
   bool reverse_triggered;
   float reverse_speed;
-  Vector timeguys;
+  Array timeguys;
   uint level;
 
   Line* colliders;

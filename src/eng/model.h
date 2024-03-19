@@ -3,7 +3,7 @@
 
 #include "types.h"
 #include "mat.h"
-#include "vector.h"
+#include "array.h"
 #include "file.h"
 
 typedef enum ModelType {
@@ -46,14 +46,14 @@ typedef struct Model_Sprites {
   vec2i grid;
   uint vao;
   uint buffer;
-  Vector verts;
+  Array verts;
 } Model_Sprites;
 
 typedef struct Model_Obj {
   uint type;
   uint ready;
-  Vector verts;
-  Vector indices;
+  Array verts;
+  Array indices;
   uint vao;
   union {
     uint buffers[2];

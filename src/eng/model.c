@@ -200,10 +200,7 @@ typedef struct SpriteVertex {
 } SpriteVertex;
 
 static int model_build_sprites(Model_Sprites* sprites) {
-  if (sprites->verts.data != NULL) {
-    vector_delete(&sprites->verts);
-  }
-  vector_init(&sprites->verts, sizeof(SpriteVertex));
+  sprites->verts = array_new(sizeof(SpriteVertex));
 
   glGenVertexArrays(1, &sprites->vao);
   glBindVertexArray(sprites->vao);
@@ -238,22 +235,23 @@ static void model_render_sprites(Model_Sprites* sprites) {
   glBindVertexArray(sprites->vao);
   glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
 
-  uint size = sizeof(SpriteVertex) * sprites->verts.size;
-  glBufferData(GL_ARRAY_BUFFER, size, sprites->verts.data, GL_DYNAMIC_DRAW);
+  uint size_bytes = sprites->verts->size_bytes;
+  void* data_start = array_get_front(sprites->verts);
+  glBufferData(GL_ARRAY_BUFFER, size_bytes, data_start, GL_DYNAMIC_DRAW);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDrawArrays(GL_TRIANGLES, 0, sprites->verts.size);
+  glDrawArrays(GL_TRIANGLES, 0, sprites->verts->size);
   glDisable(GL_BLEND);
 
   glBindVertexArray(0);
 
-  vector_clear(&sprites->verts);
+  array_clear(sprites->verts);
 }
 
 void model_sprites_draw(
-  const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame, bool mirror) {
-  if (sprites->verts.data == NULL) return;
+  const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame, bool mirror
+) {
   Model_Sprites* spr = (Model_Sprites*)sprites;
 
   frame = frame % (spr->grid.w * spr->grid.h);
@@ -300,12 +298,12 @@ void model_sprites_draw(
     .tint = b4white.rgb,
   };
 
-  vector_push_back(&spr->verts, &TR);
-  vector_push_back(&spr->verts, &TL);
-  vector_push_back(&spr->verts, &BL);
-  vector_push_back(&spr->verts, &TR);
-  vector_push_back(&spr->verts, &BL);
-  vector_push_back(&spr->verts, &BR);
+  array_push_back(spr->verts, &TR);
+  array_push_back(spr->verts, &TL);
+  array_push_back(spr->verts, &BL);
+  array_push_back(spr->verts, &TR);
+  array_push_back(spr->verts, &BL);
+  array_push_back(spr->verts, &BR);
 }
 
 // Model OBJ
@@ -335,7 +333,8 @@ static int model_build_obj(Model_Obj* obj) {
   glGenBuffers(2, obj->buffers);
 
   glBindBuffer(GL_ARRAY_BUFFER, obj->vert_buffer);
-  glBufferData(GL_ARRAY_BUFFER, obj->verts.bytes, obj->verts.data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, obj->verts->size_bytes,
+               array_get_front(obj->verts), GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, v3floats, GL_FLOAT, GL_FALSE,
                         sizeof(ObjVertex), &((ObjVertex*)0)->pos);
@@ -350,7 +349,8 @@ static int model_build_obj(Model_Obj* obj) {
                         sizeof(ObjVertex), &((ObjVertex*)0)->color);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->indices.bytes, obj->indices.data, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->indices->size_bytes,
+               array_get_front(obj->indices), GL_STATIC_DRAW);
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -363,7 +363,7 @@ static int model_build_obj(Model_Obj* obj) {
 static void model_render_obj(Model_Obj* obj) {
   glBindVertexArray(obj->vao);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
-  glDrawElements(GL_TRIANGLES, obj->indices.size, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, obj->indices->size, GL_UNSIGNED_INT, 0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 }
@@ -374,12 +374,10 @@ void model_load_obj(Model* model, File* file) {
   file_read(file);
   if (!file->text) return;
 
-  Vector verts = {}, norms = {}, uvs = {}, faces = {};
-
-  vector_init(&verts, sizeof(ObjVertexPart));
-  vector_init(&norms, sizeof(vec3));
-  vector_init(&uvs, sizeof(vec2));
-  vector_init(&faces, sizeof(ObjFaceElem));
+  Array verts = array_new(sizeof(ObjVertexPart));
+  Array norms = array_new(sizeof(vec3));
+  Array uvs = array_new(sizeof(vec2));
+  Array faces = array_new(sizeof(ObjFaceElem));
 
   char* next = strtok(file->text, " ");
 
@@ -410,7 +408,7 @@ void model_load_obj(Model* model, File* file) {
         vert.color = c4white.rgb;
       }
 
-      vector_push_back(&verts, &vert);
+      array_push_back(verts, &vert);
 
     // Read a vertex normal
     } else if (!strcmp(next, "vn")) {
@@ -420,7 +418,7 @@ void model_load_obj(Model* model, File* file) {
       norm.y = stof(strtok(NULL, " "));
       norm.z = stof(strtok(NULL, "\n"));
 
-      vector_push_back(&norms, &norm);
+      array_push_back(norms, &norm);
 
       next = strtok(NULL, " ");
 
@@ -431,7 +429,7 @@ void model_load_obj(Model* model, File* file) {
       uv.u = stof(strtok(NULL, " "));
       uv.v = stof(strtok(NULL, "\n"));
 
-      vector_push_back(&uvs, &uv);
+      array_push_back(uvs, &uv);
 
       next = strtok(NULL, " ");
 
@@ -442,17 +440,17 @@ void model_load_obj(Model* model, File* file) {
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, " "));
-      vector_push_back(&faces, &elem);
+      array_push_back(faces, &elem);
 
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, " "));
-      vector_push_back(&faces, &elem);
+      array_push_back(faces, &elem);
 
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, "\n"));
-      vector_push_back(&faces, &elem);
+      array_push_back(faces, &elem);
 
       next = strtok(NULL, " ");
 
@@ -462,32 +460,31 @@ void model_load_obj(Model* model, File* file) {
     }
   }
 
+  model->obj.verts = array_new_reserve(sizeof(ObjVertex), faces->size);
+  model->obj.indices = array_new_reserve(sizeof(uint), faces->size);
 
-  vector_init_reserve(&model->obj.verts, sizeof(ObjVertex), faces.size);
-  vector_init_reserve(&model->obj.indices, sizeof(uint), faces.size);
-
-  for (uint i = 0; i < faces.size; ++i) {
+  for (uint i = 0; i < faces->size; ++i) {
     // -1's to account for obj's 1-indexing
-    ObjFaceElem* f = vector_get(&faces, i);
-    ObjVertexPart* partial = vector_get(&verts, f->vert-1);
+    ObjFaceElem* f = array_get(faces, i);
+    ObjVertexPart* partial = array_get(verts, f->vert-1);
 
-    vector_push_back(&model->obj.verts, &(ObjVertex) {
+    array_push_back(model->obj.verts, &(ObjVertex) {
       .pos = partial->pos,
       .color = partial->color,
-      .norm = *((vec3*)vector_get(&norms, f->norm-1)),
-      .uv = *((vec2*)vector_get(&uvs, f->uv-1)),
+      .norm = *((vec3*)array_get(norms, f->norm-1)),
+      .uv = *((vec2*)array_get(uvs, f->uv-1)),
     });
 
     // TODO: make this actually make sense, lol. This should put the faces
     // in an actually indexed setup, but right now it's basically just a regular
     // array instead, which defeats the purpose
-    vector_push_back(&model->obj.indices, &i);
+    array_push_back(model->obj.indices, &i);
   }
 
-  vector_delete(&faces);
-  vector_delete(&verts);
-  vector_delete(&uvs);
-  vector_delete(&norms);
+  array_delete(&faces);
+  array_delete(&verts);
+  array_delete(&uvs);
+  array_delete(&norms);
 }
 
 // Exported functions
@@ -504,7 +501,7 @@ static model_build_pfn model_build_fns[MODEL_TYPES_COUNT] = {
 };
 
 int model_build(Model* model) {
-  if (!model || !model->type) return 0;
+  if (!model || !model->type || model->ready) return 0;
 
   return model_build_fns[model->type - 1](model);
 }

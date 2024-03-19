@@ -26,8 +26,8 @@ static void create_new_player(Game* game, Entity* e) {
       .animations = player_animations,
       .hitboxes = player_hitboxes,
     },
-    .replay = { .data = NULL },
-    .replay_temp = { .data = NULL },
+    .replay = NULL,
+    .replay_temp = NULL,
     .render = render_sprites,
     .behavior = behavior_player,
     .delete = delete_player,
@@ -76,13 +76,13 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
     game->frame = 0;
   }
 
-  // Get the currently "active" player entity
-  PlayerRef active, temp;
-  for (uint index = 0; index < game->timeguys.size; ++index) {
-    vector_read(&game->timeguys, index, &temp);
-
-    if (index == 0 || temp.start_frame <= game->frame) {
-      active = temp;
+  // Find the active player - the last player instance in the list whose start
+  // time was before the current frame (most recently created player)
+  // TODO: this still breaks sometimes, not sure why
+  PlayerRef* active = NULL;
+  PlayerRef* array_foreach_index(ref, i, game->timeguys) {
+    if (i == 0 || ref->start_frame <= game->frame) {
+      active = ref;
     }
   }
 
@@ -90,16 +90,16 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
   if (game->reverse_playback && game->frame <= 0) {
     game->reverse_playback = FALSE;
     game->frame = 0;
-    create_new_player(game, active.e);
+    create_new_player(game, active->e);
   }
 
   // Active the reverse ability...
-  if (game->input.triggered.run_replay && !active.e->fd.warp_triggered) {
+  if (game->input.triggered.run_replay && !active->e->fd.warp_triggered) {
 
     // If we're reverseing, flip back to forward and create a player instance
     if (game->reverse_playback) {
 
-      create_new_player(game, active.e);
+      create_new_player(game, active->e);
 
     // Otherwise, initialize the playback reversal
     } else {
@@ -116,8 +116,8 @@ void behavior_time_controller(Entity* _, Game* game, float dt) {
   // Debug draw attached to the "active" entity only
   //*
   draw_color(v3x);
-  draw_offset(v23(active.e->fd.pos));
-  draw_vector(v23(v2scale(active.e->fd.vel, 0.5)));
+  draw_offset(v23(active->e->fd.pos));
+  draw_vector(v23(v2scale(active->e->fd.vel, 0.5)));
   //*/
 
 //  // Camera control

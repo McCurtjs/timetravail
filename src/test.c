@@ -50,9 +50,6 @@ void export(test_wasm_preload) (uint w, uint h) {
     .target = v3zero,
     .light_pos = (vec4){4, 3, 5, 1},
     .input.mapping.keys = {'w', 's', 'a', 'd'},
-    .entities = {
-      .data = NULL
-    }
   };
   game_init(&game);
   camera_build_perspective(&game.camera);

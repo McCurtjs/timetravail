@@ -5,7 +5,7 @@
 #include "model.h"
 #include "texture.h"
 #include "shader.h"
-#include "vector.h"
+#include "array.h"
 
 #include "../animations.h"
 typedef struct Line Line;
@@ -84,8 +84,8 @@ typedef struct Entity {
     Movement movement_params;
     struct {
       AnimationData anim_data;
-      Vector replay;
-      Vector replay_temp;
+      Array replay;
+      Array replay_temp;
       bool playback;
     };
   };

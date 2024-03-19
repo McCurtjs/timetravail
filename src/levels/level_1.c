@@ -85,16 +85,16 @@ void level_load_level_1(Game* game) {
       .hitboxes = player_hitboxes,
       .anim_count = ANIMATION_COUNT,
     },
-    .replay = { .data = NULL },
-    .replay_temp = { .data = NULL },
+    .replay = NULL,
+    .replay_temp = NULL,
     .render = render_sprites,
     .behavior = behavior_player,
     .delete = delete_player,
   });
 
-  vector_init(&game->timeguys, sizeof(PlayerRef));
-  vector_push_back(&game->timeguys, &(PlayerRef){
+  game->timeguys = array_new(sizeof(PlayerRef));
+  array_push_back(game->timeguys, &(PlayerRef){
     .start_frame = 0,
-    .e = vector_get_back(&game->entities)
+    .e = array_get_back(game->entities)
   });
 }
