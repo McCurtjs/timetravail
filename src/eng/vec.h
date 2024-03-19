@@ -118,6 +118,7 @@ typedef vec4 color4;
 
   //     c d e     h       l   n o
 
+// Size constants (generally for OpenGL functions)
 #define v2floats  2
 #define v3floats  3
 #define v4floats  4
@@ -131,6 +132,7 @@ typedef vec4 color4;
 #define b3bytes   (sizeof(color3b))
 #define b4bytes   (sizeof(color4b))
 
+// Vector constants
 #define b3zero    ((vec3b){ 0, 0, 0 })
 #define i3zero    ((vec3i){ 0, 0, 0 })
 #define v2ones    ((vec2){ 1, 1 })
@@ -200,16 +202,15 @@ vec2  v2add(vec2 a, vec2 b);
 vec2  v2sub(vec2 a, vec2 b);
 vec2  v2scale(vec2 v, float f);
 float v2dot(vec2 a, vec2 b);
-vec2  v2wedge(vec2 a, vec2 b);
+vec2  v2had(vec2 a, vec2 b);
 float v2cross(vec2 a, vec2 b);
 vec2  v2perp(vec2 v);
 vec2  v2reflect(vec2 a, vec2 b);
-//vec3 v2mul(vec2 v, vec2 axis);
 float v2angle(vec2 a, vec2 b);
 vec2  v2dir(float theta);
 vec2  v2rot(vec2 v, float theta);
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
-vec2  v2lerp(vec2 a, vec2 b, float t);
+vec2  v2lerp(vec2 P, vec2 Q, float t);
 float v2line_dist(vec2 P, vec2 v, vec2 Q);
 float v2line_closest(vec2 P, vec2 v, vec2 Q, vec2* R_out);
 bool  v2line_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
@@ -217,8 +218,10 @@ bool  v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out);
 bool  v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
 bool  v2ray_seg(vec2 P, vec2 v, vec2 Q1, vec2 Q2, float* t_out);
 bool  v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out);
-vec3  v2v3(vec2 xy, float z);
-vec4  v2v4(vec2 xy, float z, float w);
+vec3  v23(vec2 xy);
+vec4  v24(vec2 xy);
+vec3  v23f(vec2 xy, float z);
+vec4  v24f(vec2 xy, float z, float w);
 
 float v3mag(vec3 v);
 float v3magsq(vec3 v);
@@ -228,15 +231,15 @@ vec3  v3add(vec3 a, vec3 b);
 vec3  v3sub(vec3 a, vec3 b);
 vec3  v3scale(vec3 a, float f);
 float v3dot(vec3 a, vec3 b);
-vec3  v3wedge(vec3 a, vec3 b);
+vec3  v3had(vec3 a, vec3 b);
 vec3  v3cross(vec3 a, vec3 b);
 vec3  v3perp(vec3 v);
 //vec3  v3reflect(vec3 v, vec3 axis);
-//quat  v3mul(vec3 a, vec3 b);
 float v3angle(vec3 a, vec3 b);
 //vec3  v3rot(vec3 v, vec3 axis, float theta);
 bool  v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 bool  v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
-vec4  v3v4(vec3 xyz, float w);
+vec4  v34(vec3 xyz);
+vec4  v34f(vec3 xyz, float w);
 
 #endif

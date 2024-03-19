@@ -29,7 +29,7 @@ bool handle_player_combat(
     uint current_frame = (uint)game->frame - entity->fd.start_frame;
     vec2 center = v2add(entity->fd.pos, v2scale(v2y, 1.5));
 
-    //if (entity != active) draw_circle(v2v3(center, 0), h_radius);
+    //if (entity != active) draw_circle(v23f(center, 0), h_radius);
 
     const Hitbox* hbox = anim_hitbox(entity->fd.animation, current_frame);
 
@@ -39,12 +39,12 @@ bool handle_player_combat(
       vec2 hit_loc = v2add(center, hit_offset);
 
       //draw_color(c4red.rgb); if (entity == active) draw_color(c4green.rgb);
-      //draw_circle(v2v3(hit_loc, 0), hbox->radius * PLAYER_SCALE);
+      //draw_circle(v23f(hit_loc, 0), hbox->radius * PLAYER_SCALE);
 
       if (entity == active) continue;
 
       float distance = v2mag(v2sub(hurtbox, hit_loc));
-      //draw_line_solid(v2v3(hit_loc, 0), v2v3(hurtbox, 0), c4green.rgb);
+      //draw_line_solid(v23f(hit_loc, 0), v23f(hurtbox, 0), c4green.rgb);
 
       if (distance <= h_radius + hbox->radius) {
         vec2 knockback = hbox->knockback;
@@ -62,7 +62,7 @@ bool handle_player_combat(
   }
 
   //draw_color(color.rgb);
-  //draw_circle(v2v3(hurtbox, 0), h_radius);
+  //draw_circle(v23f(hurtbox, 0), h_radius);
 
   return FALSE;
 }

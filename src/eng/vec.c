@@ -61,7 +61,7 @@ float v2dot(vec2 a, vec2 b) {
   return a.x * b.x + a.y * b.y;
 }
 
-vec2 v2wedge(vec2 a, vec2 b) {
+vec2 v2had(vec2 a, vec2 b) {
   return (vec2){a.x * b.x, a.y * b.y};
 }
 
@@ -98,9 +98,9 @@ vec2 v2rot(vec2 v, float theta) {
   return (vec2){cost * v.x - sint * v.y, sint * v.x + cost * v.y};
 }
 
-vec2 v2lerp(vec2 p1, vec2 p2, float t) {
-  vec2 v = v2scale(v2sub(p2, p1), t);
-  return v2add(p1, v);
+vec2 v2lerp(vec2 P, vec2 Q, float t) {
+  vec2 v = v2scale(v2sub(Q, P), t);
+  return v2add(P, v);
 }
 
 float v2line_dist(vec2 P, vec2 v, vec2 Q) {
@@ -164,11 +164,19 @@ bool v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out) {
   return TRUE;
 }
 
-vec3 v2v3(vec2 v, float z) {
+vec3 v23(vec2 v) {
+  return (vec3){v.x, v.y, 0};
+}
+
+vec4 v24(vec2 v) {
+  return (vec4){v.x, 0, 0};
+}
+
+vec3 v23f(vec2 v, float z) {
   return (vec3){v.x, v.y, z};
 }
 
-vec4 v2v4(vec2 v, float z, float w) {
+vec4 v24f(vec2 v, float z, float w) {
   return (vec4){v.x, v.y, z, w};
 }
 
@@ -205,7 +213,7 @@ float v3dot(vec3 a, vec3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-vec3  v3wedge(vec3 a, vec3 b) {
+vec3  v3had(vec3 a, vec3 b) {
   return (vec3) { a.x * b.x, a.y * b.y, a.z * b.z };
 }
 
@@ -258,6 +266,10 @@ bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   return TRUE;
 }
 
-vec4 v3v4(vec3 v, float w) {
+vec4 v34(vec3 v) {
+  return (vec4){v.x, v.y, v.z, 0};
+}
+
+vec4 v34f(vec3 v, float w) {
   return (vec4){v.x, v.y, v.z, w};
 }

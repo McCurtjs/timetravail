@@ -22,15 +22,15 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
     if (line.moving) color = (vec3) {173/255.0, 229/255.0, 76/255.0};
     if (line.bouncy) color = (vec3) {202/255.0, 193/255.0, 150/255.0};
 
-    draw_line_solid(v2v3(line.a, z), v2v3(line.b, z), color);
+    draw_line_solid(v23f(line.a, z), v23f(line.b, z), color);
 
     vec2 v = v2scale(v2sub(line.b, line.a), 0.5);
     vec2 mid = v2add(line.a, v);
     v = v2norm(v2perp(v));
 
-    draw_offset(v2v3(mid, z * 2));
+    draw_offset(v23f(mid, z * 2));
     draw_color(c4yellow.rgb);
-    draw_vector(v2v3(v, 0));
+    draw_vector(v23f(v, 0));
   }
 }
 

@@ -6,9 +6,7 @@
 bool handle_player_collisions(
   Game* game, PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs
 ) {
-  const Line* drop_platform = NULL;
   bool move_cancel = FALSE;
-  bool fall_off_edge = FALSE;
 
   if (new_fd->standing) {
     // If you're on the platform and it's moving, apply that movement
@@ -18,175 +16,142 @@ bool handle_player_collisions(
       new_fd->pos = v2add(new_fd->pos, v2sub(curr, prev));
     }
 
-    vec2 extent = v2sub(new_fd->standing->b, new_fd->standing->a);
-    float length = v2mag(extent);
-    vec2 entity = v2sub(new_fd->pos, new_fd->standing->a);
-    float dot = v2dot(v2norm(extent), entity);
-
-    // Fall off the edge of the platform if you run past its extents
-    if (dot < 0 || dot > length) {
-      new_fd->standing = NULL;
-      fall_off_edge = TRUE;
-    }
-
     // Drop through the platform if it's droppable and you press down
     else if (TRIGGERED(DROP) && new_fd->standing->droppable
     &&      !new_fd->in_combat && !new_fd->hitstun
     ) {
-      drop_platform = new_fd->standing;
+      //drop_platform = new_fd->standing;
       new_fd->standing = NULL;
       new_fd->airborne = TRUE;
       new_fd->animation = ANIMATION_FALL;
     }
   }
 
-  // only check against standable platforms first
+  // Handle all platform collisions (there might be a good case for doing non-
+  // standable walls before platforms you can stand on/lock to)
   for (uint i = 0; i < game->collider_count; ++i) {
     Line* line = &game->colliders[i];
     vec2 p;
 
-    if (line == new_fd->standing) continue;
-    if (line->droppable && PRESSED(DROP)) continue;
-    if (line->bouncy || line->wall) continue;
+    // skip if we're dropping through the line
+    if (line->droppable && PRESSED(DROP)) {
+      continue;
+    }
 
-    if (v2seg_seg(old_fd.pos, new_fd->pos, line->a, line->b, &p)) {
-      // we are intentionally dopping through this platform, so skip it
-      if (drop_platform == &game->colliders[i]) {
-        continue;
+    // skip if our path of travel doesn't intersect the platform
+    if (!v2seg_seg(old_fd.pos, new_fd->pos, line->a, line->b, &p)) {
+      continue;
+    }
+
+    vec2 delta = v2sub(new_fd->pos, old_fd.pos);
+    vec2 line_v = v2norm(v2sub(line->b, line->a));
+    vec2 line_n = v2perp(line_v);
+
+    // skip if we're moving through the platform backwards (in line with normal)
+    if (v2dot(delta, line_n) >= 0) {
+      continue;
+    }
+
+    // case where it's a bouncy platform
+    if (line->bouncy) {
+      new_fd->vel = v2reflect(new_fd->vel, line_v);
+      new_fd->standing = NULL;
+      new_fd->airborne = TRUE;
+      continue;
+    }
+
+    // if we're standing on a platform, make a line one epsilon away from
+    // the collider and find the intersection with the movement vector to
+    // prevent deviating from the direction of travel. do this to prevent
+    // walls from pushing the player through the ground.
+    if (new_fd->standing) {
+      float t;
+      vec2 line_epsilon = v2add(line->a, v2scale(line_n, physics_epsilon));
+      v2line_line(old_fd.pos, delta, line_epsilon, line_v, &t, NULL);
+      new_fd->pos = v2add(old_fd.pos, v2scale(delta, t));
+
+    // unfortunately, while the previous method is extremely reliable for
+    // never falling through platforms (even very narrow v shapes), since
+    // it always reverses along the direction we can lose per-frame
+    // velocity, which causes a stutter when sliding along a wall, so if
+    // we're not standing on something, juse use the normal method.
+    //
+    // note: becuase we're only using the first method when grounded, it does
+    // mean that the "push through objects" issue still happens if the player
+    // hits a V shape made only of non-standable walls. This is annoying, but
+    // really shouldn't happen in practice for game design reasons.
+    } else {
+      new_fd->pos = v2add(p, v2scale(line_n, physics_epsilon));
+    }
+
+    new_fd->vel = v2scale(line_v, v2dot(line_v, new_fd->vel));
+
+    // If we hit a new stand-able platform, we are now on that platform
+    if (!line->wall) {
+      new_fd->standing = line;
+      new_fd->airborne = FALSE;
+      new_fd->has_double = TRUE;
+      move_cancel = TRUE;
+
+    // Otherwise, we may be getting pulled away from a platform, so check
+    // platform->wall physics cases here
+    } else if (new_fd->standing) {
+      vec2 stand_v = v2sub(new_fd->standing->b, new_fd->standing->a);
+      vec2 stand_n = v2norm(v2perp(stand_v));
+
+      // we're being pushed towards the ground, nullify velocity
+      if (v2dot(new_fd->vel, stand_n) < -physics_epsilon) {
+        new_fd->vel = v2zero;
       }
 
-      vec2 dir = v2sub(new_fd->pos, old_fd.pos);
-      vec2 v = v2sub(line->b, line->a);
-      vec2 v_unit = v2norm(v);
-      vec2 n = v2perp(v_unit);
+      // If we're coming to a stop it's probably because we hit a wall
+      if (v2mag(new_fd->vel) < physics_bump_threshold) {
 
-      if (v2dot(dir, n) < 0) {
-        // account for length of chopped off segment?
-        new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
-
-        new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
-
-        if (!line->wall && !line->bouncy) {
-          new_fd->standing = line;
-          new_fd->airborne = FALSE;
-          new_fd->has_double = TRUE;
-          move_cancel = TRUE;
+        // play the "run into wall" animation
+        // don't change animation while jumping to prevent interrupting the
+        // jump "windup" if the player is standing but pressing toward the wall.
+        if (new_fd->animation != ANIMATION_JUMP) {
+          new_fd->animation = ANIMATION_BUMP_INTO_WALL;
         }
+
+      // we're being pulled up and away from the wall, leave the platform
+      } else {
+        new_fd->standing = NULL;
+        new_fd->airborne = TRUE;
+        new_fd->animation = ANIMATION_FALL;
+        move_cancel = TRUE;
       }
     }
   }
 
-  vec2 stand_v = v2zero;
-  vec2 stand_n = v2zero;
+  // Post-collision cleanup and sanity checks
+  if (new_fd->standing && new_fd->standing == old_fd.standing) {
+    vec2 plat_v = v2sub(new_fd->standing->b, new_fd->standing->a);
+    float platform_length = v2mag(plat_v);
+    plat_v = v2norm(plat_v);
+    vec2 entity_v = v2sub(new_fd->pos, new_fd->standing->a);
+    float dot = v2dot(plat_v, entity_v);
 
-  if (new_fd->standing) {
-    stand_v = v2norm(v2sub(new_fd->standing->b, new_fd->standing->a));
-    stand_n = v2perp(stand_v);
-  }
+    // check to see if we've walked off the edge of a platform
+    if (dot < 0 || dot > platform_length) {
+      new_fd->standing = NULL;
+      new_fd->airborne = TRUE;
+      new_fd->animation = ANIMATION_FALL;
+      move_cancel = TRUE;
 
-  // now check for non-standable colliders, handle them slightly differently
-  for (uint i = 0; i < game->collider_count; ++i) {
-    Line* line = &game->colliders[i];
-    vec2 p;
-
-    if (line->droppable && PRESSED(DROP)) continue;
-    if (!line->bouncy && !line->wall) continue;
-
-    if (v2seg_seg(old_fd.pos, new_fd->pos, line->a, line->b, &p)) {
-      // we are intentionally dopping through this platform, so skip it
-      if (drop_platform == &game->colliders[i]) {
-        continue;
-      }
-
-      vec2 dir = v2sub(new_fd->pos, old_fd.pos);
-      vec2 v = v2sub(line->b, line->a);
-      vec2 v_unit = v2norm(v);
-      vec2 n = v2perp(v_unit);
-
-      // collision with the test line
-      if (v2dot(dir, n) < 0) {
-
-        // Handle the case where you land on a bouncy platform
-        if (line->bouncy) {
-          //new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
-          new_fd->vel = v2reflect(new_fd->vel, v_unit);
-          new_fd->standing = NULL;
-          new_fd->airborne = TRUE;
-
-        // Handle the regular case where we slide along the line
-        } else {
-          new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
-          new_fd->vel = v2scale(v_unit, v2dot(v_unit, new_fd->vel));
-        }
-
-        // If we're standing on a platform and hit a wall...
-        if (new_fd->standing && new_fd->standing == old_fd.standing) {
-
-          vec2 new_dir = v2sub(new_fd->pos, old_fd.pos);
-
-          // if it's a wedge and you're now sliding through the ground...
-          if (v2dot(new_dir, stand_n) < physics_epsilon) {
-            // make a line one epsilon away from the wall, and use that to find
-            // the point that's one epsilon away from both the wall and platform
-            float t;
-            v2line_line(old_fd.pos, dir, new_fd->pos, v_unit, &t, NULL);
-            new_fd->pos = v2add(old_fd.pos, v2scale(dir, t));
-
-            if (v2dot(new_fd->vel, stand_n) < -physics_epsilon) {
-              new_fd->vel = v2zero;
-            }
-
-            if (new_fd->animation != ANIMATION_JUMP
-            && v2mag(new_fd->vel) < physics_epsilon
-            ) {
-              new_fd->animation = ANIMATION_BUMP_INTO_WALL;
-            }
-
-          //if it's a slope, you're being propelled up away from the platform
-          } else {
-            new_fd->standing = NULL;
-            new_fd->airborne = TRUE;
-          }
-        }
-      }
+    // if we're still on the platform after all that, really latch onto it
+    } else {
+      vec2 p;
+      v2line_closest(new_fd->standing->a, plat_v, new_fd->pos, &p);
+      vec2 plat_n = v2perp(plat_v);
+      new_fd->pos = v2add(p, v2scale(plat_n, physics_epsilon));
+      new_fd->vel = v2scale(plat_v, v2dot(plat_v, new_fd->vel));
     }
   }
-
-  // After all that, if we're still standing on something, make sure we're
-  // really locked down to it
-  if (new_fd->standing && new_fd->standing == old_fd.standing
-  && v2dot(new_fd->vel, stand_n) < physics_epsilon) {
-    vec2 p;
-    vec2 v = v2sub(new_fd->standing->b, new_fd->standing->a);
-    v2line_closest(new_fd->standing->a, v, new_fd->pos, &p);
-    vec2 n = v2norm(v2perp(v));
-    new_fd->pos = v2add(p, v2scale(n, physics_epsilon));
-  }
-
-  if (fall_off_edge && !new_fd->standing) {
-  //  print("This is happening here");
-    new_fd->airborne = TRUE;
-    new_fd->animation = ANIMATION_FALL;
-    move_cancel = TRUE;
-  //  print_int((uint)game->frame);
-  }
-
-  //if (new_fd->standing && new_fd->standing != old_fd.standing) {
-  //  print_int((uint)game->frame);
-  //}
-
-  // implicit ground plane
-  //if (new_fd->pos.y <= 0) {
-  //  if (new_fd->airborne) move_cancel = TRUE;
-  //  new_fd->pos.y = 0;
-  //  new_fd->vel.y = 0;
-  //  new_fd->airborne = FALSE;
-  //  new_fd->has_double = TRUE;
-  //}
-
-  float player_speed = v2mag(new_fd->vel);
 
   // Handle special animations for landing
+  float player_speed = v2mag(new_fd->vel);
+
   if (old_fd.airborne && !new_fd->airborne) {
     move_cancel = TRUE;
 
@@ -208,3 +173,9 @@ bool handle_player_collisions(
 
   return move_cancel;
 }
+
+// TODO: Give stand-able colliders a left and right pointer to the next line in
+//       sequence, and transfer the player directly onto that line when running
+//       past the edge, rotating velocity to preserve perceived speed. This will
+//       be to prevent 1-frame fall animations when walking across platform gaps
+//       and make it possible to run along bumpy ground without getting airtime.

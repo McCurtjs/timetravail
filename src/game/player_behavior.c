@@ -71,7 +71,7 @@ void behavior_player(Entity* e, Game* game, float _) {
   for (uint i = 0; i < e->replay.size; ++i) {
     ReplayNode node;
     vector_read(&e->replay, i, &node);
-    draw_point(v2v3(node.data.pos, 0));
+    draw_point(v23f(node.data.pos, 0));
   } //*/
 
 
@@ -238,15 +238,15 @@ void behavior_player(Entity* e, Game* game, float _) {
     for (uint i = 0; i < e->replay_temp.size; ++i) {
       ReplayNode node;
       vector_read(&e->replay_temp, i, &node);
-      draw_point(v2v3(node.data.pos, 0));
-      if (i > 0) draw_line(_dbg_prev, v2v3(node.data.pos, 0));
-      _dbg_prev = v2v3(node.data.pos, 0);
+      draw_point(v23f(node.data.pos, 0));
+      if (i > 0) draw_line(_dbg_prev, v23f(node.data.pos, 0));
+      _dbg_prev = v23f(node.data.pos, 0);
     } //*/
   }
 
   // Update rendering
   e->transform = m4uniform(3);
-  e->transform = m4mul(m4translation(v2v3(v2add(e->fd.pos, (vec2){0, 1.5}), 0)), e->transform);
+  e->transform = m4mul(m4translation(v23f(v2add(e->fd.pos, (vec2){0, 1.5}), 0)), e->transform);
 
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering

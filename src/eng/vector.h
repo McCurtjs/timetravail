@@ -52,8 +52,6 @@ typedef union DArray_Internal {
 //   "vector_buffer" function). Would be a more useful pattern for structures
 //   with more finnicky internals (like the model classes, or hashmap)
 
-// Not related: remember to find a copy of Gideon's Sacrifice for Jared
-
 
 
 

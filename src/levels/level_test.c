@@ -162,7 +162,7 @@ void level_load_test(Game* game) {
     .type = ENTITY_OTHER,
     .shader = &game->shaders.basic,
     .model = &game->models.color_cube,
-    .pos = v2v3(goal_loc, 0),
+    .pos = v23(goal_loc),
     .transform = m4identity,
     .render = render_basic,
     .behavior = behavior_goal,

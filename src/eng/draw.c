@@ -115,7 +115,7 @@ void draw_circle(vec3 center, float radius) {
   vec3 prev = v3scale(v3x, radius);
 
   for (uint i = 0; i < 32; ++i) {
-    vec3 next = v2v3(v2rot(prev.xy, TAU / 32), 0);
+    vec3 next = v23f(v2rot(prev.xy, TAU / 32), 0);
     draw_line_solid(v3add(center, prev), v3add(center, next), dstate.color1);
     prev = next;
   }
