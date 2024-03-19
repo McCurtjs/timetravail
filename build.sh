@@ -4,10 +4,10 @@ mkdir -p build
 #clang -O2 -DNDEBUG --target=wasm32-wasi -fno-trapping-math -Wall -Wextra -Werror -Wno-null-pointer-arithmetic -Wno-unused-parameter -Wno-sign-compare -Wno-unused-variable -Wno-unused-function -Wno-ignored-attributes -Wno-missing-braces -Wno-ignored-pragmas -Wno-unused-but-set-variable -Wno-unknown-warning-option -mthread-model single -isystem lib/wasi-libc/sysroot/include/wasm32-wasi -Ilib/wasi-libc/sysroot/include/wasm32-wasi -MD -MP -o build/test.o -c src/test.c
 
 # -nostdinc doesn't work because wasi doesn't ship with stddef for some reason
-clang -Oz --target=wasm32-wasi \
+clang --target=wasm32-wasi -Oz -flto \
   --no-standard-libraries \
   -Wall -Wextra -Wno-missing-braces \
-  -Wl,--allow-undefined -Wl,--no-entry \
+  -Wl,--allow-undefined -Wl,--no-entry -Wl,--lto-O3\
   -isystem lib/wasi-libc/sysroot/include/wasm32-wasi \
   -I src -I src/eng -I src/eng/wasm \
   -o build/test.wasm \

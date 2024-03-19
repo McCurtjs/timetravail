@@ -2,6 +2,8 @@
 #define _TYPES_H_
 
 typedef unsigned int uint;
+typedef unsigned short ushort;
+typedef unsigned short u16;
 typedef unsigned int jshandle;
 typedef unsigned char byte;
 typedef unsigned char bool;

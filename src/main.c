@@ -5,6 +5,7 @@
 #include "eng/camera.h"
 #include "eng/texture.h"
 #include "eng/draw.h"
+#include "utility.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -41,7 +42,6 @@ void export(wasm_preload) (uint w, uint h) {
   file_open_async(&file_frag, "./res/shaders/basic.frag");
   file_open_async(&file_model_test, "./res/models/test.obj");
   //file_open_async(&file_model_level_1, "./res/models/level_1.obj");
-  print("Loaded model?");
   file_open_async(&file_model_gear, "./res/models/gear.obj");
 
   image_open_async(&image_crate, "./res/textures/crate.png");
@@ -79,6 +79,10 @@ void export(wasm_preload) (uint w, uint h) {
   game_init(&game);
   camera_build_perspective(&game.camera);
   //camera_build_orthographic(&game.camera);
+
+  //print(ftos(1234567890.0987654321));
+  print(itos(-7452));
+  print(ftos(-15.729));
 
   // load this first since it's the loading screen spinner
   game.models.color_cube.type = MODEL_CUBE_COLOR;
@@ -122,7 +126,6 @@ int export(wasm_load) (int await_count, float dt) {
   shader_program_load_uniforms(&game.shaders.light, UNIFORMS_PHONG);
 
   // Build textures from async data
-  print("Building textures");
   texture_build_from_image(&game.textures.crate, &image_crate);
   //texture_build_from_image(&game.textures.level, &image_level);
   texture_build_from_image(&game.textures.brass, &image_brass);
@@ -130,7 +133,6 @@ int export(wasm_load) (int await_count, float dt) {
   texture_build_from_image(&game.textures.player, &image_anim_test);
 
   // Delete async loaded resources
-  print("Deleting resources");
   file_delete(&file_vert);
   file_delete(&file_frag);
   file_delete(&file_model_test);
@@ -142,7 +144,6 @@ int export(wasm_load) (int await_count, float dt) {
   image_delete(&image_tiles);
   image_delete(&image_anim_test);
 
-  print("Building models");
   // Set up game models
   game.models.grid.grid = (Model_Grid) {
     .type = MODEL_GRID,
@@ -166,7 +167,6 @@ int export(wasm_load) (int await_count, float dt) {
   model_build(&game.models.grid);
   model_build(&game.models.gizmo);
 
-  print("Switching level");
   // Load the first game level
   level_switch(&game, game.level);
 
