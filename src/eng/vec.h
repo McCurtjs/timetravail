@@ -209,7 +209,6 @@ vec2  v2reflect(vec2 a, vec2 b);
 float v2angle(vec2 a, vec2 b);
 vec2  v2dir(float theta);
 vec2  v2rot(vec2 v, float theta);
-//vec2  v2orbit(vec2 a, vec2 center, float theta);
 vec2  v2lerp(vec2 P, vec2 Q, float t);
 float v2line_dist(vec2 P, vec2 v, vec2 Q);
 float v2line_closest(vec2 P, vec2 v, vec2 Q, vec2* R_out);
@@ -234,12 +233,14 @@ float v3dot(vec3 a, vec3 b);
 vec3  v3had(vec3 a, vec3 b);
 vec3  v3cross(vec3 a, vec3 b);
 vec3  v3perp(vec3 v);
-//vec3  v3reflect(vec3 v, vec3 axis);
 float v3angle(vec3 a, vec3 b);
-//vec3  v3rot(vec3 v, vec3 axis, float theta);
 bool  v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 bool  v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 vec4  v34(vec3 xyz);
 vec4  v34f(vec3 xyz, float w);
+
+//vec2  v2orbit(vec2 a, vec2 center, float theta);
+//vec3  v3reflect(vec3 v, vec3 axis);
+//vec3  v3rot(vec3 v, vec3 axis, float theta);
 
 #endif

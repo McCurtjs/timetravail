@@ -47,5 +47,4 @@ void  array_read_back(const Array array, void* out_element);
        (ref = array_get(ARRAY, INDEX)), INDEX < ARRAY->size; \
        ++INDEX)
 
-
 #endif

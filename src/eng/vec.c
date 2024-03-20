@@ -108,6 +108,7 @@ float v2line_dist(vec2 P, vec2 v, vec2 Q) {
 }
 
 // todo: change return types, look up other version of formula that uses t?
+//       (should return t value like intersections?)
 float v2line_closest(vec2 P, vec2 v, vec2 Q, vec2* R_out) {
   float d = v2line_dist(P, v, Q);
   if (!R_out) return d;
@@ -225,6 +226,8 @@ vec3 v3cross(vec3 a, vec3 b) {
   };
 }
 
+// Gets an arbitrary vector that's perpendicular to v
+//
 // From Ken Whatmough's post on
 // https://math.stackexchange.com/questions/137362/how-to-find-perpendicular-vector-to-another-vector
 vec3 v3perp(vec3 v) {
@@ -244,8 +247,11 @@ float v3line_dist(vec3 P, vec3 v, vec3 Q) {
   return v3mag(v3cross(v3sub(Q, P), v)) / v3mag(v);
 }
 
-// Gets intersection between the line [P, v] and plane [R, n]
-// Intersection point is defined by P + t_out * v
+// Gets the intersection between the line [P, v] and plane [R, n]
+//
+// @param t_out If non-null and return value is TRUE, is set to t value of the
+//              intersection point described by P + v * t_out
+// @returns TRUE on intersection, FALSE if objects are parallel
 bool v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   vec3 norm = v3norm(n);
   float vdotn = v3dot(v, norm);
@@ -258,6 +264,11 @@ bool v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   return t != 0;
 }
 
+// Gets the intersection between the ray [P, v] and plane [R, n]
+//
+// @param t_out If non-null and return value is TRUE, is set to t value of the
+//              intersection point described by P + v * t_out
+// @returns TRUE on intersection, FALSE if no intersection
 bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   float t;
   if (!v3line_plane(P, v, R, n, &t)) return FALSE;
@@ -266,10 +277,12 @@ bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   return TRUE;
 }
 
+// Converts a vec3 to a vec4 with w component set to 0
 vec4 v34(vec3 v) {
   return (vec4){v.x, v.y, v.z, 0};
 }
 
+// Converts a vec3 and a given float w to a vec4
 vec4 v34f(vec3 v, float w) {
   return (vec4){v.x, v.y, v.z, w};
 }

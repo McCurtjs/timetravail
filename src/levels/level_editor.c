@@ -24,24 +24,13 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   static vec2 start_point = v2zero;
   static vec2 end_point = v2zero;
 
-  // Get mouse position in world space
-  vec3 cursor = v3front;
+  // Get mouse direction in world space
+  vec2 mouse_pos = game->input.mouse.pos;
+  vec3 cursor = camera_screen_to_ray(&game->camera, game->window, mouse_pos);
 
-  // convert screen space from [0, wh] to [-1, 1]
-  cursor.xy = game->input.mouse.pos;
-  cursor.x =      (cursor.x / (float)game->window.x - 0.5) * 2;
-  cursor.y = (1 - (cursor.y / (float)game->window.y) - 0.5) * 2;
-  //cursor.xy = camera_screen_to_ndc(game->window, game->input.mouse.pos);
-
-  // find a point 1 unit away on a plane defined by our field of view
-  float half_field_of_view = d2r(20) / 2;
-  float screen_plane_halfwidth = tanf(half_field_of_view);
-  cursor.x = screen_plane_halfwidth * i2aspect(game->window) * cursor.x;
-  cursor.y = screen_plane_halfwidth * cursor.y;
-
-  // project the vector from the camera to that point onto the world xy plane
+  // project the vector from the camera to intersect the world xy plane
   float t;
-  v3line_plane(game->camera.pos.xyz, cursor, v3origin, v3z, &t);
+  v3ray_plane(game->camera.pos.xyz, cursor, v3origin, v3z, &t);
   cursor = v3add(game->camera.pos.xyz, v3scale(cursor, t));
 
   // snap to grid
