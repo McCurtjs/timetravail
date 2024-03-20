@@ -1,8 +1,8 @@
 #include "draw.h"
 
-#include <stdlib.h>
-#include <memory.h>
 #include <GL/gl.h>
+
+#include "array.h"
 
 typedef struct DrawState {
   color3 color1;
@@ -17,42 +17,21 @@ typedef struct Vert {
   color3  color;
 } Vert;
 
-static Vert* geometry = NULL;
-static uint geom_size = 0;
-static uint geom_tail = 0;
-static const uint page_size = 32; // room for 16 lines
+static Array geometry = NULL;
 
 static uint gl_vao = 0;
 static uint gl_buffer = 0;
 
 static void draw_init() {
   if (geometry) return;
-
   dstate = (DrawState){v3x, v3x, v3zero, 0.1};
-
-  geom_size = page_size;
-  geom_tail = 0;
-  geometry = malloc(sizeof(Vert) * geom_size);
-}
-
-static void draw_grow() {
-  uint old_size = geom_size;
-  geom_size += page_size;
-
-  Vert* old_geom = geometry;
-  geometry = malloc(sizeof(Vert) * geom_size);
-  memcpy(geometry, old_geom, old_size);
-  free(old_geom);
+  geometry = array_new_reserve(sizeof(Vert), 128);
 }
 
 static void draw_push(vec3 pos, color3 col) {
   draw_init();
 
-  if (geom_tail >= geom_size) {
-    draw_grow();
-  }
-
-  geometry[geom_tail++] = (Vert){pos, col};
+  array_push_back(geometry, &(Vert){pos, col});
 }
 
 static void draw_init_gl() {
@@ -169,26 +148,28 @@ void draw_rect(vec3 pos, vec3 a, vec3 b) {
 
 void draw_render() {
   draw_init_gl();
-  uint size_bytes = geom_size * sizeof(Vert);
+
+  uint size_bytes = geometry->size_bytes;
+  uint size_lines = geometry->size;
+  Vert* draw_buffer = array_get_front(geometry);
 
   glBindVertexArray(gl_vao);
   glBindBuffer(GL_ARRAY_BUFFER, gl_buffer);
-  glBufferData(GL_ARRAY_BUFFER, size_bytes, geometry, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size_bytes, draw_buffer, GL_STATIC_DRAW);
 
-  glDrawArrays(GL_LINES, 0, geom_tail);
+  glDrawArrays(GL_LINES, 0, size_lines);
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   dstate = (DrawState){v3x, v3x, v3zero, 0.1};
-  geom_tail = 0;
+
+  array_clear(geometry);
 }
 
 void draw_cleanup() {
+  array_delete(&geometry);
   glDeleteBuffers(1, &gl_buffer);
   glDeleteVertexArrays(1, &gl_vao);
-  free(geometry);
-  geometry = 0;
-  geom_size = 0;
-  geom_tail = 0;
+  gl_buffer = 0; gl_vao = 0;
 }

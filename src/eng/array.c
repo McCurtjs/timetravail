@@ -6,7 +6,7 @@
 #include "wasm.h"
 #include "types.h"
 
-static const uint capacity_growth = 16;
+static const uint capacity_min = 16;
 
 // internal opaque structure:
 typedef struct Array_Internal {
@@ -87,7 +87,7 @@ void array_delete(Array* a_in) {
 uint array_push_back(Array a_in, const void* element) {
   DARRAY_INTERNAL;
   if (a->size >= a->capacity) {
-    array_reserve(a_in, a->capacity + capacity_growth);
+    array_reserve(a_in, MAX(capacity_min, a->capacity + a->capacity / 2));
   }
   memcpy(a->data + a->size * a->element_size, element, a->element_size);
   a->size_bytes += a->element_size;
