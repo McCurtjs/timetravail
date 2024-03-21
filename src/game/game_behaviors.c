@@ -13,25 +13,27 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
 
   float z = 0.01;
 
+  draw_push();
   for (uint i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
-    vec3 color = (vec3){0.5, 0.5, 1};
 
-    if (line.droppable) color = (vec3) {76/255.0, 229/255.0, 209/255.0};
-    if (line.wall) color = (vec3) {250/255.0, 128/255.0, 114/255.0};
-    if (line.moving) color = (vec3) {173/255.0, 229/255.0, 76/255.0};
-    if (line.bouncy) color = (vec3) {202/255.0, 193/255.0, 150/255.0};
+    draw.color = (vec4){0.5, 0.5, 1, 1};
+    if (line.droppable) draw.color = (vec4) {76/255.0, 229/255.0, 209/255.0, 1};
+    if (line.wall) draw.color = (vec4) {250/255.0, 128/255.0, 114/255.0, 1};
+    if (line.moving) draw.color = (vec4) {173/255.0, 229/255.0, 76/255.0, 1};
+    if (line.bouncy) draw.color = (vec4) {202/255.0, 193/255.0, 150/255.0, 1};
 
-    draw_line_solid(v23f(line.a, z), v23f(line.b, z), color);
+    draw_line(v23f(line.a, z), v23f(line.b, z));
 
     vec2 v = v2scale(v2sub(line.b, line.a), 0.5);
     vec2 mid = v2add(line.a, v);
     v = v2norm(v2perp(v));
 
-    draw_offset(v23f(mid, z * 2));
-    draw_color(c4yellow.rgb);
+    draw.vector_offset = v23f(mid, z * 2);
+    draw.color = c4yellow;
     draw_vector(v23f(v, 0));
   }
+  draw_pop();
 }
 
 void render_sprites(Entity* e, Game* g) {

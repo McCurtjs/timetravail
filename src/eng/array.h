@@ -37,14 +37,14 @@ void  array_read_back(const Array array, void* out_element);
 #define array_foreach(VAR, ARRAY) \
   VAR = NULL; \
   for (uint MACRO_CONCAT(array_iter_, __LINE__) = 0; \
-       (ref = array_get(ARRAY, MACRO_CONCAT(array_iter_, __LINE__))), \
+       (VAR = array_get(ARRAY, MACRO_CONCAT(array_iter_, __LINE__))), \
        MACRO_CONCAT(array_iter_, __LINE__) < ARRAY->size; \
        ++MACRO_CONCAT(array_iter_, __LINE__))
 
 #define array_foreach_index(VAR, INDEX, ARRAY) \
   VAR = NULL; \
   for (uint INDEX = 0; \
-       (ref = array_get(ARRAY, INDEX)), INDEX < ARRAY->size; \
+       (VAR = array_get(ARRAY, INDEX)), INDEX < ARRAY->size; \
        ++INDEX)
 
 #endif

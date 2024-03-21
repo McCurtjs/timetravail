@@ -40,7 +40,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   }
 
   // draw the cursor so we know what we're doing
-  draw_color(c4green.rgb);
+  draw.color = c4green;
   draw_circle(cursor, 0.25);
 
   if (game->input.pressed.mmb) {
@@ -48,7 +48,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
   }
 
   // draw the player start location
-  draw_color(c4cyan.rgb);
+  draw.color = c4cyan;
   draw_circle(v23(v2add(player_start, (vec2){0, 1.5})), 1.5);
 
   if (game->input.pressed.lmb) {
@@ -57,7 +57,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
     if (game->input.triggered.lmb) {
       start_point = cursor.xy;
     } else {
-      draw_line_solid(v23(start_point), v23(end_point), c4magenta.rgb);
+      draw_line_solid(v23(start_point), v23(end_point), c4magenta);
     }
   }
 
