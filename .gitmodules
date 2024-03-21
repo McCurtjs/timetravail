@@ -1,3 +1,6 @@
 [submodule "lib/wasi-libc"]
 	path = lib/wasi-libc
 	url = https://github.com/WebAssembly/wasi-libc.git
+[submodule "sdl"]
+	path = lib/SDL
+	url = git@github.com:libsdl-org/SDL.git
