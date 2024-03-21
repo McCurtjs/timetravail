@@ -22,6 +22,7 @@ typedef struct {
 Array array_new(uint elemenet_size);
 Array array_new_reserve(uint element_size, uint capacity);
 void  array_reserve(Array array, uint capacity);
+void  array_truncate(Array array, uint capacity);
 void  array_clear(Array array);
 void  array_free(Array array);
 void  array_delete(Array* array);

@@ -170,7 +170,11 @@ vec3 v23(vec2 v) {
 }
 
 vec4 v24(vec2 v) {
-  return (vec4){v.x, 0, 0};
+  return (vec4){v.x, v.y, 0, 0};
+}
+
+vec4 p24(vec2 v) {
+  return (vec4){v.x, v.y, 0, 1};
 }
 
 vec3 v23f(vec2 v, float z) {
@@ -179,6 +183,10 @@ vec3 v23f(vec2 v, float z) {
 
 vec4 v24f(vec2 v, float z, float w) {
   return (vec4){v.x, v.y, z, w};
+}
+
+vec4 p24f(vec2 v, float z) {
+  return (vec4){v.x, v.y, z, 1};
 }
 
 float v3mag(vec3 v) {
@@ -277,9 +285,14 @@ bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   return TRUE;
 }
 
-// Converts a vec3 to a vec4 with w component set to 0
+// Converts a vec3 to a vec4 with homogeneous w component set to 0
 vec4 v34(vec3 v) {
   return (vec4){v.x, v.y, v.z, 0};
+}
+
+// Converts a vec3 to a vec4 with homogeneous w component set to 1
+vec4 p34(vec3 p) {
+  return (vec4){p.x, p.y, p.z, 1};
 }
 
 // Converts a vec3 and a given float w to a vec4

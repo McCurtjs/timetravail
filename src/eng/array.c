@@ -50,16 +50,23 @@ Array array_new_reserve(uint element_size, uint capacity) {
 void array_reserve(Array a_in, uint capacity) {
   DARRAY_INTERNAL;
   if (!a || a->capacity >= capacity) return;
-  void* old_data = a->data;
-  a->data = malloc(a->element_size * capacity);
+  void* new_data = realloc(a->data, a->element_size * capacity);
+  if (!new_data) return; // TODO: better handling of critical memory situations
+  a->data = new_data;
   a->capacity = capacity;
-  //if (a->data == NULL) print("ARRAY MALLOC NULL ! ! !");
-  if (!old_data) return;
-  // debug - set reserved memory to R (0x52)
-  //memset(a->data, 'R', capacity * a->element_size);
-  memcpy(a->data, old_data, a->size_bytes);
-  //memset(old_data, 0xfe, a->size_bytes);
-  free(old_data);
+}
+
+void array_truncate(Array a_in, uint max_size) {
+  DARRAY_INTERNAL;
+  if (!a || a->capacity < max_size) return;
+  void* new_data = realloc(a->data, a->element_size * max_size);
+  if (!new_data) return;
+  a->data = new_data;
+  a->capacity = max_size;
+  if (a->size > max_size) {
+    a->size = max_size;
+    a->size_bytes = max_size * a->element_size;
+  }
 }
 
 void array_clear(Array a_in) {

@@ -219,8 +219,10 @@ bool  v2ray_seg(vec2 P, vec2 v, vec2 Q1, vec2 Q2, float* t_out);
 bool  v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out);
 vec3  v23(vec2 xy);
 vec4  v24(vec2 xy);
+vec4  p24(vec2 xy);
 vec3  v23f(vec2 xy, float z);
 vec4  v24f(vec2 xy, float z, float w);
+vec4  p24f(vec2 xy, float z);
 
 float v3mag(vec3 v);
 float v3magsq(vec3 v);
@@ -237,6 +239,7 @@ float v3angle(vec3 a, vec3 b);
 bool  v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 bool  v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 vec4  v34(vec3 xyz);
+vec4  p34(vec3 xyz);
 vec4  v34f(vec3 xyz, float w);
 
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
