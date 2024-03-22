@@ -1,6 +1,6 @@
-#include "sdl.h"
-#include "../types.h"
-#include "../wasm.h"
+#include "SDL3/SDL.h"
+
+#include "wasm.h"
 
 #include <stdlib.h>
 

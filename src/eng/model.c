@@ -1,6 +1,6 @@
 #include "model.h"
 
-#include "GL/gl.h"
+#include "gl.h"
 
 #include <stdlib.h>
 #include <string.h>

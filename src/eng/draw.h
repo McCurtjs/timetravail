@@ -4,14 +4,14 @@
 #include "types.h"
 #include "vec.h"
 
-typedef struct DrawState {
+typedef struct DebugDrawState {
   color4 color;
   color4 color_gradient_start;
   bool   use_gradient;
   vec3   vector_offset;
   float  scale;
-} DrawState;
-extern DrawState draw;
+} DebugDrawState;
+extern DebugDrawState draw;
 
 void draw_push();
 void draw_pop();

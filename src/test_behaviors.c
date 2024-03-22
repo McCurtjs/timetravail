@@ -1,6 +1,6 @@
 #include "test_behaviors.h"
 
-#include <GL/gl.h>
+#include "gl.h"
 
 #include "types.h"
 #include "draw.h"

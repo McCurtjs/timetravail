@@ -57,8 +57,8 @@ void finish_rendering_sprites(
 #define SHIFT_DROP    3
 #define SHIFT_KICK    4
 #define SHIFT_REPLAY  16
-#define SHIFT_TRIGGER 0
-#define SHIFT_PRESSED 8
+#define OFFSET_TRIGGER 0 // mask offset for key triggered values
+#define OFFSET_PRESSED 8 // mask offset for key pressed values
 
 //                                                        triggered -> |=======|
 //                                                 pressed-> |=======| |       |
@@ -69,7 +69,7 @@ void finish_rendering_sprites(
 #define KICK    (1 << SHIFT_KICK)     // 0000 0000 0000 0000 0001 0000 000t 0000
 #define REPLAY  (1 << SHIFT_REPLAY)   // 0000 0000 0000 000t 0000 0000 0000 0000
 
-#define PRESSED(mask) (inputs & ((mask) << SHIFT_PRESSED))
-#define TRIGGERED(mask) (inputs & ((mask) << SHIFT_TRIGGER))
+#define PRESSED(mask) (inputs & ((mask) << OFFSET_PRESSED))
+#define TRIGGERED(mask) (inputs & ((mask) << OFFSET_TRIGGER))
 
 #endif

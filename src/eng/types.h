@@ -1,12 +1,21 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#ifndef __WASM__
+#include <corecrt.h>
+#else
+# ifndef __DEFINED_size_t
+# define __DEFINED_size_t
+typedef unsigned long size_t;
+# endif
+#endif
+
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned short u16;
-typedef unsigned int jshandle;
 typedef unsigned char byte;
 typedef unsigned char bool;
+typedef size_t jshandle;
 
 #define CV const volatile
 

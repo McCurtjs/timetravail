@@ -1,10 +1,10 @@
 #include "draw.h"
 
-#include <GL/gl.h>
+#include "gl.h"
 
 #include "array.h"
 
-DrawState draw = {
+DebugDrawState draw = {
   c4black, c4black, FALSE, v3zero, 0.1
 };
 
@@ -51,7 +51,7 @@ static void draw_init_gl() {
 
 void draw_push() {
   if (!draw_state_stack) {
-    draw_state_stack = array_new(sizeof(DrawState));
+    draw_state_stack = array_new(sizeof(DebugDrawState));
   }
   array_push_back(draw_state_stack, &draw);
 }
@@ -63,7 +63,7 @@ void draw_pop() {
 }
 
 void draw_default_state() {
-  draw = (DrawState){c4black, c4black, FALSE, v3zero, 0.1};
+  draw = (DebugDrawState){c4black, c4black, FALSE, v3zero, 0.1};
 }
 
 // Draw functions

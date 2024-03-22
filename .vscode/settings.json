@@ -17,12 +17,19 @@
     "test_behaviors.h": "c",
     "levels.h": "c",
     "draw.h": "c",
-    "file.h": "c"
+    "file.h": "c",
+    "d3d11_1.h": "c",
+    "d3d11.h": "c",
+    "sdl_glfuncs.h": "c",
+    "sdl_opengles2.h": "c",
+    "sdl_opengles2_khrplatform.h": "c",
+    "corecrt.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",
     "src/eng",
-    "src/"
+    "src/",
+    "lib/SDL/include"
   ],
   "files.eol": "\n"
 }

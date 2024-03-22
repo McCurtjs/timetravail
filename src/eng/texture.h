@@ -4,7 +4,7 @@
 #include "image.h"
 
 typedef struct Texture {
-  jshandle handle;
+  uint handle;
 } Texture;
 
 int texture_build_from_image(Texture* texture, const Image* image);

@@ -373,13 +373,13 @@ void    glDrawElements(GLenum mode, GLsizei count, GLenum type, const void* of);
 void    glGenTextures(GLsizei n, GLuint* textures);
 void    glActiveTexture(GLenum texture);
 void    glBindTexture(GLenum target, GLuint texture);
+void    glTexImage2D(
+          GLenum target, GLint level, GLint internalFormat,
+          GLsizei width, GLsizei height, GLint border, GLenum format,
+          GLenum type, const void* data);
 //void    glTexImage2D(
-//          GLenum target, GLint level, GLint internalFormat,
-//          GLsizei width, GLsizei height, GLint border, GLenum format,
-//          GLenum type, const void* data);
-void    wglTexImage2D(
-          GLenum target, GLint level, GLint internalFormat, GLenum format,
-          GLenum type, int image_id);
+//          GLenum target, GLint level, GLint internalFormat, GLenum format,
+//          GLenum type, int image_id);
 void    glGenerateMipmap(GLenum target);
 void    glTexParameteri(GLenum target, GLenum pname, GLint param);
 void    glPixelStorei(GLenum pname, GLint param);

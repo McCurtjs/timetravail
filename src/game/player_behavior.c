@@ -12,16 +12,16 @@
 
 uint get_input_mask(Game* game) {
   uint inputs = 0;
-  inputs |= game->input.pressed.forward   << (SHIFT_JUMP  + SHIFT_PRESSED);
-  inputs |= game->input.pressed.right     << (SHIFT_RIGHT + SHIFT_PRESSED);
-  inputs |= game->input.pressed.left      << (SHIFT_LEFT  + SHIFT_PRESSED);
-  inputs |= game->input.pressed.back      << (SHIFT_DROP  + SHIFT_PRESSED);
-  inputs |= game->input.pressed.kick      << (SHIFT_KICK  + SHIFT_PRESSED);
-  inputs |= game->input.triggered.forward << (SHIFT_JUMP  + SHIFT_TRIGGER);
-  inputs |= game->input.triggered.right   << (SHIFT_RIGHT + SHIFT_TRIGGER);
-  inputs |= game->input.triggered.left    << (SHIFT_LEFT  + SHIFT_TRIGGER);
-  inputs |= game->input.triggered.back    << (SHIFT_DROP  + SHIFT_TRIGGER);
-  inputs |= game->input.triggered.kick    << (SHIFT_KICK  + SHIFT_TRIGGER);
+  inputs |= game->input.pressed.forward   << (SHIFT_JUMP  + OFFSET_PRESSED);
+  inputs |= game->input.pressed.right     << (SHIFT_RIGHT + OFFSET_PRESSED);
+  inputs |= game->input.pressed.left      << (SHIFT_LEFT  + OFFSET_PRESSED);
+  inputs |= game->input.pressed.back      << (SHIFT_DROP  + OFFSET_PRESSED);
+  inputs |= game->input.pressed.kick      << (SHIFT_KICK  + OFFSET_PRESSED);
+  inputs |= game->input.triggered.forward << (SHIFT_JUMP  + OFFSET_TRIGGER);
+  inputs |= game->input.triggered.right   << (SHIFT_RIGHT + OFFSET_TRIGGER);
+  inputs |= game->input.triggered.left    << (SHIFT_LEFT  + OFFSET_TRIGGER);
+  inputs |= game->input.triggered.back    << (SHIFT_DROP  + OFFSET_TRIGGER);
+  inputs |= game->input.triggered.kick    << (SHIFT_KICK  + OFFSET_TRIGGER);
   inputs |= game->input.triggered.run_replay << (SHIFT_REPLAY);
   return inputs;
 }
@@ -214,7 +214,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     temp = array_get_back(e->replay);
     if ((uint)game->frame != node.frame && game->frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
-      print_int((int)e); print_int(node.frame); print_int(game->frame);
+      print_ptr(e); print_int(node.frame); print_int(game->frame);
     }
 
     // Finally, set the location of the entity

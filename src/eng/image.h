@@ -8,8 +8,10 @@
 // (should load with normal File)
 
 typedef struct Image {
-  jshandle handle;
-  int      ready;
+  void* handle;
+  int   ready;
+  uint  width;
+  uint  height;
 } Image;
 
 void image_open_async(Image* image, const char* filename);

@@ -1,4 +1,4 @@
-#include "SDL/sdl.h"
+#include "SDL3/SDL.h"
 #include "../types.h"
 #include "../wasm.h"
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#include "GL/gl.h"
+#include "gl.h"
 
 #include <string.h>
 
@@ -67,8 +67,8 @@ extern void   glVertexAttribPointer(
 extern void   glEnableVertexAttribArray(GLuint index);
 extern void   glDisableVertexAttribArray(GLuint index);
 extern void   glDrawArrays(GLenum mode, GLint first, GLsizei count);
-extern void   glDrawElements(GLenum mode, GLsizei count,
-                             GLenum type, const void* offset);
+extern void   glDrawElements(
+                GLenum mode, GLsizei count, GLenum type, const void* offset);
 
 extern int    js_glCreateTexture();
 void          glGenTextures(GLsizei n, GLuint* textures) {
@@ -77,9 +77,19 @@ void          glGenTextures(GLsizei n, GLuint* textures) {
 
 extern void   glActiveTexture(GLenum texture);
 extern void   glBindTexture(GLenum target, GLuint texture);
-extern void   wglTexImage2D(
+extern void   js_glTexImage2D(
                 GLenum target, GLint level, GLint internalFormat, GLenum format,
-                GLenum type, int image_id);
+                GLenum type, const void* image_id);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+void          glTexImage2D(
+                GLenum target, GLint level, GLint internalFormat,
+                GLsizei _width, GLsizei _height, GLint _border, GLenum format,
+                GLenum type, const void* data
+) {
+  js_glTexImage2D(target, level, internalFormat, format, type, data);
+}
+#pragma clang diagnostic pop
 extern void   glGenerateMipmap(GLenum target);
 extern void   glTexParameteri(GLenum target, GLenum pname, GLint param);
 extern void   glPixelStorei(GLenum pname, GLint param);

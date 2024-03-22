@@ -1,7 +1,7 @@
 #include "system_events.h"
 
-#include <SDL/sdl.h>
-#include <GL/gl.h>
+#include <SDL3/SDL.h>
+#include "gl.h"
 
 #include "wasm.h"
 

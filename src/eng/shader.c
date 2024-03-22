@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "GL/gl.h"
+#include "gl.h"
 #include "wasm.h"
 
 #include "data/inline_shaders.h"

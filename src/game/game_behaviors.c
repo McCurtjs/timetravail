@@ -1,7 +1,7 @@
 #include "game_behaviors.h"
 #include "test_behaviors.h"
 
-#include "GL/gl.h"
+#include "gl.h"
 
 #include "draw.h"
 #include "wasm.h"

@@ -12,8 +12,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "GL/gl.h"
-#include "SDL/sdl.h"
+#include "gl.h"
+#include <SDL3/SDL.h>
 
 #include "game.h"
 #include "system_events.h"
@@ -200,6 +200,15 @@ void export(wasm_update) (float dt) {
 void export(wasm_render) () {
   game_render(&game);
 }
+
+#ifndef __WASM__
+
+int main(int argc, char* argv[]) {
+  print("Hello, world!");
+  return 0;
+}
+
+#endif
 
 // todo:
 /*

@@ -10,8 +10,8 @@
 #include <string.h>
 #include <math.h>
 
-#include "GL/gl.h"
-#include "SDL/sdl.h"
+#include "gl.h"
+#include <SDL3/SDL.h>
 
 #include "game.h"
 #include "system_events.h"

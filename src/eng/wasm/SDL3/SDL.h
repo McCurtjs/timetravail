@@ -1,14 +1,12 @@
 #ifndef _WASM_SDL_H_
 #define _WASM_SDL_H_
 
-#include "../types.h"
-
-typedef uint Uint32;
+typedef unsigned char Uint8;
+typedef unsigned short Uint16;
+typedef unsigned int Uint32;
 typedef unsigned long Uint64;
 typedef int Sint32;
-typedef uint SDL_WindowID;
-typedef byte Uint8;
-typedef unsigned short Uint16;
+typedef Uint32 SDL_WindowID;
 
 typedef int SDL_bool;
 #define SDL_TRUE 1
