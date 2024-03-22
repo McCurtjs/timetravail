@@ -3,11 +3,9 @@
 
 #ifndef __WASM__
 #include <corecrt.h>
-#else
-# ifndef __DEFINED_size_t
-# define __DEFINED_size_t
+#elif !defined(__DEFINED_size_t)
+#define __DEFINED_size_t
 typedef unsigned long size_t;
-# endif
 #endif
 
 typedef unsigned int uint;
@@ -36,16 +34,19 @@ typedef size_t jshandle;
 #endif
 
 #ifndef PI
-#define PI 3.14159265358979323846264338
+#define PI 3.14159265358979323846264338f
 #endif
+
+#ifndef TAU
 #define TAU (2 * PI)
+#endif
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define d2r(DEG)  ((DEG) * PI / 180.0)
+#define d2r(DEG)  ((DEG) * PI / 180.0f)
 #define isPow2(n) ((n & (n-1)) == 0)
 
 #define loop while (TRUE)

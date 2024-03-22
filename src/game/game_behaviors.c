@@ -6,30 +6,34 @@
 #include "draw.h"
 #include "wasm.h"
 
+#ifdef __WASM__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
 void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
+#ifdef __WASM__
 #pragma clang diagnostic pop
+#endif
 
-  float z = 0.01;
+  float z = 0.01f;
 
   draw_push();
   for (uint i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
 
     draw.color = (vec4){0.5, 0.5, 1, 1};
-    if (line.droppable) draw.color = (vec4) {76/255.0, 229/255.0, 209/255.0, 1};
-    if (line.wall) draw.color = (vec4) {250/255.0, 128/255.0, 114/255.0, 1};
-    if (line.moving) draw.color = (vec4) {173/255.0, 229/255.0, 76/255.0, 1};
-    if (line.bouncy) draw.color = (vec4) {202/255.0, 193/255.0, 150/255.0, 1};
+    if (line.droppable) draw.color = (vec4) {76/255.f, 229/255.f, 209/255.f, 1};
+    if (line.wall) draw.color = (vec4) {250/255.f, 128/255.f, 114/255.f, 1};
+    if (line.moving) draw.color = (vec4) {173/255.f, 229/255.f, 76/255.f, 1};
+    if (line.bouncy) draw.color = (vec4) {202/255.f, 193/255.f, 150/255.f, 1};
 
     draw_line(v23f(line.a, z), v23f(line.b, z));
 
-    vec2 v = v2scale(v2sub(line.b, line.a), 0.5);
+    vec2 v = v2scale(v2sub(line.b, line.a), 0.5f);
     vec2 mid = v2add(line.a, v);
     v = v2norm(v2perp(v));
 
-    draw.vector_offset = v23f(mid, z * 2);
+    draw.vector_offset = v23f(mid, z * 2.f);
     draw.color = c4yellow;
     draw_vector(v23f(v, 0));
   }
@@ -40,7 +44,7 @@ void render_sprites(Entity* e, Game* g) {
   vec2 pos = mv4mul(e->transform, p4origin).xy;
   vec2 scale = mv4mul(e->transform, (vec4){1, 1, 0, 0}).xy;
 
-  uint current_frame = g->frame - e->fd.start_frame;
+  uint current_frame = (uint)g->frame - e->fd.start_frame;
   uint frame_index = anim_frame(e->fd.animation, current_frame)->frame;
 
   model_sprites_draw(&e->model->sprites, pos, scale, frame_index, e->fd.facing);

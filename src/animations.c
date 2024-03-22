@@ -533,15 +533,15 @@ Animation player_animations[] = {
   { FRAMES(player_kick_run), .rate = 3, .repeat = -1},
 };
 
-Hitbox player_hitboxes[] = {
+Hitbox player_hitboxes[7] = {
   { }, // placeholder - index 0 is no hitbox
   //   center          radius   knockback   hitstun
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 25, 12 }, 12 }, // KICK
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){ 15, 38 }, 25 }, // DASH
-  { (vec2){ 0.75, 0.2 }, .5, (vec2){  5, 30 }, 20 }, // NAIR
-  { (vec2){ 0.90, 0.0 }, .7, (vec2){ 40, 20 }, 35 }, // FAIR
-  { (vec2){ 0.90,-0.1 }, .3, (vec2){ 60, 25 }, 120}, // BAIR sweetspot
-  { (vec2){ 0.90, 0.3 }, .8, (vec2){  8, 20 }, 30 }, // BAIR sourspot
+  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = { 25.f, 12.f }, .hitstun = 12 }, // KICK
+  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = { 15.f, 38.f }, .hitstun = 25 }, // DASH
+  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = {  5.f, 30.f }, .hitstun = 20 }, // NAIR
+  { .pos = { 0.90f, 0.0f }, .radius = .7f, .knockback = { 40.f, 20.f }, .hitstun = 35 }, // FAIR
+  { .pos = { 0.90f,-0.1f }, .radius = .3f, .knockback = { 60.f, 25.f }, .hitstun = 120}, // BAIR sweetspot
+  { .pos = { 0.90f, 0.3f }, .radius = .8f, .knockback = {  8.f, 20.f }, .hitstun = 30 }, // BAIR sourspot
 };
 
 // Used to tell if an animation contains an idle sequence

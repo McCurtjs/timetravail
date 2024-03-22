@@ -1,6 +1,11 @@
 #include "wasm.h"
 
 #define FN_SIGNATURE_PRINT void print(const char* str)
+#define FN_SIGNATURE_PRINT_INT void print_int(int i)
+#define FN_SIGNATURE_PRINT_PTR void print_ptr(const void* p)
+#define FN_SIGNATURE_PRINT_FLOAT void print_float(float f)
+#define FN_SIGNATURE_PRINT_FLOATS void print_floats(const float* f, uint count)
+#define FN_SIGNATURE_ALERT void alert(const char* str)
 
 #ifdef __WASM__
 extern void js_log(const char* str, unsigned len);
@@ -11,59 +16,61 @@ extern void js_alert(const char* str, unsigned len);
 
 #include <string.h> // strlen
 
+// this is an annoying way to do it, but avoids having to keep signatures sync'd
+// should all be replaced once proper string handling is in with structured logs
 FN_SIGNATURE_PRINT {
   js_log(str, strlen(str));
 }
 
+FN_SIGNATURE_PRINT_INT {
+  js_log_int(i);
+}
+
+FN_SIGNATURE_PRINT_PTR {
+  js_log_int((size_t)p);
+}
+
+FN_SIGNATURE_PRINT_FLOAT {
+  js_log_num(f);
+}
+
+FN_SIGNATURE_PRINT_FLOATS {
+  js_log_num_array(f, count);
+}
+
+FN_SIGNATURE_ALERT {
+  js_alert(str, strlen(str));
+}
+
 #else
-#include <stdio.h> // printf
+#include <stdio.h> // printf, fprintf
 
 FN_SIGNATURE_PRINT {
   printf("%s\n", str);
 }
-#endif
 
-void print_int(int i) {
-  #ifdef __WASM__
-  js_log_int(i);
-  #else
+FN_SIGNATURE_PRINT_INT {
   printf("%d\n", i);
-  #endif
 }
 
-void print_ptr(const void* p) {
-  #ifdef __WASM__
-  js_log_int((size_t)p);
-  #else
-  printf("%d\n", p);
-  #endif
+FN_SIGNATURE_PRINT_PTR {
+  printf("%p\n", p);
 }
 
-void print_float(float f) {
-  #ifdef __WASM__
-  js_log_num(f);
-  #else
+FN_SIGNATURE_PRINT_FLOAT {
   printf("%f\n", f);
-  #endif
 }
 
-void print_floats(const float* f, uint count) {
-  #ifdef __WASM__
-  js_log_num_array(f, count);
-  #else
+FN_SIGNATURE_PRINT_FLOATS {
   printf("[");
   for (uint i = 0; i < count; ++i) {
     printf("%f", f[i]);
     if (i != count -1) printf(",");
   }
   printf("]\n");
-  #endif
 }
 
-void alert(const char* str) {
-  #ifdef __WASM__
-  js_alert(str, strlen(str));
-  #else
+FN_SIGNATURE_ALERT {
   fprintf(stderr, "%s", str);
-  #endif
 }
+#endif

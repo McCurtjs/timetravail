@@ -8,9 +8,9 @@ mat4 m4ortho(
   mat4 ret = m4identity;
 
   // this part scales to the NDC space
-  ret.m[0][0] = 2.0 / (right - left);
-  ret.m[1][1] = 2.0 / (top - bottom);
-  ret.m[2][2] = -2.0 / (far - near);
+  ret.m[0][0] = 2.f / (right - left);
+  ret.m[1][1] = 2.f / (top - bottom);
+  ret.m[2][2] = -2.f / (far - near);
 
   ret.m[3][0] = -(right + left) / (right - left);
   ret.m[3][1] = -(top + bottom) / (top - bottom);
@@ -23,7 +23,7 @@ mat4 m4ortho(
 mat4 m4perspective(float fov_rads, float aspect, float near, float far) {
   mat4 ret = m4zero;
 
-  float S = 1.0f / tan(fov_rads / 2.0f);
+  float S = 1.f / tanf(fov_rads / 2.f);
   float fmn = far - near;
 
   ret.m[0][0] = S / aspect;
@@ -61,8 +61,8 @@ mat4 m4translation(vec3 vec) {
 mat4 m4rotation(vec3 axis, float angle) {
   mat4 ret = m4identity;
 
-  float s = sin(angle);
-  float c = cos(angle);
+  float s = sinf(angle);
+  float c = cosf(angle);
   float cd1 = 1 - c;
 
   ret.m[0][0] = cd1 * axis.x * axis.x + c;

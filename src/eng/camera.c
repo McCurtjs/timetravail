@@ -109,8 +109,8 @@ vec3 camera_ray(const Camera* camera, vec2i scr_wh, vec2 ndc_pos) {
 // convert screen space from [0, w] and [0, 1-h] to [-1, 1]
 vec2 camera_screen_to_ndc(vec2i scr_wh, vec2 screen_pos) {
   return (vec2) {
-    .x =      (screen_pos.x / (float)scr_wh.w - 0.5) * 2,
-    .y = (1 - (screen_pos.y / (float)scr_wh.h) - 0.5) * 2,
+    .x =      (screen_pos.x / (float)scr_wh.w - 0.5f) * 2,
+    .y = (1 - (screen_pos.y / (float)scr_wh.h) - 0.5f) * 2,
   };
 }
 

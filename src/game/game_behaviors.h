@@ -31,23 +31,23 @@ void finish_rendering_sprites(
   Game* game, const Model_Sprites* sprites, const Texture* texture);
 
 // Player stats for movement and such
-#define accel   ((float[2]){ 40, 12 }) // [0] = ground, [1] = air
-#define max_vel ((float[2]){ 13, 15 })
-#define min_roll_velocity (max_vel[0] * 2.0/5.0)
-#define run_anim_threshold_diff 2.0
-#define roll_anim_threshold_diff 4.0
-#define walk_multiplier 0.5
-#define lift 17.0
-#define skid 9.0
-#define drop 8.0
-#define gravity 9.8 * 5.0
-#define jump_str 16.0
-#define jump_reverse_factor 0.2
+#define accel   ((float[2]){ 40.f, 12.f }) // [0] = ground, [1] = air
+#define max_vel ((float[2]){ 13.f, 15.f })
+#define min_roll_velocity (max_vel[0] * 2.f/5.f)
+#define run_anim_threshold_diff 2.f
+#define roll_anim_threshold_diff 4.f
+#define walk_multiplier 0.5f
+#define lift 17.f
+#define skid 9.f
+#define drop 8.f
+#define gravity 9.8f * 5.f
+#define jump_str 16.f
+#define jump_reverse_factor 0.2f
 #define max_replay_temp 120
 
 #define jump_accel_frame 4
 #define jump_double_accel_frame 6
-#define physics_epsilon 0.01
+#define physics_epsilon 0.01f
 #define physics_bump_threshold 1
 
 // Masks for reading the replay-packed input value

@@ -16,7 +16,7 @@ bool handle_player_combat(
 
   //vec4 color = c4cyan;
 
-  vec2 hurtbox = (vec2){fd->pos.x, fd->pos.y + 1.5};
+  vec2 hurtbox = (vec2){fd->pos.x, fd->pos.y + 1.5f};
   float h_radius = 1.5;
 
   for (uint i = 0; i < game->entities->size; ++i) {

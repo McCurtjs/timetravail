@@ -5,7 +5,11 @@
 #include "array.h"
 
 DebugDrawState draw = {
-  c4black, c4black, FALSE, v3zero, 0.1
+  .color = sc4black, 
+  .color_gradient_start = sc4black, 
+  .use_gradient = FALSE, 
+  .vector_offset = svNzero, 
+  .scale = 0.1f
 };
 
 typedef struct Vert {
@@ -63,7 +67,7 @@ void draw_pop() {
 }
 
 void draw_default_state() {
-  draw = (DebugDrawState){c4black, c4black, FALSE, v3zero, 0.1};
+  draw = (DebugDrawState){c4black, c4black, FALSE, v3zero, 0.1f};
 }
 
 // Draw functions
@@ -108,8 +112,8 @@ void draw_line(vec3 a, vec3 b) {
 void draw_vector(vec3 v) {
   vec3 target = v3add(draw.vector_offset, v);
   draw_line(draw.vector_offset, target);
-  vec3 base = v3add(draw.vector_offset, v3scale(v, 1.0 - draw.scale));
-  float base_scale = v3mag(v) * draw.scale * 0.75;
+  vec3 base = v3add(draw.vector_offset, v3scale(v, 1.f - draw.scale));
+  float base_scale = v3mag(v) * draw.scale * 0.75f;
   vec3 perp = v3scale(v3norm(v3perp(v)), base_scale);
   vec3 pcrs = v3scale(v3norm(v3cross(v, perp)), base_scale);
   draw_line_solid(target, v3add(base, perp), draw.color);

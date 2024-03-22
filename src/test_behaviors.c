@@ -43,8 +43,8 @@ void behavior_test_camera(Entity* _, Game* game, float dt) {
 
 void behavior_cubespin(Entity* e, Game* _, float dt) {
   e->transform = m4translation(e->pos);
-  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){1, 1.5, -.7}), e->angle));
-  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){-4, 1.5, 1}), e->angle/3.6));
+  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){1.f, 1.5f, -.7f}), e->angle));
+  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){-4.f, 1.5f, 1.f}), e->angle/3.6f));
   e->angle += 2 * dt;
 }
 

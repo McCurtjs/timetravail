@@ -5,6 +5,12 @@ add_executable(${PROJECT_NAME})
 include_directories(.)
 include_directories(./eng)
 
+if (WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+       _CRT_SECURE_NO_WARNINGS
+    )
+endif()
+
 target_sources(${PROJECT_NAME} PRIVATE
   main.c
   game.c

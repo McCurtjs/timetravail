@@ -21,7 +21,7 @@ float i2aspect(vec2i v) {
 }
 
 float v2mag(vec2 v) {
-  return sqrt(v2magsq(v));
+  return sqrtf(v2magsq(v));
 }
 
 float v2magsq(vec2 v) {
@@ -29,7 +29,7 @@ float v2magsq(vec2 v) {
 }
 
 float v2dist(vec2 P, vec2 Q) {
-  return sqrt(v2distsq(P, Q));
+  return sqrtf(v2distsq(P, Q));
 }
 
 float v2distsq(vec2 P, vec2 Q) {
@@ -190,7 +190,7 @@ vec4 p24f(vec2 v, float z) {
 }
 
 float v3mag(vec3 v) {
-  return sqrt(v3magsq(v));
+  return sqrtf(v3magsq(v));
 }
 
 float v3magsq(vec3 v) {
@@ -240,9 +240,9 @@ vec3 v3cross(vec3 a, vec3 b) {
 // https://math.stackexchange.com/questions/137362/how-to-find-perpendicular-vector-to-another-vector
 vec3 v3perp(vec3 v) {
   return (vec3) {
-    copysign(v.z, v.x),
-    copysign(v.z, v.y),
-    -copysign(fabs(v.x) + fabs(v.y), v.z)
+    copysignf(v.z, v.x),
+    copysignf(v.z, v.y),
+    -copysignf((float)fabs(v.x) + (float)fabs(v.y), v.z)
     // or -copysign(v.x, v.z) - copysign(v.y, v.z)
   };
 }

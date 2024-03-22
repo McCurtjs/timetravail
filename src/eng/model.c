@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "utility.h"
 #include "file.h"
@@ -84,8 +85,13 @@ static int model_build_grid(Model_Grid* grid) {
     grid->points_count = 12 + 8 * ext;
   }
 
+  float exf = (float)ext;
+
   vec3* points = malloc(sizeof(vec3) * grid->points_count);
   color3b* colors = malloc(sizeof(color3b) * grid->points_count);
+
+  assert(points != NULL);
+  assert(colors != NULL);
 
   uint i = 0;
   const vec3* basis = grid->basis;
@@ -97,26 +103,28 @@ static int model_build_grid(Model_Grid* grid) {
     points[i] = points[i+1] = v3zero;
     colors[i].i[j] = 255;
     colors[i+1].i[j] = colors[i].i[j];
-    points[i] = v3scale(basis[j], gext);
+    points[i] = v3scale(basis[j], (float)gext);
   }
 
   if (ext > 0) {
+
     for (uint j = 0; i < 12; i += 2, ++j) {
       colors[i] = colors[i+1] = (color3b){255, 255, 255};
       points[i] = points[i+1] = v3zero;
-      points[i] = v3scale(basis[j], -ext);
+      points[i] = v3scale(basis[j], -exf);
     }
 
     for (int j = 1; i < grid->points_count; i += 8, ++j) {
       // (x * ext) + (y * j)
-      points[i+0] = v3add(v3scale(basis[ga], ext), v3scale(basis[gb], j));
-      points[i+1] = v3add(v3scale(basis[ga],-ext), v3scale(basis[gb], j));
-      points[i+2] = v3add(v3scale(basis[ga], ext), v3scale(basis[gb],-j));
-      points[i+3] = v3add(v3scale(basis[ga],-ext), v3scale(basis[gb],-j));
-      points[i+4] = v3add(v3scale(basis[ga], j), v3scale(basis[gb], ext));
-      points[i+5] = v3add(v3scale(basis[ga], j), v3scale(basis[gb],-ext));
-      points[i+6] = v3add(v3scale(basis[ga],-j), v3scale(basis[gb], ext));
-      points[i+7] = v3add(v3scale(basis[ga],-j), v3scale(basis[gb],-ext));
+      float jf = (float)j;
+      points[i+0] = v3add(v3scale(basis[ga], exf), v3scale(basis[gb], jf));
+      points[i+1] = v3add(v3scale(basis[ga],-exf), v3scale(basis[gb], jf));
+      points[i+2] = v3add(v3scale(basis[ga], exf), v3scale(basis[gb],-jf));
+      points[i+3] = v3add(v3scale(basis[ga],-exf), v3scale(basis[gb],-jf));
+      points[i+4] = v3add(v3scale(basis[ga], jf), v3scale(basis[gb], exf));
+      points[i+5] = v3add(v3scale(basis[ga], jf), v3scale(basis[gb],-exf));
+      points[i+6] = v3add(v3scale(basis[ga],-jf), v3scale(basis[gb], exf));
+      points[i+7] = v3add(v3scale(basis[ga],-jf), v3scale(basis[gb],-exf));
 
       byte c = (j % 10 == 0 ? 128 : (j % 5 == 0 ? 0 : 63));
       color3b color = (color3b){c, c, c};
@@ -256,14 +264,14 @@ void model_sprites_draw(
 
   frame = frame % (spr->grid.w * spr->grid.h);
 
-  vec2 extent = (vec2) { 1.0 / spr->grid.w, -1.0 / spr->grid.h };
+  vec2 extent = (vec2) { 1.f / spr->grid.w, -1.f / spr->grid.h };
   vec2 corner = (vec2) {
     .x = (frame % spr->grid.w) / (float)spr->grid.w,
     .y = 1 - (frame / spr->grid.w) / (float)spr->grid.h,
   };
 
   if (mirror) {
-    corner.x += 1.0 / (float)spr->grid.w;
+    corner.x += 1.f / (float)spr->grid.w;
     extent.x *= -1;
   }
 

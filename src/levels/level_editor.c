@@ -10,7 +10,7 @@
 #include "mat.h"
 
 static Array editor_colliders = NULL;
-static vec2 player_start = v2zero;
+static vec2 player_start = svNzero;
 
 void behavior_editor(Entity* _, Game* game, float dt) {
 
@@ -21,8 +21,8 @@ void behavior_editor(Entity* _, Game* game, float dt) {
     *pos = v2add(*pos, v2scale(move, dt));
   }
 
-  static vec2 start_point = v2zero;
-  static vec2 end_point = v2zero;
+  static vec2 start_point = svNzero;
+  static vec2 end_point = svNzero;
 
   // Get mouse direction in world space
   vec2 mouse_pos = game->input.mouse.pos;
@@ -35,8 +35,8 @@ void behavior_editor(Entity* _, Game* game, float dt) {
 
   // snap to grid
   if (game->input.pressed.shift) {
-    cursor.x = floorf(cursor.x + 0.5);
-    cursor.y = floorf(cursor.y + 0.5);
+    cursor.x = floorf(cursor.x + 0.5f);
+    cursor.y = floorf(cursor.y + 0.5f);
   }
 
   // draw the cursor so we know what we're doing

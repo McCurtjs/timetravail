@@ -17,7 +17,7 @@ typedef struct Array_Internal {
   uint size_bytes;
 
   // private
-  void* data;
+  byte* data;
 } Array_Internal;
 
 #define DARRAY_INTERNAL Array_Internal* a = (Array_Internal*)(a_in)
@@ -25,6 +25,7 @@ typedef struct Array_Internal {
 
 Array array_new(uint element_size) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
+  if (!ret) return NULL; // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {
     .element_size = element_size,
     .capacity = 0,
@@ -37,6 +38,7 @@ Array array_new(uint element_size) {
 
 Array array_new_reserve(uint element_size, uint capacity) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
+  if (!ret) return NULL; // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {
     .element_size = element_size,
     .capacity = capacity,

@@ -14,20 +14,20 @@ void level_load_level_1(Game* game) {
   vec2 goal_loc = (vec2){ 25, 25};
 
   static Line colliders[] = {
-    { .a = (vec2){-35, 20}, .b = (vec2){-15, 20} }, // starting plat
-    { .a = (vec2){-15, 20}, .b = (vec2){-13, 14}, .wall = TRUE }, // left wall
-    { .a = (vec2){-13, 14}, .b = (vec2){-12,  6}, .wall = TRUE },
-    { .a = (vec2){-15,  7}, .b = (vec2){ 25,  7} }, // ground
-    { .a = (vec2){ 18,  6}, .b = (vec2){ 18, 20}, .wall = TRUE }, // right wall
-    { .a = (vec2){ 18, 20}, .b = (vec2){ 34, 20} }, // right platform
+    { .a = {-35, 20}, .b = {-15, 20} }, // starting plat
+    { .a = {-15, 20}, .b = {-13, 14}, .wall = TRUE }, // left wall
+    { .a = {-13, 14}, .b = {-12,  6}, .wall = TRUE },
+    { .a = {-15,  7}, .b = { 25,  7} }, // ground
+    { .a = { 18,  6}, .b = { 18, 20}, .wall = TRUE }, // right wall
+    { .a = { 18, 20}, .b = { 34, 20} }, // right platform
 
     // ceiling (right to left)
-    { .a = (vec2){ 34, 19}, .b = (vec2){ 34, 30}, .wall = TRUE },
-    { .a = (vec2){ 34, 30}, .b = (vec2){ 20, 40}, .wall = TRUE },
-    { .a = (vec2){ 20, 40}, .b = (vec2){-10, 37}, .wall = TRUE },
-    { .a = (vec2){-10, 37}, .b = (vec2){-27, 36}, .wall = TRUE },
-    { .a = (vec2){-27, 36}, .b = (vec2){-33, 31}, .wall = TRUE },
-    { .a = (vec2){-33, 31}, .b = (vec2){-35, 19}, .wall = TRUE },
+    { .a = { 34, 19}, .b = { 34, 30}, .wall = TRUE },
+    { .a = { 34, 30}, .b = { 20, 40}, .wall = TRUE },
+    { .a = { 20, 40}, .b = {-10, 37}, .wall = TRUE },
+    { .a = {-10, 37}, .b = {-27, 36}, .wall = TRUE },
+    { .a = {-27, 36}, .b = {-33, 31}, .wall = TRUE },
+    { .a = {-33, 31}, .b = {-35, 19}, .wall = TRUE },
   };
 
   game->colliders = colliders;

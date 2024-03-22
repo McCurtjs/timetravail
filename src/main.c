@@ -63,7 +63,7 @@ void export(wasm_preload) (uint w, uint h) {
       .pos = (vec4){0, 0, 60, 1},
       .front = v4front,
       .up = v4y,
-      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1, 500}
+      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1f, 500}
       //.ortho = {-6 * i2aspect(windim), 6 * i2aspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
@@ -111,8 +111,8 @@ static void cheesy_loading_animation(float dt) {
   int projViewMod_loc = game.shaders.basic.uniform.projViewMod;
 
   mat4 model = m4translation((vec3){0, 0, 0});
-  model = m4mul(model, m4rotation(v3norm((vec3){1, 1.5, -.7}), cubespin));
-  model = m4mul(model, m4rotation(v3norm((vec3){-4, 1.5, 1}), cubespin/3.6));
+  model = m4mul(model, m4rotation(v3norm((vec3){1.f, 1.5f, -.7f}), cubespin));
+  model = m4mul(model, m4rotation(v3norm((vec3){-4.f, 1.5f, 1.f}), cubespin/3.6f));
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
   model_render(&game.models.color_cube);

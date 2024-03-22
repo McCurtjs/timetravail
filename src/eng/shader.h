@@ -11,8 +11,8 @@
 typedef int shaderloc;
 
 typedef struct Shader {
-  jshandle  handle;
-  int       ready;
+  uint  handle;
+  int   ready;
 } Shader;
 
 int  shader_build(Shader* s, int type, const char* buffer, uint buffer_length);

@@ -14,36 +14,36 @@ void level_load_level_3(Game* game) {
   vec2 goal_loc = (vec2){-15, 46};
 
   static Line colliders[] = {
-    { .a = (vec2){  0,  0}, .b = (vec2){ 15,  0} }, // starting plat
-    { .a = (vec2){  1, 28}, .b = (vec2){  1, -1}, .wall = TRUE }, // left wall
-    { .a = (vec2){ 14, -1}, .b = (vec2){ 14,  2}, .wall = TRUE }, // right wall
-    { .a = (vec2){ 14,  2}, .b = (vec2){ 18,  7}, .wall = TRUE },
-    { .a = (vec2){ 18,  7}, .b = (vec2){ 20, 18}, .wall = TRUE },
-    { .a = (vec2){  0,  3}, .b = (vec2){  3,  3}, .droppable = TRUE }, // ladder
-    { .a = (vec2){  0,  6}, .b = (vec2){  3,  6}, .droppable = TRUE },
-    { .a = (vec2){  0,  9}, .b = (vec2){  3,  9}, .droppable = TRUE },
-    { .a = (vec2){  0, 15}, .b = (vec2){  3, 15}, .droppable = TRUE }, // high
-    { .a = (vec2){ 20, 18}, .b = (vec2){ 25, 18} }, // right-plat
+    { .a = {  0,  0}, .b = { 15,  0} }, // starting plat
+    { .a = {  1, 28}, .b = {  1, -1}, .wall = TRUE }, // left wall
+    { .a = { 14, -1}, .b = { 14,  2}, .wall = TRUE }, // right wall
+    { .a = { 14,  2}, .b = { 18,  7}, .wall = TRUE },
+    { .a = { 18,  7}, .b = { 20, 18}, .wall = TRUE },
+    { .a = {  0,  3}, .b = {  3,  3}, .droppable = TRUE }, // ladder
+    { .a = {  0,  6}, .b = {  3,  6}, .droppable = TRUE },
+    { .a = {  0,  9}, .b = {  3,  9}, .droppable = TRUE },
+    { .a = {  0, 15}, .b = {  3, 15}, .droppable = TRUE }, // high
+    { .a = { 20, 18}, .b = { 25, 18} }, // right-plat
 
-    { .a = (vec2){ 24, 17}, .b = (vec2){ 24, 30}, .wall = TRUE }, // right second wall
-    { .a = (vec2){ 24, 30}, .b = (vec2){ 20, 34}, .wall = TRUE },
-    { .a = (vec2){ 20, 34}, .b = (vec2){ 20, 35}, .wall = TRUE },
+    { .a = { 24, 17}, .b = { 24, 30}, .wall = TRUE }, // right second wall
+    { .a = { 24, 30}, .b = { 20, 34}, .wall = TRUE },
+    { .a = { 20, 34}, .b = { 20, 35}, .wall = TRUE },
 
-    { .a = (vec2){ 12, 27}, .b = (vec2){ -1, 27}, .wall = TRUE }, // left ceiling
-    { .a = (vec2){ 13, 29}, .b = (vec2){ 12, 27}, .wall = TRUE },
+    { .a = { 12, 27}, .b = { -1, 27}, .wall = TRUE }, // left ceiling
+    { .a = { 13, 29}, .b = { 12, 27}, .wall = TRUE },
 
-    { .a = (vec2){ 20, 35}, .b = (vec2){ 34, 35} }, // right big plat
-    { .a = (vec2){-20, 29}, .b = (vec2){ 13, 29} }, // left big plat
+    { .a = { 20, 35}, .b = { 34, 35} }, // right big plat
+    { .a = {-20, 29}, .b = { 13, 29} }, // left big plat
 
-    { .a = (vec2){ 33, 34}, .b = (vec2){ 33, 48}, .wall = TRUE }, // top right wall
-    { .a = (vec2){ 33, 48}, .b = (vec2){-18, 50}, .wall = TRUE }, // ceiling
-    { .a = (vec2){-18, 50}, .b = (vec2){-18, 25}, .wall = TRUE }, // far left wall
+    { .a = { 33, 34}, .b = { 33, 48}, .wall = TRUE }, // top right wall
+    { .a = { 33, 48}, .b = {-18, 50}, .wall = TRUE }, // ceiling
+    { .a = {-18, 50}, .b = {-18, 25}, .wall = TRUE }, // far left wall
 
-    { .a = (vec2){-20, 43}, .b = (vec2){-12, 43} }, // final plat
+    { .a = {-20, 43}, .b = {-12, 43} }, // final plat
 
-    { .a = (vec2){-12, 43}, .b = (vec2){  5, 35}, .wall = TRUE }, // ramp
-    { .a = (vec2){  5, 35}, .b = (vec2){  4, 34}, .wall = TRUE },
-    { .a = (vec2){  4, 34}, .b = (vec2){-24, 38}, .wall = TRUE },
+    { .a = {-12, 43}, .b = {  5, 35}, .wall = TRUE }, // ramp
+    { .a = {  5, 35}, .b = {  4, 34}, .wall = TRUE },
+    { .a = {  4, 34}, .b = {-24, 38}, .wall = TRUE },
   };
 
   game->colliders = colliders;

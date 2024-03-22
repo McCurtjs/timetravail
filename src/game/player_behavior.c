@@ -34,10 +34,12 @@ typedef struct ReplayNode {
 } ReplayNode;
 
 void behavior_player(Entity* e, Game* game, float _) {
-  float dt = 0.016;
+  float dt = 0.016f;
 
   // Convert inputs from source game booleans to bitmask
   uint inputs = get_input_mask(game);
+
+  uint game_frame = (uint)game->frame;
 
   // Stuipd stuipd stupid
   uint first_frame = FALSE;
@@ -46,8 +48,8 @@ void behavior_player(Entity* e, Game* game, float _) {
   if (e->replay == NULL) {
     e->replay = array_new_reserve(sizeof(ReplayNode), 200);
     array_push_back(e->replay, &(ReplayNode) {
-      .frame = game->frame,
-      .frame_until = game->frame,
+      .frame = game_frame,
+      .frame_until = game_frame,
       .buttons = 0,
       .data = e->fd,
     });
@@ -56,9 +58,9 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
-    ((PlayerRef*)array_get_back(game->timeguys))->end_frame = game->frame;
+    ((PlayerRef*)array_get_back(game->timeguys))->end_frame = game_frame;
     array_push_back(game->timeguys, &(PlayerRef) {
-      .start_frame = game->frame,
+      .start_frame = game_frame,
       .e = e,
     });
 
@@ -78,7 +80,7 @@ void behavior_player(Entity* e, Game* game, float _) {
   // Handle input event recording
   if (!e->playback) {
     ReplayNode* prev_node = array_get_back(e->replay);
-    bool hit_max_node_time = game->frame - prev_node->frame >= max_replay_temp;
+    bool hit_max_node_time = game_frame - prev_node->frame >= max_replay_temp;
 
     if (hit_max_node_time
     ||  game->reverse_triggered
@@ -90,12 +92,12 @@ void behavior_player(Entity* e, Game* game, float _) {
     ||  prev_node->data.facing != e->fd.facing
     ) {
       // Because fractional frames, make sure we aren't double-counting frames
-      if ((uint)game->frame != prev_node->frame) {
-        prev_node->frame_until = game->frame;
+      if (game_frame != prev_node->frame) {
+        prev_node->frame_until = game_frame;
 
         array_push_back(e->replay, &(ReplayNode) {
-          .frame = game->frame,
-          .frame_until = game->frame,
+          .frame = game_frame,
+          .frame_until = game_frame,
           .buttons = inputs,
           .data = e->fd,
         });
@@ -112,9 +114,9 @@ void behavior_player(Entity* e, Game* game, float _) {
     dt = dt * game->reverse_speed;
     bool cancel = 0;
     cancel |= handle_player_combat(game, e, &updates);
-    handle_movement(&updates, dt, inputs, (uint)game->frame);
+    handle_movement(&updates, dt, inputs, game_frame);
     cancel |= handle_player_collisions(game, e->fd, &updates, inputs);
-    handle_abilities(e->fd, &updates, inputs, game->frame, first_frame, cancel);
+    handle_abilities(e->fd, &updates, inputs, game_frame, first_frame, cancel);
     e->fd = updates;
 
     // special cases with animations...
@@ -124,7 +126,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     if (hit_max_node_time
     && anim_is_idle(prev_anim) && next_anim == prev_anim
     ) {
-      srand((uint)game->frame);
+      srand(game_frame);
       uint r = rand();
       if (r % 7 < 4) {
         e->fd.animation = ANIMATION_IDLE_2;
@@ -135,7 +137,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     if (prev_anim != e->fd.animation) {
       // walk and run map onto each other, so don't update the start frame
       unless ((anim_is_ground(prev_anim) && anim_is_ground(next_anim))) {
-        e->fd.start_frame = game->frame;
+        e->fd.start_frame = game_frame;
       }
     }
 
@@ -150,7 +152,7 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // First check if the current frame is before the first playback frame
     array_read_front(e->replay, &node);
-    if (node.frame > game->frame) {
+    if (node.frame > game_frame) {
       e->hidden = TRUE;
       return; // hard exit, don't waste time simulating playback
     } else {
@@ -162,7 +164,7 @@ void behavior_player(Entity* e, Game* game, float _) {
     for (index = 0; index < e->replay->size; ++index) {
       array_read(e->replay, index, &node);
 
-      if (game->frame >= node.frame && game->frame < node.frame_until) {
+      if (game_frame >= node.frame && game_frame < node.frame_until) {
         break;
       }
     }
@@ -197,9 +199,9 @@ void behavior_player(Entity* e, Game* game, float _) {
     }
 
     // Read the final correct node from the temp buffer
-    if ((game->frame - block_start + 1) < e->replay_temp->size) {
-      array_read(e->replay_temp, game->frame - block_start, &node);
-      array_read(e->replay_temp, game->frame - block_start + 1, &next);
+    if ((game_frame - block_start + 1) < e->replay_temp->size) {
+      array_read(e->replay_temp, game_frame - block_start, &node);
+      array_read(e->replay_temp, game_frame - block_start + 1, &next);
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
       array_read_back(e->replay, &next);
@@ -212,9 +214,9 @@ void behavior_player(Entity* e, Game* game, float _) {
 
     // At this point, "node" should be set to the correct current frame
     temp = array_get_back(e->replay);
-    if ((uint)game->frame != node.frame && game->frame < temp->frame_until) { // sanity check
+    if (game_frame != node.frame && game_frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
-      print_ptr(e); print_int(node.frame); print_int(game->frame);
+      print_ptr(e); print_int(node.frame); print_int(game_frame);
     }
 
     // Finally, set the location of the entity
