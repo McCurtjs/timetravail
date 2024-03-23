@@ -23,7 +23,8 @@
     "sdl_glfuncs.h": "c",
     "sdl_opengles2.h": "c",
     "sdl_opengles2_khrplatform.h": "c",
-    "corecrt.h": "c"
+    "corecrt.h": "c",
+    "stdbool.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",

@@ -25,7 +25,7 @@ typedef struct Array_Internal {
 
 Array array_new(uint element_size) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
-  if (!ret) return NULL; // TODO: better handling of critical memory situations
+  assert(ret); // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {
     .element_size = element_size,
     .capacity = 0,
@@ -38,7 +38,7 @@ Array array_new(uint element_size) {
 
 Array array_new_reserve(uint element_size, uint capacity) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
-  if (!ret) return NULL; // TODO: better handling of critical memory situations
+  assert(ret); // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {
     .element_size = element_size,
     .capacity = capacity,
@@ -53,7 +53,7 @@ void array_reserve(Array a_in, uint capacity) {
   DARRAY_INTERNAL;
   if (!a || a->capacity >= capacity) return;
   void* new_data = realloc(a->data, a->element_size * capacity);
-  if (!new_data) return; // TODO: better handling of critical memory situations
+  assert(new_data); // TODO: better handling of critical memory situations
   a->data = new_data;
   a->capacity = capacity;
 }

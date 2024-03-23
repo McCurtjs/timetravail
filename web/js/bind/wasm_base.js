@@ -11,11 +11,11 @@ function wasm_import_base(imports, game) {
   }
 
   imports['js_log_int'] = (i) => {
-    console.log(i);
+    console.log(Number(i));
   }
 
   imports['js_log_num'] = (i) => {
-    console.log(i);
+    console.log(Number(i));
   }
 
   imports['js_log_num_array'] = (ptr, count) => {

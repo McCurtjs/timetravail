@@ -5,6 +5,7 @@
 #include "eng/camera.h"
 #include "eng/texture.h"
 #include "eng/draw.h"
+#include "eng/str.h"
 #include "utility.h"
 
 #include <stdio.h>
@@ -40,6 +41,67 @@ static Image image_tiles;
 static Image image_brass;
 static Image image_anim_test;
 #endif
+
+str_static(str_test_1, "|Hello, this is a static string|");
+str_static(str_test_2, "|This is another test!|");
+
+void string_tests() {
+  str_print(&str_test_1);
+  print_int(str_test_1.length);
+  str_print(&str_test_2);
+  print_int(str_test_2.length);
+  str_print(&str_literal("This is an inline string literal"));
+  str_print(&R("This is an inline literal with short macro"));
+
+  String tmp = str_concat(str_test_1, str_test_2);
+  str_print(&tmp->range);
+  print_int(tmp->size);
+  print_ptr(tmp);
+  print_ptr(tmp->begin);
+  str_delete(&tmp);
+  print_ptr(tmp);
+
+  Array ranges = array_new(sizeof(StringRange));
+  array_push_back(ranges, &R("First string"));
+  array_push_back(ranges, &R("Second range"));
+  array_push_back(ranges, &R("Another one!"));
+  array_push_back(ranges, &R("And another!"));
+  print("Joining strings...");
+  tmp = str_join(R("--POTATO--"), ranges);
+  str_print(&tmp->range);
+  print_int(tmp->size);
+  str_delete(&tmp);
+  array_delete(&ranges);
+  print_ptr(ranges);
+  print_ptr(tmp);
+
+  String empty = str_new(NULL);
+  String tmp1 = str_new("Copying as an actual string");
+  String tmp2 = str_copy(R("Copied string"));
+  String tmp3 = str_new("third string");
+  StringRange* tmp4 = &R("Sneaky range pointer");
+
+  print_ptr(tmp1);
+
+  ranges = array_new(sizeof(String));
+  array_push_back(ranges, &tmp1);
+  array_push_back(ranges, &tmp2);
+  array_push_back(ranges, &empty);
+  array_push_back(ranges, &tmp3);
+  array_push_back(ranges, &tmp4);
+  print("Joining strings...");
+  tmp = str_join(R(" +++ "), ranges);
+  str_print(&tmp->range);
+  print_int(tmp->size);
+  str_delete(&tmp);
+  str_delete(&tmp1);
+  str_delete(&tmp2);
+  str_delete(&tmp3);
+  print_ptr(empty);
+  str_delete(&empty);
+  print_ptr(empty);
+  array_delete(&ranges);
+}
 
 void export(wasm_preload) (uint w, uint h) {
   #if GAME_ON == 1
@@ -188,6 +250,8 @@ int export(wasm_load) (int await_count, float dt) {
 
   #endif
 
+  string_tests();
+
   return 1;
 }
 
@@ -201,10 +265,14 @@ void export(wasm_render) () {
   game_render(&game);
 }
 
+
 #ifndef __WASM__
 
 int main(int argc, char* argv[]) {
   print("Hello, world!");
+
+  string_tests();
+
   return 0;
 }
 

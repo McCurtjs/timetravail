@@ -36,6 +36,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   levels/og_test.c
 
   eng/array.c
+  eng/str.c
   eng/camera.c
   eng/draw.c
   eng/entity.c
