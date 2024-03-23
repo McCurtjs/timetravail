@@ -11,9 +11,24 @@
 //#define export __attribute__((visibility( "default" )))
 
 // very clunky, but actually does work
-#define export(fn_name) __attribute__((export_name(#fn_name))) fn_name
+# define export(fn_name) __attribute__((export_name(#fn_name))) fn_name
+
+# ifndef __has_builtin
+#  define __has_builtin(x) 0
+# endif
+
+// Provide assert that works with wasm...
+# if __has_builtin(__builtin_trap)
+#  define assert(CONDITION) (!(CONDITION) ? __builtin_trap() : 0);
+# else
+#  define assert(CONDITION)
+# endif
+
+// ndef __WASM__
 #else
-#define export(fn_name) fn_name
+# define export(fn_name) fn_name
+
+# include <assert.h>
 #endif
 
 void print(const char* str);

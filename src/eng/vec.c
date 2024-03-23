@@ -243,7 +243,7 @@ vec3 v3perp(vec3 v) {
     copysignf(v.z, v.x),
     copysignf(v.z, v.y),
     -copysignf((float)fabs(v.x) + (float)fabs(v.y), v.z)
-    // or -copysign(v.x, v.z) - copysign(v.y, v.z)
+    // or -copysignf(v.x, v.z) - copysignf(v.y, v.z)
   };
 }
 
