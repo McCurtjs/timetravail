@@ -23,7 +23,7 @@ typedef struct Array_Internal {
 #define DARRAY_INTERNAL Array_Internal* a = (Array_Internal*)(a_in)
 #define DARRAY_INTERNAL_CONST const Array_Internal* a = (const Array_Internal*)(a_in)
 
-Array array_new(uint element_size) {
+Array _array_new_(uint element_size) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
   assert(ret); // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {
@@ -36,7 +36,7 @@ Array array_new(uint element_size) {
   return (Array)ret;
 }
 
-Array array_new_reserve(uint element_size, uint capacity) {
+Array _array_new_reserve_(uint element_size, uint capacity) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
   assert(ret); // TODO: better handling of critical memory situations
   *ret = (Array_Internal) {

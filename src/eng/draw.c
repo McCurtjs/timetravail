@@ -27,7 +27,7 @@ static Array draw_state_stack = NULL;
 static void draw_init() {
   if (geometry) return;
   draw_default_state();
-  geometry = array_new_reserve(sizeof(Vert), 128);
+  geometry = array_new_reserve(Vert, 128);
 }
 
 static void draw_add_point(vec3 pos, color4 col) {
@@ -55,7 +55,7 @@ static void draw_init_gl() {
 
 void draw_push() {
   if (!draw_state_stack) {
-    draw_state_stack = array_new(sizeof(DebugDrawState));
+    draw_state_stack = array_new(DebugDrawState);
   }
   array_push_back(draw_state_stack, &draw);
 }

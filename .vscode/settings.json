@@ -24,7 +24,10 @@
     "sdl_opengles2.h": "c",
     "sdl_opengles2_khrplatform.h": "c",
     "corecrt.h": "c",
-    "stdbool.h": "c"
+    "stdbool.h": "c",
+    "assert.h": "c",
+    "crtdefs.h": "c",
+    "utility.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",
@@ -32,5 +35,6 @@
     "src/",
     "lib/SDL/include"
   ],
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "cmake.configureOnOpen": true
 }

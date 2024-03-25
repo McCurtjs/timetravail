@@ -46,7 +46,7 @@ void behavior_player(Entity* e, Game* game, float _) {
 
   // Initialize the replay data storage on first update
   if (e->replay == NULL) {
-    e->replay = array_new_reserve(sizeof(ReplayNode), 200);
+    e->replay = array_new_reserve(ReplayNode, 200);
     array_push_back(e->replay, &(ReplayNode) {
       .frame = game_frame,
       .frame_until = game_frame,
@@ -144,7 +144,7 @@ void behavior_player(Entity* e, Game* game, float _) {
   // Handle replay playback
   } else if (e->replay->size) {
     if (e->replay_temp == NULL) {
-      e->replay_temp = array_new_reserve(sizeof(ReplayNode), max_replay_temp);
+      e->replay_temp = array_new_reserve(ReplayNode, max_replay_temp);
     }
 
     uint index;

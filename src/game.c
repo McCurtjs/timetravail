@@ -5,7 +5,7 @@
 #include "wasm.h"
 
 void game_init(Game* game) {
-  game->entities = array_new(sizeof(Entity));
+  game->entities = array_new(Entity);
   game->frame = 0;
 }
 

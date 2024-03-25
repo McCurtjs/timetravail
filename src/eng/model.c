@@ -207,7 +207,7 @@ typedef struct SpriteVertex {
 } SpriteVertex;
 
 static int model_build_sprites(Model_Sprites* sprites) {
-  sprites->verts = array_new(sizeof(SpriteVertex));
+  sprites->verts = array_new(SpriteVertex);
 
   glGenVertexArrays(1, &sprites->vao);
   glBindVertexArray(sprites->vao);
@@ -381,10 +381,10 @@ void model_load_obj(Model* model, File* file) {
   file_read(file);
   if (!file->text) return;
 
-  Array verts = array_new(sizeof(ObjVertexPart));
-  Array norms = array_new(sizeof(vec3));
-  Array uvs = array_new(sizeof(vec2));
-  Array faces = array_new(sizeof(ObjFaceElem));
+  Array verts = array_new(ObjVertexPart);
+  Array norms = array_new(vec3);
+  Array uvs = array_new(vec2);
+  Array faces = array_new(ObjFaceElem);
 
   char* next = strtok(file->text, " ");
 
@@ -467,8 +467,8 @@ void model_load_obj(Model* model, File* file) {
     }
   }
 
-  model->obj.verts = array_new_reserve(sizeof(ObjVertex), faces->size);
-  model->obj.indices = array_new_reserve(sizeof(uint), faces->size);
+  model->obj.verts = array_new_reserve(ObjVertex, faces->size);
+  model->obj.indices = array_new_reserve(uint, faces->size);
 
   for (uint i = 0; i < faces->size; ++i) {
     // -1's to account for obj's 1-indexing

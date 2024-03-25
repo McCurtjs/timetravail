@@ -19,8 +19,10 @@ typedef struct {
 //} Range;
 
 
-Array array_new(uint elemenet_size);
-Array array_new_reserve(uint element_size, uint capacity);
+#define array_new(TYPE) _array_new_(sizeof(TYPE))
+#define array_new_reserve(TYPE, capacity) _array_new_reserve_(sizeof(TYPE), capacity)
+Array _array_new_(uint elemenet_size);
+Array _array_new_reserve_(uint element_size, uint capacity);
 void  array_reserve(Array array, uint capacity);
 void  array_truncate(Array array, uint capacity);
 void  array_clear(Array array);

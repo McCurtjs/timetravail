@@ -88,7 +88,7 @@ void level_load_editor(Game* game) {
   game->camera.front = v4front;
 
   if (!editor_colliders) {
-    editor_colliders = array_new(sizeof(Line));
+    editor_colliders = array_new(Line);
   }
 
   game->colliders = array_get_front(editor_colliders);
@@ -168,7 +168,7 @@ void level_load_editor_test(Game* game) {
     .delete = delete_player,
   });
 
-  game->timeguys = array_new(sizeof(PlayerRef));
+  game->timeguys = array_new(PlayerRef);
   array_push_back(game->timeguys, &(PlayerRef){
     .start_frame = 0,
     .e = array_get_back(game->entities)
