@@ -245,3 +245,70 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   }
   return str.size;
 }
+
+/*
+
+  // A case for making a string builder that takes arguments of different types,
+  // and consumes the passed String objects among them when resolving:
+
+  String passed = str_from_int(test_passed_count);
+  String total = str_from_int(test_count);
+  String percent = str_from_int(ratio);
+  Array arr = array_new(StringRange);
+  array_push_back(arr, &R("Tests passed: %c"));
+  array_push_back(arr, &passed->range);
+  array_push_back(arr, &R(" out of "));
+  array_push_back(arr, &total->range);
+  array_push_back(arr, &R(", or "));
+  array_push_back(arr, &percent->range);
+  array_push_back(arr, &R("%"));
+  String result = str_join(str_empty->range, arr);
+  str_print_color(result->range, color);
+  array_delete(&arr);
+  str_delete(&result);
+  str_delete(&passed);
+  str_delete(&total);
+  str_delete(&percent);
+
+  // String builder helper class? How much more convenient is this?
+
+  StringBuilder stb = stb_new();
+  stb_c_str(stb, "Tests passed: %c"));
+  stb_str  (stb, str_front_int(test_passed_count));
+  stb_range(stb, R(" out of "));
+  stb_str  (stb, str_from_int(test_count));
+  stb_range(stb, R(", or "));
+  stb_str  (stb, str_from_int(percent));
+  stb_range(stb, R("%"));
+  String result = stb_resolve(&stb);
+
+  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
+  str_print_color(result->range, color);
+  str_delete(&result);
+
+  // Arg-supporting variant?
+
+  StringBuilder stb = stb_new();
+  stb_range(stb, R("Tests passed: %c{} out of {}"));
+  stb_arg_int(stb, test_passed_count);
+  stb_arg_int(stb, test_count);
+  stb_arg_int(stb, percent);
+  String result = stb_resolve(&stb);
+
+  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
+  str_print_color(result->range, color);
+  str_delete(&result);
+
+  // Have each of the stb base functions return a new builder if passed null?
+
+  StringBuilder stb = stb_range(NULL, R("Tests passed: %c{} out of {}, or {}%"));
+  stb_arg_int(stb, test_passed_count);
+  stb_arg_int(stb, test_count);
+  stb_arg_int(stb, percent);
+  String result = stb_resolve(&stb);
+
+  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
+  str_print_color(result->range, color);
+  str_delete(&result);
+
+*/

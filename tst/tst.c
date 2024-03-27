@@ -15,20 +15,23 @@ typedef enum PrintLevel {
   PRINTED
 } PrintLevel;
 
+// TODO: take all these and split them into a meta-context object so we
+// can at least pretend to be thread-safe.
 static const StringRange* test_function = NULL;
 static const StringRange* test_description = NULL;
-static const StringRange* test_line = NULL;
 static const TestSuite* current_suite = NULL;
 static bool test_filename_printed = FALSE;
 static bool test_function_printed = FALSE;
 static PrintLevel test_desc_printed = NOT_PRINTED;
 static bool test_failed = FALSE;
 static bool test_skipped = FALSE;
+static bool test_in_progress = FALSE;
+static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
 static bool param_verbose = FALSE;
-static size_t param_line = 0;
+static int param_line = 0;
 static StringRange* param_file = NULL;
 
 static int memory_count_mallocs = 0;
@@ -55,11 +58,7 @@ void free_test(void* mem) {
   free(mem);
 }
 
-void _test_skip() {
-  test_skipped = TRUE;
-}
-
-bool test_blank() {
+static bool test_blank() {
   return test_description == NULL || test_description->size == 0;
 }
 
@@ -86,8 +85,44 @@ static void print_headers(int desc_color, uint desc_level) {
   }
 }
 
-void _test_reset(const StringRange* line_no, const StringRange* desc) {
+bool _test_context(int line) {
+  return TRUE;
+}
 
+bool _test_begin(int line, const StringRange* desc) {
+  if (test_current_line > line) {
+    return FALSE;
+  }
+
+  test_description = desc;
+  test_desc_printed = NOT_PRINTED;
+  test_failed = FALSE;
+  memory_count_mallocs = 0;
+  memory_count_frees = 0;
+  /* TODO: store memory 'end' pointer here to not count context allocations? */
+
+  if (param_line == 0 || param_line == line) {
+    test_in_progress = TRUE;
+    test_skipped = FALSE;
+
+  } else {
+    test_in_progress = FALSE;
+    test_skipped = TRUE; // not needed
+
+    if (param_verbose) {
+      print_headers(CONCOL_Blue, LOGGED);
+    }
+  }
+
+  return test_in_progress;
+}
+
+bool _test_end(int line) {
+  if ((line && test_current_line >= line) || !test_in_progress) {
+    return FALSE;
+  }
+
+  // TODO: I don't think we need to check test_blank anymore (thanks to in_prog)
   if (!test_blank() && !test_failed) {
 
     if (memory_count_mallocs != memory_count_frees) {
@@ -111,31 +146,19 @@ void _test_reset(const StringRange* line_no, const StringRange* desc) {
     /* TODO: do real memory checks for malloc and allocate garbage */
   }
 
-  int desc_color = 0;
+  ++test_count;
 
-  if (test_skipped) {
-    desc_color = CONCOL_Blue;
+  if (!test_failed) {
+    ++test_passed_count;
 
-  } else if (!test_blank()) {
-    ++test_count;
-
-    if (!test_failed) {
-      ++test_passed_count;
-      desc_color = CONCOL_Green;
+    if (param_verbose || param_line) {
+      print_headers(CONCOL_Green, LOGGED);
     }
   }
 
-  if (!test_blank() && desc_color && param_verbose && !test_desc_printed) {
-    print_headers(desc_color, LOGGED);
-  }
+  test_in_progress = FALSE;
 
-  test_description = desc;
-  test_desc_printed = NOT_PRINTED;
-  test_line = line_no;
-  test_failed = FALSE;
-  test_skipped = FALSE;
-  memory_count_mallocs = 0;
-  memory_count_frees = 0;
+  return TRUE;
 }
 
 void _test_log(const StringRange* message) {
@@ -199,22 +222,29 @@ void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
   array_delete(&split);
 }
 
+static void before_run() {
+  test_count = 0;
+  test_passed_count = 0;
+}
+
 static void before_suite(const TestSuite* suite) {
   current_suite = suite;
   test_filename_printed = FALSE;
-  test_desc_printed = FALSE;
   test_failed = FALSE;
 }
 
 static void before_fn(const TestGroup* t) {
-    test_description = NULL;
-    test_function = &t->header;
-    test_function_printed = FALSE;
+  test_function_printed = FALSE;
+  test_function = &t->header;
 }
 
-static void before_run() {
-  test_count = 0;
-  test_passed_count = 0;
+static void process_function(const TestGroup* t) {
+  before_fn(t);
+  test_current_line = 0;
+  int ctx = 0;
+  do {
+    test_current_line = t->group_fn(test_current_line, ctx);
+  } while(test_current_line);
 }
 
 void test_run_suite(const TestSuite* suite) {
@@ -232,8 +262,10 @@ void test_run_suite(const TestSuite* suite) {
   const TestGroup* t = &suite->test_groups[0];
   while (t->line != 0) {
     if (t->line == param_line) {
-      before_fn(t);
-      t->group_fn(0);
+      int tmp = param_line;
+      param_line = 0;
+      process_function(t);
+      param_line = tmp;
       goto end_suite;
     }
     ++t;
@@ -241,9 +273,7 @@ void test_run_suite(const TestSuite* suite) {
 
   t = &suite->test_groups[0];
   while (t->line != 0) {
-      before_fn(t);
-      t->group_fn(param_line);
-    ++t;
+    process_function(t++);
   }
 
 end_suite:
@@ -266,9 +296,15 @@ static void process_args(int argc, char* argv[]) {
       if (sep != param.size) {
         param_line = atoi(str_substring(param, sep + 1).begin);
       }
-      param_file = malloc(sizeof(StringRange));
-      StringRange to_copy = str_substring(param, 0, sep);
-      memcpy(param_file, &to_copy, sizeof(StringRange));
+
+      // Zero-length, don't bother. In this case, the string was entered as ":3"
+      // so we'll take the number, but not single it to a file. Maybe someone
+      // meticulously puts a specific test on one line of every file, who knows.
+      if (sep != 0) {
+        param_file = malloc(sizeof(StringRange));
+        StringRange to_copy = str_substring(param, 0, sep);
+        memcpy(param_file, &to_copy, sizeof(StringRange));
+      }
     }
   }
 }
@@ -280,8 +316,6 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
   for (int i = 0; i < count; ++i) {
     test_run_suite(suites[i]);
   }
-
-  // Tests passed: 4 out of 4, or 100%
 
   int color = test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed;
   int ratio = 100;
@@ -311,45 +345,3 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
   // return the number of failed tests
   return test_count - test_passed_count;
 }
-
-/*
-
-  // String builder helper class? How much more convenient is this?
-
-  StringBuilder stb = stb_new();
-  stb_c_str(stb, "Tests passed: %c"));
-  stb_str  (stb, str_front_int(test_passed_count));
-  stb_range(stb, R(" out of "));
-  stb_str  (stb, str_from_int(test_count));
-  String result = stb_resolve(&stb);
-
-  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
-  str_print_color(result->range, color);
-  str_delete(&result);
-
-  // Arg-supporting variant?
-
-  StringBuilder stb = stb_new();
-  stb_range(stb, R("Tests passed: %c{} out of {}"));
-  stb_arg_int(stb, test_passed_count);
-  stb_arg_int(stb, test_count);
-  String result = stb_resolve(&stb);
-
-  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
-  str_print_color(result->range, color);
-  str_delete(&result);
-
-  // ???
-
-  StringBuilder stb = stb_range(NULL, R("Tests passed: %c{} out of {}"));
-  stb_arg_int(stb, test_passed_count);
-  stb_arg_int(stb, test_count);
-  String result = stb_resolve(&stb);
-
-  int color = test_count == test_passed_count ? CONCOL_Green : CONCOL_Red;
-  str_print_color(result->range, color);
-  str_delete(&result);
-
-
-*/
-
