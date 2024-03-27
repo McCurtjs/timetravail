@@ -27,13 +27,18 @@
     "stdbool.h": "c",
     "assert.h": "c",
     "crtdefs.h": "c",
-    "utility.h": "c"
+    "utility.h": "c",
+    "shader.h": "c",
+    "str.h": "c",
+    "tst.h": "c",
+    "wasm.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",
     "src/eng",
     "src/",
-    "lib/SDL/include"
+    "lib/SDL/include",
+    "tst/"
   ],
   "files.eol": "\n",
   "cmake.configureOnOpen": true

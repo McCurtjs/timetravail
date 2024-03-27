@@ -19,6 +19,7 @@ class Game {
     this.await_count = 0;
     this.ready = false;
     this.frame_time = 0;
+    this.tests_only = false;
 
     this.utf8_decoder = new TextDecoder("utf-8");
   }
@@ -61,6 +62,7 @@ class Game {
 
   async initialize(wasm_filename) {
     await this.initialize_wasm(wasm_filename);
+    if (this.tests_only) return;
     this.initialize_webgl();
     this.initialize_window_events();
   }
@@ -79,7 +81,7 @@ class Game {
       this.wasm = obj.instance;
       if (!this.wasm) return;
       this.initialized = true;
-      this.wasm.exports.canary(2);
+      this.tests_only = this.wasm.exports.canary(2) == 1 ? true : false;
     });
   }
 

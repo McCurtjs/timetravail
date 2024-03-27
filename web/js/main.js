@@ -32,9 +32,13 @@ window.onload = async() => {
 
   await game.initialize('test.wasm');
 
-  game.wasm.exports.wasm_preload(game.gl.canvas.width, game.gl.canvas.height);
+  if (game.tests_only) {
+    game.wasm.exports.wasm_tests();
+  } else {
+    game.wasm.exports.wasm_preload(game.gl.canvas.width, game.gl.canvas.height);
 
-  requestAnimationFrame(renderTimer);
+    requestAnimationFrame(renderTimer);
+  }
 
   console.log('done');
 }

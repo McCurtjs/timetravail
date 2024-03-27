@@ -8,10 +8,8 @@ set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/debug)
 
 add_subdirectory(lib)
-
-include_directories(./lib/SDL/include)
-
 add_subdirectory(src)
+add_subdirectory(tst)
 
 # If we don't set this, ALL_BUILD will be set as the default startup project,
 # which is just one configuration change, but is still annoying to remember

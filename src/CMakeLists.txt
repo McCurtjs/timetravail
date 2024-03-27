@@ -1,9 +1,11 @@
 add_executable(${PROJECT_NAME})
+add_library(${PROJECT_NAME}_impl)
 
 #target_precompile_headers(${PROJECT_NAME} PRIVATE def.h)
 
 include_directories(.)
 include_directories(./eng)
+include_directories(${PROJECT_SOURCE_DIR}/lib/SDL/include)
 
 if (WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -11,8 +13,7 @@ if (WIN32)
     )
 endif()
 
-target_sources(${PROJECT_NAME} PRIVATE
-  main.c
+target_sources(${PROJECT_NAME}_impl PRIVATE
   game.c
   system_events.c
   test_behaviors.c
@@ -53,4 +54,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   eng/native/galogen.c
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE libraries)
+target_sources(${PROJECT_NAME} PRIVATE
+  main.c
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE libraries ${PROJECT_NAME}_impl)

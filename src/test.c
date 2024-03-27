@@ -17,9 +17,9 @@
 #include "system_events.h"
 #include "test_behaviors.h"
 
-int export(canary) (int a) {
+int export(canary) (int _) {
   print("WASM is connected!");
-  return a * a;
+  return 0;
 }
 
 static Game game;

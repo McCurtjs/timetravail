@@ -69,4 +69,7 @@ typedef size_t jshandle;
 #define MACRO_CONCAT_RECUR(X, Y) X ## Y
 #define MACRO_CONCAT(X, Y) MACRO_CONCAT_RECUR(X, Y)
 
+#define STR_RECUR(S) #S
+#define STR(S) STR_RECUR(S)
+
 #endif

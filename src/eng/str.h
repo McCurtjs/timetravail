@@ -30,7 +30,7 @@
 // \brief A StringRange can be created referencing any of the following:
 //    1) a constant string literal (using R, str_literal, or str_static).
 //    2) a range within a String object (including the implicit str->range).
-//    3) a or a range along a standard C-style char* string (str_range). 
+//    3) a or a range along a standard C-style char* string (str_range).
 typedef _STR_RANGE_DEF(const) StringRange;
 
 // \brief String is a handle type pointing to an immutable string on the heap.
@@ -99,7 +99,7 @@ StringRange str_range_s(const char* c_str, size_t length);
 
 void str_delete(String* str);
 
-// \brief Joins an array of strings into a new string, each separated by a 
+// \brief Joins an array of strings into a new string, each separated by a
 //    given delimiter. The array can be of either Strings or StringRanges.
 //
 // \param del - the delimiter to insert between each string in the array.
@@ -110,7 +110,7 @@ void str_delete(String* str);
 //    1) an array of StringRange objects.
 //    2) an array of any mix of String and StringRange*. Note: in this case,
 //      make sure not to include String* in the array.
-// 
+//
 // \returns a new string, which must be deleted later by the caller.
 //
 String str_join(StringRange deliminter, const Array strings);
@@ -147,11 +147,12 @@ size_t str_find(StringRange str, StringRange to_find);
 size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos);
 
 #define _STR_SUBSTR_(STR, START, END, ...) _str_substring(STR, (int)START, (int)END)
-// \brief str_substring(str, start, ?end)
+// \brief `StringRange str_substring(str, start, ?end)`
 // \brief Gets a substring as a range within the input string range.
 // \brief Works like javascript string.slice.
 //
-// \param str some notes about str
+// \param str The string range to get a substring of. The returned substring's
+//    lifetime will be dependent on the lifetime of str.
 //
 // \param start - The beginning of the subrange, inclusive.
 //    - A non-negative value represents an offset from the beginning.
@@ -162,12 +163,12 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos);
 //    - A value less than one represents an offset from the end.
 //
 // \param __VA_ARGS__ - start, ?end
-// 
+//
 // \returns a StringRange as a substring of the input range.
 //
 #define str_substring(str, ...) _STR_SUBSTR_(str, __VA_ARGS__, 0)
 
-// \brief alias for str_substring(str, start, end)
+// \brief alias for `StringRange str_substring(str, start, ?end)`
 #define str_slice(str, ...) _STR_SUBSTR_(str, __VA_ARGS__, 0)
 
 #endif
