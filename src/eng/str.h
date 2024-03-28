@@ -76,6 +76,12 @@ extern const String str_false;
 //
 #define R(C_STR) str_literal(C_STR)
 
+// \brief Similar to R macro, just doesn't include the typename because MSVC
+//    can't handle that in some cases. Very annoying.
+#define M(C_STRING_LITERAL) { \
+  _STR_RANGE_DEF_BODY(C_STRING_LITERAL)                \
+}                                                    //
+
 // \brief Used to allocate a static string from a string literal. This is only
 //    necessary in MSVC because it can't understand initializer list casting.
 //
@@ -94,10 +100,10 @@ String str_from_bool(bool b);
 String str_from_int(int i);
 String str_from_float(float f);
 
+void str_delete(String* str);
+
 StringRange str_range(const char* c_str);
 StringRange str_range_s(const char* c_str, size_t length);
-
-void str_delete(String* str);
 
 // \brief Joins an array of strings into a new string, each separated by a
 //    given delimiter. The array can be of either Strings or StringRanges.
@@ -115,6 +121,11 @@ void str_delete(String* str);
 //
 String str_join(StringRange deliminter, const Array strings);
 String str_concat(StringRange left, StringRange right);
+
+String str_prepend(StringRange str, size_t length, char c);
+String str_append(StringRange str, size_t length, char c);
+//String str_pad_left(StringRange str, size_t length, char c);
+//String str_pad_right(StringRange str, size_t length, char c);
 
 // \brief Splits the string into an array of substrings based on the delimiter.
 //
@@ -170,5 +181,31 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos);
 
 // \brief alias for `StringRange str_substring(str, start, ?end)`
 #define str_slice(str, ...) _STR_SUBSTR_(str, __VA_ARGS__, 0)
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef struct {
+  union {
+    size_t CV length;
+    size_t CV size;
+  };
+}* StringBuilder;
+
+StringBuilder stb_new();
+StringBuilder stb_str(StringBuilder stb, String s); // these will be deleted
+StringBuilder stb_range(StringBuilder stb, StringRange r);
+StringBuilder stb_c_str(StringBuilder stb, const char* c_str);
+StringBuilder stb_pad(StringBuilder stb, size_t length, char c);
+StringBuilder stb_pad_range(StringBuilder stb, size_t length, StringRange r);
+
+/*
+void stb_arg_str(StringBuilder stb, const String s);
+void stb_arg_c_str(StringBuilder stb, const char* c);
+void stb_arg_range(StringBuilder stb, StringRange r);
+void stb_arg_int(StringBuilder stb, int i);
+void stb_arg_float(StringBuilder stb, float f);
+*/
+
+String stb_resolve(StringBuilder* stb);
 
 #endif

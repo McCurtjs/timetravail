@@ -19,7 +19,7 @@ while [ "$1" != "" ]; do
       echo ": r release                         : release build (default is debug)"
       echo ": u unit-test                       : builds unit tests"
       echo ": U                                 : runs tests after build (mingw)"
-      echo ": a args    " "                     : passes args to built exe (if any)"
+      echo ": a args    \" \"                     : passes args to built exe (if any)"
       echo ": s skip-cmake                      : skips cmake"
       exit
       ;;

@@ -8,9 +8,9 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/eng)
 
 if (WIN32)
-    target_compile_definitions(${PROJECT_NAME}_tests PRIVATE
-       _CRT_SECURE_NO_WARNINGS
-    )
+  target_compile_definitions(${PROJECT_NAME}_tests PRIVATE
+      _CRT_SECURE_NO_WARNINGS
+  )
 endif()
 
 target_compile_definitions(${PROJECT_NAME}_tests PRIVATE

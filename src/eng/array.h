@@ -37,13 +37,17 @@ void  array_read_front(const Array array, void* out_element);
 void* array_get_back(Array array);
 void  array_read_back(const Array array, void* out_element);
 
+// usage:
+// MyType* array_foreach(iterator, array) { use(iterator); }
 #define array_foreach(VAR, ARRAY) \
   VAR = NULL; \
-  for (uint MACRO_CONCAT(array_iter_, __LINE__) = 0; \
-       (VAR = array_get(ARRAY, MACRO_CONCAT(array_iter_, __LINE__))), \
-       MACRO_CONCAT(array_iter_, __LINE__) < ARRAY->size; \
-       ++MACRO_CONCAT(array_iter_, __LINE__))
+  for (uint MACRO_CONCAT(_array_iter_, __LINE__) = 0; \
+       (VAR = array_get(ARRAY, MACRO_CONCAT(_array_iter_, __LINE__))), \
+       MACRO_CONCAT(_array_iter_, __LINE__) < ARRAY->size; \
+       ++MACRO_CONCAT(_array_iter_, __LINE__))
 
+// usage:
+// MyType* array_foreach_index(iter, i, array) { something_else[i] = iter; }
 #define array_foreach_index(VAR, INDEX, ARRAY) \
   VAR = NULL; \
   for (uint INDEX = 0; \

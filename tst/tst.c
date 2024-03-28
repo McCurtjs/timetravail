@@ -165,7 +165,7 @@ static bool test_blank() {
   return test_description == NULL || test_description->size == 0;
 }
 
-static void print_headers(int desc_color, uint desc_level) {
+static void print_headers(int desc_color, int desc_level) {
 
   if (!test_filename_printed) {
     str_print_color(current_suite->header, CONCOL_bCyan);
@@ -173,45 +173,61 @@ static void print_headers(int desc_color, uint desc_level) {
   }
 
   if (!test_function_printed) {
-    str_print_color(*test_function, CONCOL_Purple);
+    str_print_color(*test_function, CONCOL_bPurple);
     test_function_printed = TRUE;
   }
 
   Context* ctx = &ctx_stack_root;
+  int ctx_level = 0;
   while (ctx->next) {
     ctx = ctx->next;
     if (!ctx->printed) {
-      str_print(*ctx->desc);
+      String s = str_prepend(*ctx->desc, 2 * ctx_level, ' ');
+      str_print_color(s->range, CONCOL_Purple);
+      str_delete(&s);
       ctx->printed = TRUE;
     }
+    ctx_level = ctx->level;
   }
 
-  if (test_blank()) {
-    if (!test_desc_printed) {
-      print("    Pre-test:");
+  if (test_desc_printed < desc_level) {
+    String s;
+
+    if (!test_in_progress) {
+      s = str_prepend(R("    Pre-test"), 2 * ctx_level, ' ');
+      str_print(s->range);
       test_desc_printed = LOGGED;
+
+    } else {
+      s = str_prepend(*test_description, 2 * ctx_level, ' ');
+      str_print_color(s->range, desc_color);
+      test_desc_printed = desc_level;
     }
-  } else if (test_desc_printed < desc_level) {
-    str_print_color(*test_description, desc_color);
-    test_desc_printed = desc_level;
+
+    str_delete(&s);
   }
 }
 
 void _test_log(const StringRange* message) {
-
   if (!param_verbose) return;
-  print_headers(CONCOL_White, LOGGED);
-  str_print(*message);
+  print_headers(CONCOL_bWhite, LOGGED);
+  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  str_print(s->range);
+  str_delete(&s);
 }
 
 void _test_warn(const StringRange* message) {
   print_headers(CONCOL_Yellow, LOGGED);
-  str_print_color(*message, CONCOL_Yellow);
+  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  str_print_color(s->range, CONCOL_Yellow);
+  str_delete(&s);
 }
 
 void _test_error(const StringRange* message) {
   print_headers(CONCOL_Red, PRINTED);
-  str_print(*message);
+  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  str_print(s->range);
+  str_delete(&s);
   test_failed = TRUE;
 }
 
@@ -420,6 +436,7 @@ static void process_args(int argc, char* argv[]) {
       // meticulously puts a specific test on one line of every file, who knows.
       if (sep != 0) {
         param_file = malloc(sizeof(StringRange));
+        assert(param_file);
         StringRange to_copy = str_substring(param, 0, sep);
         memcpy(param_file, &to_copy, sizeof(StringRange));
       }

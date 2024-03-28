@@ -8,9 +8,12 @@ include_directories(./eng)
 include_directories(${PROJECT_SOURCE_DIR}/lib/SDL/include)
 
 if (WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-       _CRT_SECURE_NO_WARNINGS
-    )
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+      _CRT_SECURE_NO_WARNINGS
+  )
+  target_compile_definitions(${PROJECT_NAME}_impl PRIVATE
+      _CRT_SECURE_NO_WARNINGS
+  )
 endif()
 
 target_sources(${PROJECT_NAME}_impl PRIVATE

@@ -73,12 +73,6 @@ String str_copy(StringRange str) {
   return str_terminate(ret);
 }
 
-void str_delete(String* str) {
-  if (!str || !*str) return;
-  if (!str_is_literal(*str)) free(*str);
-  *str = NULL;
-}
-
 String str_from_bool(bool b) {
   return b == FALSE ? str_false : str_true;
 }
@@ -89,6 +83,12 @@ String str_from_int(int i) {
 
 String str_from_float(float f) {
   return str_new(ftos(f));
+}
+
+void str_delete(String* str) {
+  if (!str || !*str) return;
+  if (!str_is_literal(*str)) free(*str);
+  *str = NULL;
 }
 
 StringRange str_range(const char* c_str) {
@@ -103,15 +103,6 @@ StringRange str_range_s(const char* c_str, size_t length) {
     .begin = c_str,
     .length = length,
   };
-}
-
-String str_concat(StringRange left, StringRange right) {
-  size_t length = left.size + right.size;
-  String_Internal* ret = str_new_internal(length);
-  if (!ret) return str_empty;
-  memcpy(ret->begin, left.begin, left.size);
-  memcpy(ret->begin + left.size, right.begin, right.size);
-  return str_terminate(ret);
 }
 
 static const StringRange* str_to_range(const void* element, bool is_ptr) {
@@ -152,6 +143,29 @@ String str_join(StringRange del, const Array strings) {
 
   str_terminate(ret);
   return (String)ret;
+}
+
+String str_concat(StringRange left, StringRange right) {
+  size_t length = left.size + right.size;
+  String_Internal* ret = str_new_internal(length);
+  if (!ret) return str_empty;
+  memcpy(ret->begin, left.begin, left.size);
+  memcpy(ret->begin + left.size, right.begin, right.size);
+  return str_terminate(ret);
+}
+
+String str_prepend(StringRange str, size_t length, char c) {
+  String_Internal* ret = str_new_internal(str.size + length);
+  memset(ret->begin, c, length);
+  memcpy(ret->begin + length, str.begin, str.size);
+  return str_terminate(ret);
+}
+
+String str_append(StringRange str, size_t length, char c) {
+  String_Internal* ret = str_new_internal(str.size + length);
+  memcpy(ret->begin, str.begin, str.size);
+  memset(ret->begin + str.size, c, length);
+  return str_terminate(ret);
 }
 
 Array str_split(StringRange str, StringRange del) {
@@ -231,7 +245,6 @@ size_t str_find(StringRange str, StringRange to_find) {
   return str_index_of(str, to_find, 0);
 }
 
-// Gets the first index of to_find in str. If not found, returns str.size
 size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   if (str.size < to_find.size) return str.size;
   if (to_find.size == 0) return from_pos;
@@ -312,3 +325,183 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   str_delete(&result);
 
 */
+
+typedef struct {
+  int type;
+  String part;
+} STB_Arg;
+
+typedef enum {
+  STBT_Range,
+  STBT_String,
+  STBT_Pad,
+  STBT_PadRange
+} STB_Type;
+
+typedef struct {
+  STB_Type type;
+  union {
+    String str;
+    struct {
+      size_t pad_length;
+      StringRange range;
+    };
+    struct {
+      size_t length;
+      char c;
+    } padding;
+  };
+} STB_Segment;
+
+typedef struct {
+  // public (read-only)
+  size_t size;
+
+  // private
+  Array segments;
+  Array args;
+
+} StringBuilder_Internal;
+
+#define STB_INTERNAL StringBuilder_Internal* stb = (StringBuilder_Internal*)(stb_in)
+#define STB_APPENDER if (!stb_in) stb_in = stb_new(); STB_INTERNAL
+
+StringBuilder stb_new() {
+  StringBuilder_Internal* stb = malloc(sizeof(StringBuilder_Internal));
+  assert(stb);
+  *stb = (StringBuilder_Internal) {
+    .size = 0,
+    .segments = array_new(STB_Segment),
+    .args = array_new(STB_Arg),
+  };
+  return (StringBuilder)stb;
+}
+
+StringBuilder stb_str(StringBuilder stb_in, String s) {
+  STB_APPENDER;
+  STB_Segment segment = {
+    .type = STBT_String,
+    .str = s,
+  };
+  array_push_back(stb->segments, &segment);
+  stb->size += s->size;
+  return (StringBuilder)stb;
+}
+
+StringBuilder stb_range(StringBuilder stb_in, StringRange r) {
+  STB_APPENDER;
+  STB_Segment segment = {
+    .type = STBT_Range,
+    .range = r,
+  };
+  array_push_back(stb->segments, &segment);
+  stb->size += r.size;
+  return (StringBuilder)stb;
+}
+
+StringBuilder stb_c_str(StringBuilder stb_in, const char* str) {
+  return stb_range(stb_in, str_range(str));
+}
+
+StringBuilder stb_pad(StringBuilder stb_in, size_t length, char c) {
+  STB_APPENDER;
+  STB_Segment segment = {
+    .type = STBT_Pad,
+    .padding = {
+      .length = length,
+      .c = c,
+    },
+  };
+  array_push_back(stb->segments, &segment);
+  stb->size += segment.padding.length;
+  return (StringBuilder)stb;
+}
+
+StringBuilder stb_pad_range(StringBuilder stb_in, size_t length, StringRange r) {
+  STB_APPENDER;
+  STB_Segment segment = {
+    .type = STBT_PadRange,
+    .pad_length = length,
+    .range = r,
+  };
+  array_push_back(stb->segments, &segment);
+  stb->size += segment.pad_length;
+  return (StringBuilder)stb;
+}
+
+String stb_resolve(StringBuilder* stb_in_ptr) {
+  StringBuilder stb_in = *stb_in_ptr;
+  STB_INTERNAL;
+  String_Internal* ret = str_new_internal(stb->size);
+  char* c = ret->begin;
+
+  // TODO: Make an actual set library for this kind of thing
+  // Keep a list of strings to free so we don't double-free anything
+  Array to_xibalba = array_new(String);
+
+  STB_Segment* array_foreach(seg, stb->segments) {
+    switch (seg->type) {
+      // Copy a string - we're not deleting yet, we might use it twice...
+      case STBT_String: {
+        memcpy(c, seg->str->begin, seg->str->size);
+        c += seg->str->size;
+
+        String* array_foreach(search, to_xibalba) {
+          if (*search == seg->str) break;
+        }
+
+        if (search && *search != seg->str) {
+          array_push_back(to_xibalba, &seg->str);
+        }
+      } break;
+
+      // Copy by range:
+      case STBT_Range: {
+        memcpy(c, seg->range.begin, seg->range.size);
+        c += seg->range.size;
+      } break;
+
+      // Fill with padding:
+      case STBT_Pad: {
+        memset(c, seg->padding.c, seg->padding.length);
+        c += seg->padding.length;
+      } break;
+
+      // Fill with non-uniform padding from a range:
+      case STBT_PadRange: {
+        size_t copied = 0;
+        while (copied + seg->range.size < seg->pad_length) {
+          memcpy(c, seg->range.begin, seg->range.size);
+          c += seg->range.size;
+          copied += seg->range.size;
+        }
+        size_t remaining = seg->pad_length - copied;
+        memcpy(c, seg->range.begin, remaining);
+        c += remaining;
+      } break;
+    }
+  }
+
+  if (stb->args->size) {
+    // not yet implemented...
+  }
+
+  #include "wasm.h"
+
+  String* array_foreach(to_delete, to_xibalba) {
+    print("-------");
+    print_ptr(&to_delete);
+    print_ptr(to_delete);
+    print_ptr((*to_delete)->begin);
+    print_int((*to_delete)->begin[0]);
+    str_delete(to_delete);
+  }
+  array_delete(&to_xibalba);
+  array_delete(&stb->segments);
+  array_delete(&stb->args);
+  free(stb);
+  *stb_in_ptr = NULL;
+
+  return str_terminate(ret);
+}
+

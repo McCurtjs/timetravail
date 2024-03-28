@@ -1,7 +1,7 @@
-#include "tst.h"
+
 
 #include "str.h"
-
+#include "tst.h"
 #include <stdlib.h>
 
 
@@ -9,7 +9,7 @@ void _test_error_params2(const StringRange* fmt, const void* a, const void* b, c
 
 test_func(test_new) {
 
-  print("test pass");
+  StringRange asdf = M("asdf");
 
   test_log("This is a note before the test");
   test_log("This is another note before the test");
@@ -18,7 +18,7 @@ test_func(test_new) {
 
   int incrementor = 1;
 
-  /*
+  //*
   #define EXPECT_T(A, B, C, T) if ((T)A B (T)C);
   #define EXPECT_int(A, B, C) EXPECT_T(A, B, C, int)
   #define EXPECT_float(A, B, C) EXPECT_T(A, B, C, float)
@@ -43,25 +43,40 @@ test_func(test_new) {
   // "      on line 36: (int)blah < (char)2 with values: 1 < 2"
 
   //float blah = 1.4f;
-  //EXPECT2(TRUE, ==, FALSE, int);
+  //EXPECT2(TRUE, ==, FALSE, bool);
   //"idbfusl";
+
+  /*
+
+  // new Expect fn:
+  // fmt is the input string (ie, "    on line N: blah < what with values {} < {}")
+  // desc is an optional description to append to the failure description above
+  // a is a pointer to parameter value a (ignored if null)
+  // ta is type of param a (ignored if null)
+  // tb_or_desc could be either the type of b, or a description (given valid forms:
+  //    expect(a, <, b, int, "description") and expect(a, <, b, int, char, "description");
+  //    so in this case, check tb_or_desc against all included type values. If it doesn't
+  //    match any of them (and "desc" is NULL), set "desc" to "tb_or_desc" before running
+  //    the code to print "desc".
+  void _test_error_params3(const StringRange* fmt, StringRange desc,
+    const void* a, const void* b, const char* ta, const char* tb_or_desc);
+
+  // unrelated: should there be a "success" macro that just auto-succeeds if hit?
+  // note: actually, that's just "break;"
 
   //*/
 
 
   test("'tst_fail' just outright fails with a message") {
-    print("test: 0");
     test_fail("I failed because I felt like it");
   }
 
   test("increments the pre-test variable") {
-    print("test: 1");
     expect_int(++incrementor, ==, 0);
   }
 
 
   test("increments the same variable again but doesn't actually") {
-    print("test: 2");
     expect_int(++incrementor, ==, 0);
   }
 
@@ -79,19 +94,16 @@ test_func(test_new) {
   //    - Make string builder (stb) per spec in str.c
   //    - Eventually json...
   context("String 'test' exists")
-    print("context: 1");
 
     String test = str_new("This is a copy of a c-string");
 
     test("doesn't fail because a break; saves us from the fail statement") {
-      print("test: 3");
       break;
       test_fail("Can't reach this");
     }
 
     test("'expect' tests any two values, but won't print variable values") {
-      print("test: 4");
-      str_print(test->range);
+      //str_print(test->range);
       expect(2.0, >, 1.0);
       expect(TRUE, !=, FALSE);
       expect(str_empty->size, ==, 1);
@@ -99,10 +111,8 @@ test_func(test_new) {
     }
 
     context("This is an inner context")
-      print("context: 2");
 
       test("'expect_int' tests two int variables and prints the values") {
-        print("test: 5");
         int i = 2, j = 3;
         expect_int(i, >, j);
       }
@@ -112,13 +122,11 @@ test_func(test_new) {
   context_end
 
   test("'expect_float' tests two float variables") {
-    print("test: 6");
     float a = 3.4f, b = 1.9f;
     expect_float(a, <, b);
   }
 
   test("Allocates memory and never frees") {
-    print("test: 7");
     str_new("This allocates a string without deleting");
     test_warn("This is another note before the test");
   }
