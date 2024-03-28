@@ -58,6 +58,109 @@ void free_test(void* mem) {
   free(mem);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Test Context
+////////////////////////////////////////////////////////////////////////////////
+// A test context allows pre-test setup to be shared between
+// multiple tests. Variables can be created and accessed within the tests, and
+// other setup can be performed before running the tests. After each test, the
+// test group function is exited and re-entered, meaning the context is
+// recreated for every test (ie, incrementing a shared value in one test will
+// not affect the next test), and after the context is passed, the setup won't
+// be run again for any tests that follow it.
+
+// To allow nested contexts, we need a stack... the stack persists for the whole
+// test group (between multiple calls of the group function), and is used to
+// keep track of
+typedef struct Context {
+  const StringRange* desc;
+  bool printed;
+  struct Context* prev;
+  struct Context* next;
+  int level;
+} Context;
+
+static Context ctx_stack_root = {
+  .desc = &R("<root context>"),
+  .printed = FALSE,
+  .prev = NULL,
+  .next = NULL,
+  .level = 0,
+};
+
+// Pointer to the top of the stack.
+// The stack is cleared between each test group. Root node cannot be popped.
+static Context* ctx_stack_top = &ctx_stack_root;
+
+// Iterator through the stack.
+// This is reset to the root between each each call to the test function.
+static Context* ctx_stack_ptr = NULL;
+
+// Called whenever the test enters a "context()" block
+bool _test_context_begin(int line, const StringRange* desc) {
+
+  // On each pass of the test function, we have to walk up the stack. If our
+  // context is already there, don't create a duplicate of it.
+  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc == desc) {
+    ctx_stack_ptr = ctx_stack_ptr->next;
+    return TRUE;
+  }
+
+  // If we're not on the stack anymore, and the current test line is past our
+  // context, we've completed the tests in it and can skip it.
+  if (test_current_line > line) {
+    return FALSE;
+  }
+
+  // If we get here, we are entering a context for the first time.
+  Context* tmp = ctx_stack_top;
+  ctx_stack_top = malloc(sizeof(Context));
+  tmp->next = ctx_stack_top;
+  *ctx_stack_top = (Context) {
+    .desc = desc,
+    .printed = false,
+    .prev = tmp,
+    .next = NULL,
+    .level = tmp->level + 1,
+  };
+
+  return TRUE;
+}
+
+// Called at the end of a context block in "context_end"
+void _test_context_end(int line) {
+  if (test_current_line >= line) {
+    return;
+  }
+
+  test_current_line = line;
+
+  if (ctx_stack_top->prev == NULL) {
+    _test_warn(&R("Context Stack: %cEnded context while stack is empty!"));
+  } else {
+    Context* tmp = ctx_stack_top;
+    ctx_stack_top = tmp->prev;
+    ctx_stack_top->next = NULL;
+    free(tmp);
+  }
+}
+
+// Called between each test group, after all passes on a function are completed
+static void context_clear_stack() {
+  Context* ctx = ctx_stack_root.next;
+  ctx_stack_root.next = 0;
+
+  while (ctx) {
+    Context* tmp = ctx;
+    free(ctx);
+    ctx = tmp;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Output Printing/Formatting
+////////////////////////////////////////////////////////////////////////////////
+
 static bool test_blank() {
   return test_description == NULL || test_description->size == 0;
 }
@@ -74,6 +177,15 @@ static void print_headers(int desc_color, uint desc_level) {
     test_function_printed = TRUE;
   }
 
+  Context* ctx = &ctx_stack_root;
+  while (ctx->next) {
+    ctx = ctx->next;
+    if (!ctx->printed) {
+      str_print(*ctx->desc);
+      ctx->printed = TRUE;
+    }
+  }
+
   if (test_blank()) {
     if (!test_desc_printed) {
       print("    Pre-test:");
@@ -85,9 +197,27 @@ static void print_headers(int desc_color, uint desc_level) {
   }
 }
 
-bool _test_context(int line) {
-  return TRUE;
+void _test_log(const StringRange* message) {
+
+  if (!param_verbose) return;
+  print_headers(CONCOL_White, LOGGED);
+  str_print(*message);
 }
+
+void _test_warn(const StringRange* message) {
+  print_headers(CONCOL_Yellow, LOGGED);
+  str_print_color(*message, CONCOL_Yellow);
+}
+
+void _test_error(const StringRange* message) {
+  print_headers(CONCOL_Red, PRINTED);
+  str_print(*message);
+  test_failed = TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Test Begin/End
+////////////////////////////////////////////////////////////////////////////////
 
 bool _test_begin(int line, const StringRange* desc) {
   if (test_current_line > line) {
@@ -161,24 +291,6 @@ bool _test_end(int line) {
   return TRUE;
 }
 
-void _test_log(const StringRange* message) {
-
-  if (!param_verbose) return;
-  print_headers(CONCOL_White, LOGGED);
-  str_print(*message);
-}
-
-void _test_warn(const StringRange* message) {
-  print_headers(CONCOL_Yellow, LOGGED);
-  str_print_color(*message, CONCOL_Yellow);
-}
-
-void _test_error(const StringRange* message) {
-  print_headers(CONCOL_Red, PRINTED);
-  str_print(*message);
-  test_failed = TRUE;
-}
-
 static String resolve_param(StringRange* r, const void* v) {
   String formatted;
   int n = 1;
@@ -222,6 +334,10 @@ void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
   array_delete(&split);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Test Runners
+////////////////////////////////////////////////////////////////////////////////
+
 static void before_run() {
   test_count = 0;
   test_passed_count = 0;
@@ -241,10 +357,12 @@ static void before_fn(const TestGroup* t) {
 static void process_function(const TestGroup* t) {
   before_fn(t);
   test_current_line = 0;
-  int ctx = 0;
+  int i = 0;
   do {
-    test_current_line = t->group_fn(test_current_line, ctx);
-  } while(test_current_line);
+    ctx_stack_ptr = &ctx_stack_root;
+    test_current_line = t->group_fn(test_current_line);
+  } while(test_current_line &&  ++i < 9);
+  //context_clear_stack();
 }
 
 void test_run_suite(const TestSuite* suite) {

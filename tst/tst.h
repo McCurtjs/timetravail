@@ -9,7 +9,7 @@
 #define LINESTR STR(__LINE__)
 #define LINERPT &R(STR(__LINE__))
 
-typedef int (*test_fn)(int line, int context);
+typedef int (*test_fn)(int line);
 
 typedef struct TestGroup {
   int line;
@@ -25,7 +25,8 @@ typedef struct TestSuite {
 
 bool _test_begin(int line, const StringRange* desc);
 bool _test_end(int line);
-bool _test_context(int line);
+bool _test_context_begin(int line, const StringRange* desc);
+void _test_context_end(int line);
 void _test_error(const StringRange* message);
 void _test_log(const StringRange* messgae);
 void _test_warn(const StringRange* message);
@@ -35,12 +36,11 @@ void test_run_suite(const TestSuite* suite);
 int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define test_run_all(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
-#define test_func(NAME) int NAME(int _line, int _context)
+#define test_func(NAME) int NAME(int _line)
 #define test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("    ["LINESTR"] %c"DESC))) do
 #define test_end while(0); _test_end(0); return 0
-#define context while(0); _test_end(0); if (_test_context(__LINE__)) do {
-#define block
-#define context_end while(0); }
+#define context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("    with context: "DESC))) {
+#define context_end while(0); _test_end(__LINE__); _test_context_end(__LINE__); return __LINE__; }
 
 #define test_not_implemented { .line = 0, .group_fn = NULL },
 #define test_group(TEST_FN) { .line = __LINE__, .header = R("  in function ("LINESTR"): %c"#TEST_FN), .group_fn = TEST_FN },
