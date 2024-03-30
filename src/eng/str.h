@@ -146,6 +146,7 @@ StringRange str_trim_end(StringRange str);
 bool str_eq(StringRange lhs, StringRange rhs);
 bool str_starts_with(StringRange str, StringRange starts);
 bool str_ends_with(StringRange str, StringRange ends);
+bool str_contains(StringRange str, StringRange check);
 
 // \brief Alias for str_index_of(str, to_find, 0)
 size_t str_find(StringRange str, StringRange to_find);

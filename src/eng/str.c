@@ -178,6 +178,7 @@ Array str_split(StringRange str, StringRange del) {
     StringRange range = str_substring(str, prev, i);
     array_push_back(ret, &range);
     i += (int)del.size;
+    if (i == (int)str.size) array_push_back(ret, &str_empty->range);
   } while (i < (int)str.size);
 
   return ret;
@@ -239,6 +240,10 @@ bool str_starts_with(StringRange str, StringRange starts) {
 bool str_ends_with(StringRange str, StringRange ends) {
   if (ends.size > str.size) return FALSE;
   return memcmp(str.begin + str.size - ends.size, ends.begin, ends.size) == 0;
+}
+
+bool str_contains(StringRange str, StringRange check) {
+  return str_find(str, check) != str.size;
 }
 
 size_t str_find(StringRange str, StringRange to_find) {

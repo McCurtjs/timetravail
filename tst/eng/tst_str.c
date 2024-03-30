@@ -7,6 +7,7 @@
 
 void _test_error_params2(const StringRange* fmt, const void* a, const void* b, const char* ta, const char* tb);
 
+#ifdef SKIP_THIS
 test_func(test_new) {
 
   StringRange asdf = M("asdf");
@@ -14,31 +15,28 @@ test_func(test_new) {
   test_log("This is a note before the test");
   test_log("This is another note before the test");
 
-  // test_vars
+  //StringRange some_string = R("This is just some string");
+  //Array arr = array_new(int);
 
-  int incrementor = 1;
+  //expect(5 == 5);
+  //expect(5, ==, 5);
+  //expect(5, ==, 5, int);
+  //expect(5, ==, 5, float, int);
+  //expect(TRUE == FALSE);
+  //expect(str_contains(some_string, R("Stuff")));
+  //expect(5, to_not be_between(2, 6));
+  //expect(5, to_not be_between(2, 6, float));
+  //expect(5, to_not be_between(2, 6, float, exclusive));
+  //expect(5.1, to be_within(5.0f of 5.5f, float));
+  //expect(3, to be_positive);
+  //expect(arr, to all(be_positive, int, array));
+  //expect(arr, to_not all(be_between(2, 3), int, array));
+  //expect(3, to be_within(1 of 4, int, exclusive));
+  //expect(arr, to all(not be_within(1 of 5), int, array));
+  //expect(arr, to_not all(not be_within(1 of 5, float, exclusive), float, array));
+  //expect(arr, to all(be( > , 7), int, array));
+  //expect(5, to be(< , 7));
 
-  //*
-  #define EXPECT_T(A, B, C, T) if ((T)A B (T)C);
-  #define EXPECT_int(A, B, C) EXPECT_T(A, B, C, int)
-  #define EXPECT_float(A, B, C) EXPECT_T(A, B, C, float)
-  #define EXPECT_(A, B, C) if (A B C)
-
-  #define TEST_ERROR(S, A, C, ta, tc) _test_error_params2(S, &_A, &_C, #ta, #tc);
-
-  #define EXPECT_FAIL(S)
-  #define EXPECT_FAIL_T(A, B, C, ta, tc) TEST_ERROR(_test_msg(#A" "#B" "#C" with values: ("#ta"){} "#B" "#tc"{}", ""), &_A, &_B, ta, tc);
-  #define EXPECT_2(A, B, C, D, E) { D _A = (A); E _C = (C); unless (_A B _C); EXPECT_FAIL_T(A, B, C, D, E) }
-  #define EXPECT_1(A, B, C, D, ...) { D _A = (A), _C = (C); unless(_A B _C) EXPECT_FAIL_T(A, B, C, D, D); }
-  #define EXPECT_0(A, B, C, ...) EXPECT_TRUE((A) B (C))
-  #define EXPECT_EXPAND_2(A, B, C, D, E, F, ...) EXPECT_T##F(A, B, C, D, E) // if (A B C) #D; #E; #F;
-  #define EXPECT_EXPAND(A, B, ...) EXPECT_EXPAND_2(A, B, __VA_ARGS__, _2, _1, _0)
-  #define EXPECT_INVALID(...) Invalid 'expect' macro: use one of the following forms (A), (A < B), (A, <, B), (A, <, B, type), or (A, <, B, A_type, B_type)
-  #define EXPECT_TRUE(A, ...) unless(A) "fail case here";
-  #define EXPECT(A, B, ...) EXPECT_EXPAND(A, B, __VA_ARGS__)
-  #define EXPECT2_EXP2(A, B, C, D, E, F, ...) EXPECT##F(A, B, C, D, E) // #A #B #C #D #E #F #__VA_ARGS__
-  #define EXPECT2_EXP(...) EXPECT2_EXP2(__VA_ARGS__, _2, _1, _0, _INVALID, _TRUE)
-  #define EXPECT2(...) EXPECT2_EXP(__VA_ARGS__)
 
   // "      on line 36: (int)blah < (char)2 with values: 1 < 2"
 
@@ -70,14 +68,6 @@ test_func(test_new) {
     test_fail("I failed because I felt like it");
   }
 
-  test("increments the pre-test variable") {
-    expect_int(++incrementor, ==, 0);
-  }
-
-  test("increments the same variable again but doesn't actually") {
-    expect_int(++incrementor, ==, 0);
-  }
-
   context("String 'test' exists")
 
     String test = str_new("This is a copy of a c-string");
@@ -98,7 +88,7 @@ test_func(test_new) {
 
       test("'expect_int' tests two int variables and prints the values") {
         int i = 2, j = 3;
-        expect_int(i, >, j);
+        //expect_int(i, >, j);
       }
 
     context_end
@@ -107,7 +97,7 @@ test_func(test_new) {
 
   test("'expect_float' tests two float variables") {
     float a = 3.4f, b = 1.9f;
-    expect_float(a, <, b);
+    //expect_float(a, <, b);
   }
 
   test("Allocates memory and never frees") {
@@ -115,6 +105,356 @@ test_func(test_new) {
     test_warn("This is another note before the test");
   }
 
+  test_end;
+}
+
+#endif
+
+describe(tests) {
+
+  test("an empty test that succeeds");
+
+  test("doesn't fail because a break; saves us from the fail statement") {
+    break;
+    test_fail("Can't reach this");
+  }
+
+  it("prints a warning but doesn't fail") {
+    test_warn("This is a warning");
+  }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    test("'test_fail' just causes a test to outright fail") {
+      test_fail("I failed because I felt like it");
+    }
+
+    test("logs a message (only visible with a verbose/-v setting) then fails") {
+      test_log("this causes the header to print twice... would like to fix, but hey");
+      test_fail("oops, failed again");
+    }
+
+    test("another fail to balance output...") {
+      test_fail("Yep, it fails");
+    }
+
+    //test("is expected to fail but succeeds, so it fails");
+
+    context_end;
+  }
+
+  test_end;
+}
+
+describe(memory) {
+
+  it("allocates memory and never frees") {
+    expect(to_fail);
+    str_new("This allocates a string without deleting");
+  }
+
+  it("properly frees the memory after allocating") {
+    String s = str_new("This is a string being allocated");
+    str_delete(&s);
+  }
+
+  test_end;
+}
+
+describe(contexts) {
+  test_end;
+}
+
+describe(expect_basic) {
+
+  StringRange str1 = R("Test string");
+
+  context("using the basic format without commas") {
+
+    context("tests succeed") {
+
+      test("most basic equality check") {
+        expect(2 == 2);
+      }
+
+      test("boolean (aka, macroed) values") {
+        expect(TRUE != FALSE);
+      }
+
+      test("float macro value") {
+        expect(PI > 1);
+      }
+
+      test("using other operator") {
+        expect(2 < 3);
+      }
+
+      test("string compare") {
+        expect(str_eq(str1, R("Test string")));
+      }
+
+      test("more string funcs") {
+        expect(str_contains(str1, R("Test")));
+      }
+
+      context_end;
+    }
+
+    context("tests fail") {
+
+      expect(to_fail);
+
+      test("most basic equality check") {
+        expect(2 == 3);
+      }
+
+      test("boolean (aka, macroed) values") {
+        expect(TRUE == FALSE);
+      }
+
+      test("float macro value") {
+        expect(PI < 1);
+      }
+
+      test("using other operator") {
+        expect(2 > 3);
+      }
+
+      test("string compare") {
+        expect(str_eq(str1, R("Something")));
+      }
+
+      test("more string funcs") {
+        expect(str_contains(str1, R("xyz")));
+      }
+
+      context_end;
+    }
+    context_end;
+  }
+  test_end;
+}
+
+describe(expect_basic_triplet) {
+
+  float pi = PI;
+
+  context("using the basic format without commas") {
+
+    context("tests succeed") {
+
+      test("most basic equality check") {
+        expect(2, == , 2);
+      }
+
+      test("boolean (aka, macroed) values") {
+        expect(TRUE, != , FALSE);
+      }
+
+      test("float macro value") {
+        expect(PI, > , 1);
+      }
+
+      test("float variable value") {
+        expect(pi, > , 1);
+      }
+
+      test("using other operator") {
+        expect(2, < , 3);
+      }
+
+      context_end;
+    }
+
+    context("tests fail") {
+
+      expect(to_fail);
+
+      test("most basic equality check") {
+        expect(2, == , 3);
+      }
+
+      test("float macro value (compare with output in expect_basic)") {
+        expect(PI, < , 1);
+      }
+
+      test("float variable value (compare with output in expect_basic)") {
+        expect(pi, < , 1);
+      }
+
+      test("boolean (aka, macroed) values (compare with output in expect_basic)") {
+        expect(TRUE, == , FALSE);
+      }
+
+      test("using other operator") {
+        expect(2, > , 3);
+      }
+
+      context_end;
+    }
+    context_end;
+  }
+  test_end;
+}
+
+describe(expect_basic_var_output) {
+
+  int incrementor = 1;
+  float pi = PI;
+
+  context("basic comparison expectations with value output") {
+    float x = 0.5;
+
+    context("tests succeed") {
+      x = 10;
+
+      test("incrementing context-scoped variable (starts at 1)") {
+        expect(++incrementor, == , 2, int);
+      }
+
+      test("incrementing same variable, doesn't fail because context is reloaded") {
+        expect(++incrementor, == , 2, int);
+      }
+
+      test("using global value") {
+        expect(str_empty->size, == , 0, size_t);
+      }
+
+      test("using floating point values") {
+        expect(PI, > , 1.0f, float);
+      }
+
+      test("floating point variable output") {
+        expect(pi, > , 1.0f, float);
+      }
+
+      test("two floating point variables - x has context specific value") {
+        expect(pi, < , x, float);
+      }
+
+      test("using boolean values") {
+        expect(TRUE, != , FALSE, bool);
+      }
+
+      test("using different type specifiers") {
+        expect(x, == , 10, float, int);
+      }
+
+      context_end
+    }
+
+    context("tests fail") {
+
+      expect(to_fail);
+
+      test("incrementing context-scoped variable (starts at 1)") {
+        expect(++incrementor, == , 3, int);
+      }
+
+      test("incrementing same variable, doesn't reach threshold because context is reloaded") {
+        expect(++incrementor, == , 3, int);
+      }
+
+      test("using global value") {
+        expect(str_empty->size, == , 1, size_t);
+      }
+
+      test("using floating point values") {
+        expect(PI, == , 1.0f, float);
+      }
+
+      test("floating point variable output") {
+        expect(pi, == , 1.0f, float);
+      }
+
+      test("two floating point variables - same test, context var reset after previous context") {
+        expect(pi, < , x, float);
+      }
+
+      test("using boolean values") {
+        expect(TRUE, == , FALSE, bool);
+      }
+
+      test("using different type specifiers") {
+        expect(x, == , 10, float, int);
+      }
+
+      context_end;
+    }
+    context_end;
+  }
+  test_end;
+}
+
+describe(matchers) {
+
+  context("compositions on singular values") {
+
+    context("tests succeed") {
+
+      it("has a positive value") {
+        expect(3, to be_positive);
+      }
+
+      it("uses a to_not specifier") {
+        expect(-3, to_not be_positive);
+      }
+
+      it("gives an incrementing value to a matcher that generates temporary values (i starts at 2)") {
+        int i = 2;
+        expect(++i, to be_between(2, 3));
+      }
+
+      it("uses to_not on a matcher that generates temporary") {
+        expect(4, to_not be_between(2, 3));
+      }
+
+      context_end;
+    }
+
+    context("tests fail") {
+
+      expect(to_fail);
+
+      it("uses the simplest kind of matcher using no temporary values") {
+        expect(-3, to be_positive);
+      }
+
+      it("uses a to_not modifier") {
+        expect(3, to_not be_positive);
+      }
+
+      it("uses a matcher that generates temporary values (i starts at 2)") {
+        int i = 2;
+        expect(++i, to be_between(1, 2));
+      }
+
+      it("uses to_not on a matcher that generates temporary") {
+        expect(4, to_not be_between(3, 5));
+      }
+
+      context_end;
+    }
+    context_end;
+  }
+  test_end;
+}
+
+describe(container_matchers) {
+  test_end;
+}
+
+describe(matcher_be_positive) {
+  test_end;
+}
+
+describe(matcher_be_between) {
+  test_end;
+}
+
+describe(matcher_be_within) {
   test_end;
 }
 
@@ -191,27 +531,15 @@ int test_macros(int _line, int _context)
 }
 #endif
 
-test_func(test_compare) {
-
-  test("A second test group") {
-
-    test_log("This is just a note");
-    test_log("This is another note");
-    test_log("More notes here");
-    test_log("These won't display with verbose off");
-    test_warn("But this will!");
-    test_warn("Another warning!");
-    test_warn("Uh oh!");
-    test_fail("The error should cause the header to reprint in red");
-
-  }
-
-  test_end;
-}
-
 test_suite_begin(tests_string)
-  test_group(test_new)
-  test_group(test_compare)
+  //test_group(test_new)
+  test_group(tests)
+  test_group(memory)
+  test_group(contexts)
+  test_group(expect_basic)
+  test_group(expect_basic_triplet)
+  test_group(expect_basic_var_output)
+  test_group(matchers)
 test_suite_end;
 
 // TODO:

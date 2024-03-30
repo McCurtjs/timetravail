@@ -18,13 +18,13 @@ typedef enum PrintLevel {
 typedef enum Verbosity {
   V_NONE,   //  0 verbosity level, only prints failures and warnings
   V_NOTES,  // -vn prints the above plus user notes
-  V_RUN,    // -vr prints the above plus passing tests
-  V_VERY    // -v prints everything, even headers of tests that aren't run
+  V_RUN,    // -v prints the above plus passing tests
+  V_VERY    // -va prints everything, even headers of tests that aren't run
 } Verbosity;
 
 // TODO: take all these and split them into a meta-context object so we
 // can at least pretend to be thread-safe.
-static const StringRange* test_function = NULL;
+static const TestGroup* test_function = NULL;
 static const StringRange* test_description = NULL;
 static const TestSuite* current_suite = NULL;
 static bool test_filename_printed = FALSE;
@@ -33,14 +33,20 @@ static PrintLevel test_desc_printed = NOT_PRINTED;
 static bool test_failed = FALSE;
 static bool test_skipped = FALSE;
 static bool test_in_progress = FALSE;
+static bool test_expect_fail = FALSE;
 static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
+#ifdef __WASM__
 static Verbosity param_verbose = V_NONE;
+#else
+static Verbosity param_verbose = V_RUN;
+#endif
 static int param_line = 0;
 static int param_tabsize = 2;
 static StringRange* param_file = NULL;
+static bool param_no_expect_fail = FALSE;
 
 static int memory_count_mallocs = 0;
 static int memory_count_frees = 0;
@@ -181,6 +187,7 @@ static void context_clear_stack() {
     free(ctx);
     ctx = tmp;
   }
+  ctx_stack_ptr = &ctx_stack_root;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,16 +198,22 @@ static bool test_blank() {
   return test_description == NULL || test_description->size == 0;
 }
 
-static int print_headers(int desc_color, int desc_level) {
+static int print_headers(
+  int desc_color, PrintLevel desc_level, const StringRange* to_append
+) {
 
   if (!test_filename_printed) {
-    str_print_color(current_suite->header, CONCOL_bCyan);
+    str_print_color(current_suite->header, CONCOL_bPurple);
     test_filename_printed = TRUE;
   }
 
   if (!test_function_printed) {
-    String s = str_prepend(*test_function, param_tabsize, ' ');
-    str_print_color(s->range, CONCOL_bPurple);
+    StringBuilder stb = stb_pad(NULL, param_tabsize, ' ');
+    stb_range(stb, R("in function ("));
+    stb_str(stb, str_from_int(test_function->line));
+    stb_range(stb, test_function->header);
+    String s = stb_resolve(&stb);
+    str_print_color(s->range, CONCOL_bCyan);
     str_delete(&s);
     test_function_printed = TRUE;
   }
@@ -211,7 +224,7 @@ static int print_headers(int desc_color, int desc_level) {
     ctx = ctx->next;
     if (!ctx->printed) {
       String s = str_prepend(*ctx->desc, param_tabsize * level, ' ');
-      str_print_color(s->range, CONCOL_Purple);
+      str_print_color(s->range, CONCOL_Cyan);
       str_delete(&s);
       ctx->printed = TRUE;
     }
@@ -228,6 +241,11 @@ static int print_headers(int desc_color, int desc_level) {
 
     } else {
       s = str_prepend(*test_description, param_tabsize * level, ' ');
+      if (to_append) {
+        String t = str_concat(s->range, *to_append);
+        str_delete(&s);
+        s = t;
+      }
       str_print_color(s->range, desc_color);
       test_desc_printed = desc_level;
     }
@@ -242,7 +260,7 @@ void _test_log(const StringRange* message) {
   if (param_verbose < V_NOTES) return;
   int mcmallocs = memory_count_mallocs;
   int mcfrees = memory_count_frees;
-  int level = print_headers(CONCOL_bWhite, LOGGED);
+  int level = print_headers(CONCOL_bWhite, LOGGED, NULL);
   String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print(s->range);
   str_delete(&s);
@@ -253,7 +271,7 @@ void _test_log(const StringRange* message) {
 void _test_warn(const StringRange* message) {
   int mcmallocs = memory_count_mallocs;
   int mcfrees = memory_count_frees;
-  int level = print_headers(CONCOL_Yellow, LOGGED);
+  int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
   String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print_color(s->range, CONCOL_Yellow);
   str_delete(&s);
@@ -262,15 +280,17 @@ void _test_warn(const StringRange* message) {
 }
 
 void _test_error(const StringRange* message) {
-  int mcmallocs = memory_count_mallocs;
-  int mcfrees = memory_count_frees;
-  int level = print_headers(CONCOL_Red, PRINTED);
-  String s = str_prepend(*message, param_tabsize * level, ' ');
-  str_print(s->range);
-  str_delete(&s);
+  if (!test_expect_fail) {
+    int mcmallocs = memory_count_mallocs;
+    int mcfrees = memory_count_frees;
+    int level = print_headers(CONCOL_Red, PRINTED, NULL);
+    String s = str_prepend(*message, param_tabsize * level, ' ');
+    str_print(s->range);
+    str_delete(&s);
+    memory_count_mallocs = mcmallocs;
+    memory_count_frees = mcfrees;
+  }
   test_failed = TRUE;
-  memory_count_mallocs = mcmallocs;
-  memory_count_frees = mcfrees;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +321,7 @@ bool _test_begin(int line, const StringRange* desc) {
     if (param_verbose == V_VERY) {
       // Set test in progress temporarily just so it prints the title in blue
       test_in_progress = TRUE;
-      print_headers(CONCOL_Blue, LOGGED);
+      print_headers(CONCOL_Blue, LOGGED, NULL);
     }
     test_in_progress = FALSE;
   }
@@ -317,7 +337,9 @@ bool _test_end(int line) {
   // TODO: I don't think we need to check test_blank anymore (thanks to in_prog)
   if (!test_blank() && !test_failed) {
 
-    if (memory_count_mallocs != memory_count_frees) {
+    bool memory_safe = memory_count_mallocs == memory_count_frees;
+
+    if (!memory_safe) {
       int malloc_count = memory_count_mallocs;
       int free_count = memory_count_frees;
       StringBuilder stb = stb_c_str(NULL, "mismatched malloc/free calls: ");
@@ -329,21 +351,33 @@ bool _test_end(int line) {
       str_delete(&s);
     }
 
+    // memory_reset();
+
     /* TODO: do real memory checks for malloc and allocate garbage */
   }
 
   ++test_count;
 
-  if (!test_failed) {
+  if (!test_failed ^ test_expect_fail) {
     ++test_passed_count;
 
     if (param_verbose >= V_RUN || param_line) {
-      print_headers(CONCOL_Green, LOGGED);
+      StringRange* failnote = test_expect_fail ? &R(" (failed successfully)") : NULL;
+      print_headers(CONCOL_Green, LOGGED, failnote);
     }
+  } else if (test_expect_fail) {
+    test_expect_fail = FALSE; // clear this so it prints the error
+    _test_error(&R("Test was expected to fail, but succeeded instead"));
   }
 
   test_in_progress = FALSE;
 
+  return TRUE;
+}
+
+bool _test_expect_to_fail() {
+  unless(param_no_expect_fail)
+    test_expect_fail = TRUE;
   return TRUE;
 }
 
@@ -390,6 +424,60 @@ void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
   array_delete(&split);
 }
 
+static String resolve_param_(const StringRange* fmt, const StringRange* type_N, const void* N) {
+  String formatted;
+
+  if (str_eq(*type_N, R("int"))) {
+    formatted = str_from_int(*(int*)N);
+
+  } else if (str_eq(*type_N, R("size_t"))) {
+    formatted = str_from_int((int)*(size_t*)N); // should make a long-int constructor
+
+  } else if (str_eq(*type_N, R("float"))) {
+    formatted = str_from_float(*(float*)N);
+
+  } else if (str_eq(*type_N, R("_Bool"))) {
+    formatted = str_from_bool(*(bool*)N);
+
+  } else {
+    String s = str_concat(R("Error formatting: Missing conversion info for type: "), *type_N);
+    _test_error(&s->range);
+    str_delete(&s);
+    return str_empty;
+  }
+
+  String result = str_concat(formatted->range, *fmt);
+  str_delete(&formatted);
+  return result;
+}
+
+void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
+  const StringRange* typ_A, const StringRange* typ_B//, const StringRange* Op
+) {
+  Array split = str_split(*fmt, R("$"));
+
+  if (split->size != 3) {
+    String to_print = str_concat(*fmt, R(" - Error formatting, expect two $ specifiers"));
+    _test_error(&to_print->range);
+    str_delete(&to_print);
+  }
+  else {
+    String first = resolve_param_(array_get(split, 1), typ_A, A);
+    String second = resolve_param_(array_get(split, 2), typ_B, B);
+    array_pop_back(split);
+    array_pop_back(split);
+    array_push_back(split, &first->range);
+    array_push_back(split, &second->range);
+    String result = str_join(str_empty->range, split);
+    str_delete(&first);
+    str_delete(&second);
+    _test_error(&result->range);
+    str_delete(&result);
+  }
+
+  array_delete(&split);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Test Runners
 ////////////////////////////////////////////////////////////////////////////////
@@ -407,18 +495,18 @@ static void before_suite(const TestSuite* suite) {
 
 static void before_fn(const TestGroup* t) {
   test_function_printed = FALSE;
-  test_function = &t->header;
+  test_function = t;
 }
 
 static void process_function(const TestGroup* t) {
   before_fn(t);
   test_current_line = 0;
-  int i = 0;
   do {
     ctx_stack_ptr = &ctx_stack_root;
+    test_expect_fail = FALSE;
     test_current_line = t->group_fn(test_current_line);
-  } while(test_current_line &&  ++i < 9);
-  //context_clear_stack();
+  } while(test_current_line);
+  context_clear_stack();
 }
 
 void test_run_suite(const TestSuite* suite) {
@@ -427,7 +515,7 @@ void test_run_suite(const TestSuite* suite) {
   if (param_file && !str_ends_with(suite->filename, *param_file)) {
     if (param_verbose == V_VERY) {
       String msg = str_concat(R("skipping file: %c"), suite->filename);
-      str_print_color(msg->range, CONCOL_Cyan);
+      str_print_color(msg->range, CONCOL_Purple);
       str_delete(&msg);
     }
     return;
@@ -435,22 +523,11 @@ void test_run_suite(const TestSuite* suite) {
 
   const TestGroup* t = &suite->test_groups[0];
   while (t->line != 0) {
-    if (t->line == param_line) {
-      int tmp = param_line;
-      param_line = 0;
-      process_function(t);
-      param_line = tmp;
-      goto end_suite;
-    }
-    ++t;
-  }
-
-  t = &suite->test_groups[0];
-  while (t->line != 0) {
+    int tmp_line = param_line;
+    if (t->line == param_line) param_line = 0;
     process_function(t++);
+    param_line = tmp_line;
   }
-
-end_suite:
 
   current_suite = NULL;
 }
@@ -470,20 +547,24 @@ static bool process_args(int argc, char* argv[]) {
         print(":");
         print(": - -- Options       Args");
         print(": h help                            : prints this message");
-        print(": v                                 : verbose output (maximum)");
-        print(": vr                                : verbose output (prints all tests run)");
+        print(": va                                : verbose output (maximum)");
+        print(": v                                 : verbose output (prints all tests run)");
         print(": vn                                : verbose output (includes user notes)");
         print(": t tab-size         n (default 2)  : spaces per indent in test output");
+        print(": f force-fails                     : disables 'expect(to_fail)', printing failure output");
         return TRUE;
 
-      } else if (str_eq(param, R("-v"))) {
+      } else if (str_eq(param, R("-va"))) {
         param_verbose = V_VERY;
 
-      } else if (str_eq(param, R("-vr"))) {
+      } else if (str_eq(param, R("-v"))) {
         param_verbose = V_RUN;
 
       } else if (str_eq(param, R("-vn"))) {
         param_verbose = V_NOTES;
+
+      } else if (str_eq(param, R("-f")) || str_eq(param, R("--force-fails"))) {
+        param_no_expect_fail = TRUE;
 
       } else if (str_eq(param, R("-t")) || str_eq(param, R("--tab-size"))) {
         if (i + 1 < argc) {
