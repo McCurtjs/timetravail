@@ -66,7 +66,6 @@ test_func(test_new) {
 
   //*/
 
-
   test("'tst_fail' just outright fails with a message") {
     test_fail("I failed because I felt like it");
   }
@@ -75,24 +74,10 @@ test_func(test_new) {
     expect_int(++incrementor, ==, 0);
   }
 
-
   test("increments the same variable again but doesn't actually") {
     expect_int(++incrementor, ==, 0);
   }
 
-  // TODO:
-  //    - Make context skip like tests do
-  //    - Use _tstlo__LINE__ for tests so we don't need do/while matching
-  //    - Context doesn't need a do/while or vars actually, just "_end(__LINE__)"
-  //      - no need for break; support outside of tests.
-  //    - Contexts unforutnately can't be nested with just the line number :/
-  //      - but regular blocks will work. They just won't skip between tests.
-  //    - Update un-rolled example below and keep this in an "example" file.
-  //      - both for publishing, and let's be real, I'm forgetting this in a week
-  //    - Do memory tester!
-  //
-  //    - Make string builder (stb) per spec in str.c
-  //    - Eventually json...
   context("String 'test' exists")
 
     String test = str_new("This is a copy of a c-string");
@@ -103,7 +88,6 @@ test_func(test_new) {
     }
 
     test("'expect' tests any two values, but won't print variable values") {
-      //str_print(test->range);
       expect(2.0, >, 1.0);
       expect(TRUE, !=, FALSE);
       expect(str_empty->size, ==, 1);
@@ -229,3 +213,10 @@ test_suite_begin(tests_string)
   test_group(test_new)
   test_group(test_compare)
 test_suite_end;
+
+// TODO:
+//    - Update un-rolled example below and keep this in an "example" file.
+//      - both for publishing, and let's be real, I'm forgetting this in a week
+//    - Do memory tester!
+//
+//    - Eventually json...

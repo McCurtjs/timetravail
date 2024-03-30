@@ -22,6 +22,11 @@ typedef struct TestSuite {
   TestGroup test_groups[];
 } TestSuite;
 
+typedef struct TestContext {
+  int line;
+
+} TestContext;
+
 bool _test_begin(int line, const StringRange* desc);
 bool _test_end(int line);
 bool _test_context_begin(int line, const StringRange* desc);
@@ -36,17 +41,17 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define test_run_all(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
 #define test_func(NAME) int NAME(int _line)
-#define test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("    test %c["LINESTR"] "DESC))) do
+#define test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("test %c["LINESTR"] "DESC))) do
 #define test_end while(0); _test_end(0); return 0
-#define context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("    context: %c"DESC))) {
+#define context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("context: %c["LINESTR"] "DESC))) {
 #define context_end while(0); _test_end(__LINE__); _test_context_end(__LINE__); return __LINE__; }
 
 #define test_not_implemented { .line = 0, .group_fn = NULL },
-#define test_group(TEST_FN) { .line = __LINE__, .header =M("  in function ("LINESTR"): %c"#TEST_FN), .group_fn = TEST_FN },
-#define test_suite_begin(NAME) TestSuite NAME = { .header = M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = {
+#define test_group(TEST_FN) { .line = __LINE__, .header=M("in function ("LINESTR"): %c"#TEST_FN), .group_fn = TEST_FN },
+#define test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = {
 #define test_suite_end test_not_implemented } }
 
-#define _test_msg(msg, c) &R("      line "LINESTR": "c msg)
+#define _test_msg(msg, c) &R("line "LINESTR": "c msg)
 #define test_log(message) if (_line < __LINE__) _test_log(_test_msg(message, ""))
 #define test_note(message) if (_line < __LINE__) test_log(message)
 #define test_warn(message) if (_line < __LINE__) _test_warn(_test_msg(message, "%c"))

@@ -15,6 +15,13 @@ typedef enum PrintLevel {
   PRINTED
 } PrintLevel;
 
+typedef enum Verbosity {
+  V_NONE,   //  0 verbosity level, only prints failures and warnings
+  V_NOTES,  // -vn prints the above plus user notes
+  V_RUN,    // -vr prints the above plus passing tests
+  V_VERY    // -v prints everything, even headers of tests that aren't run
+} Verbosity;
+
 // TODO: take all these and split them into a meta-context object so we
 // can at least pretend to be thread-safe.
 static const StringRange* test_function = NULL;
@@ -30,8 +37,9 @@ static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
-static bool param_verbose = FALSE;
+static Verbosity param_verbose = V_NONE;
 static int param_line = 0;
+static int param_tabsize = 2;
 static StringRange* param_file = NULL;
 
 static int memory_count_mallocs = 0;
@@ -75,6 +83,7 @@ void free_test(void* mem) {
 typedef struct Context {
   const StringRange* desc;
   bool printed;
+  bool requested_context;
   struct Context* prev;
   struct Context* next;
   int level;
@@ -83,6 +92,7 @@ typedef struct Context {
 static Context ctx_stack_root = {
   .desc = &R("<root context>"),
   .printed = FALSE,
+  .requested_context = FALSE,
   .prev = NULL,
   .next = NULL,
   .level = 0,
@@ -112,6 +122,14 @@ bool _test_context_begin(int line, const StringRange* desc) {
     return FALSE;
   }
 
+  // If this context's line was specified in the input params, run all the
+  // tests in this context, and end the tests as soon as it's popped.
+  bool is_requested = FALSE;
+  if (line == param_line) {
+    is_requested = TRUE;
+    param_line = 0;
+  }
+
   // If we get here, we are entering a context for the first time.
   Context* tmp = ctx_stack_top;
   ctx_stack_top = malloc(sizeof(Context));
@@ -119,6 +137,7 @@ bool _test_context_begin(int line, const StringRange* desc) {
   *ctx_stack_top = (Context) {
     .desc = desc,
     .printed = false,
+    .requested_context = is_requested,
     .prev = tmp,
     .next = NULL,
     .level = tmp->level + 1,
@@ -135,8 +154,15 @@ void _test_context_end(int line) {
 
   test_current_line = line;
 
+  // Once we pop a specifically requested context, end the tests.
+  // If we're in verbose mode, we want to still go thorugh them all to print
+  // the descriptions of un-run tests.
+  if (ctx_stack_top->requested_context) {
+    param_line = -1;
+  }
+
   if (ctx_stack_top->prev == NULL) {
-    _test_warn(&R("Context Stack: %cEnded context while stack is empty!"));
+    _test_warn(&R("Test system error: %cEnded context while stack is empty!"));
   } else {
     Context* tmp = ctx_stack_top;
     ctx_stack_top = tmp->prev;
@@ -151,7 +177,7 @@ static void context_clear_stack() {
   ctx_stack_root.next = 0;
 
   while (ctx) {
-    Context* tmp = ctx;
+    Context* tmp = ctx->next;
     free(ctx);
     ctx = tmp;
   }
@@ -165,7 +191,7 @@ static bool test_blank() {
   return test_description == NULL || test_description->size == 0;
 }
 
-static void print_headers(int desc_color, int desc_level) {
+static int print_headers(int desc_color, int desc_level) {
 
   if (!test_filename_printed) {
     str_print_color(current_suite->header, CONCOL_bCyan);
@@ -173,62 +199,78 @@ static void print_headers(int desc_color, int desc_level) {
   }
 
   if (!test_function_printed) {
-    str_print_color(*test_function, CONCOL_bPurple);
+    String s = str_prepend(*test_function, param_tabsize, ' ');
+    str_print_color(s->range, CONCOL_bPurple);
+    str_delete(&s);
     test_function_printed = TRUE;
   }
 
   Context* ctx = &ctx_stack_root;
-  int ctx_level = 0;
+  int level = 2;
   while (ctx->next) {
     ctx = ctx->next;
     if (!ctx->printed) {
-      String s = str_prepend(*ctx->desc, 2 * ctx_level, ' ');
+      String s = str_prepend(*ctx->desc, param_tabsize * level, ' ');
       str_print_color(s->range, CONCOL_Purple);
       str_delete(&s);
       ctx->printed = TRUE;
     }
-    ctx_level = ctx->level;
+    level += 1;
   }
 
   if (test_desc_printed < desc_level) {
     String s;
 
     if (!test_in_progress) {
-      s = str_prepend(R("    Pre-test"), 2 * ctx_level, ' ');
+      s = str_prepend(R("Pre-test"), param_tabsize * level, ' ');
       str_print(s->range);
-      test_desc_printed = LOGGED;
+      test_desc_printed = PRINTED;
 
     } else {
-      s = str_prepend(*test_description, 2 * ctx_level, ' ');
+      s = str_prepend(*test_description, param_tabsize * level, ' ');
       str_print_color(s->range, desc_color);
       test_desc_printed = desc_level;
     }
 
     str_delete(&s);
   }
+
+  return level + 1;
 }
 
 void _test_log(const StringRange* message) {
-  if (!param_verbose) return;
-  print_headers(CONCOL_bWhite, LOGGED);
-  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  if (param_verbose < V_NOTES) return;
+  int mcmallocs = memory_count_mallocs;
+  int mcfrees = memory_count_frees;
+  int level = print_headers(CONCOL_bWhite, LOGGED);
+  String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print(s->range);
   str_delete(&s);
+  memory_count_mallocs = mcmallocs;
+  memory_count_frees = mcfrees;
 }
 
 void _test_warn(const StringRange* message) {
-  print_headers(CONCOL_Yellow, LOGGED);
-  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  int mcmallocs = memory_count_mallocs;
+  int mcfrees = memory_count_frees;
+  int level = print_headers(CONCOL_Yellow, LOGGED);
+  String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print_color(s->range, CONCOL_Yellow);
   str_delete(&s);
+  memory_count_mallocs = mcmallocs;
+  memory_count_frees = mcfrees;
 }
 
 void _test_error(const StringRange* message) {
-  print_headers(CONCOL_Red, PRINTED);
-  String s = str_prepend(*message, 2 * ctx_stack_top->level, ' ');
+  int mcmallocs = memory_count_mallocs;
+  int mcfrees = memory_count_frees;
+  int level = print_headers(CONCOL_Red, PRINTED);
+  String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print(s->range);
   str_delete(&s);
   test_failed = TRUE;
+  memory_count_mallocs = mcmallocs;
+  memory_count_frees = mcfrees;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -236,6 +278,8 @@ void _test_error(const StringRange* message) {
 ////////////////////////////////////////////////////////////////////////////////
 
 bool _test_begin(int line, const StringRange* desc) {
+
+  // Current line is past this, we've already run this test
   if (test_current_line > line) {
     return FALSE;
   }
@@ -252,12 +296,14 @@ bool _test_begin(int line, const StringRange* desc) {
     test_skipped = FALSE;
 
   } else {
-    test_in_progress = FALSE;
-    test_skipped = TRUE; // not needed
+    test_skipped = TRUE; // not needed?
 
-    if (param_verbose) {
+    if (param_verbose == V_VERY) {
+      // Set test in progress temporarily just so it prints the title in blue
+      test_in_progress = TRUE;
       print_headers(CONCOL_Blue, LOGGED);
     }
+    test_in_progress = FALSE;
   }
 
   return test_in_progress;
@@ -272,21 +318,15 @@ bool _test_end(int line) {
   if (!test_blank() && !test_failed) {
 
     if (memory_count_mallocs != memory_count_frees) {
-      int malloc_count = (int)memory_count_mallocs;
-      int free_count = (int)memory_count_frees;
-      String str_m = str_from_int(malloc_count);
-      String str_f = str_from_int(free_count);
-      Array arr = array_new(StringRange);
-      array_push_back(arr, &R("      mismatched malloc/free calls: "));
-      array_push_back(arr, &str_m->range);
-      array_push_back(arr, &R("/"));
-      array_push_back(arr, &str_f->range);
-      String to_print = str_join(str_empty->range, arr);
-      _test_error(&to_print->range);
-      array_delete(&arr);
-      str_delete(&str_m);
-      str_delete(&str_f);
-      str_delete(&to_print);
+      int malloc_count = memory_count_mallocs;
+      int free_count = memory_count_frees;
+      StringBuilder stb = stb_c_str(NULL, "mismatched malloc/free calls: ");
+      stb_str(stb, str_from_int(malloc_count));
+      stb_c_str(stb, "/");
+      stb_str(stb, str_from_int(free_count));
+      String s = stb_resolve(&stb);
+      _test_error(&s->range);
+      str_delete(&s);
     }
 
     /* TODO: do real memory checks for malloc and allocate garbage */
@@ -297,7 +337,7 @@ bool _test_end(int line) {
   if (!test_failed) {
     ++test_passed_count;
 
-    if (param_verbose || param_line) {
+    if (param_verbose >= V_RUN || param_line) {
       print_headers(CONCOL_Green, LOGGED);
     }
   }
@@ -385,7 +425,7 @@ void test_run_suite(const TestSuite* suite) {
   before_suite(suite);
 
   if (param_file && !str_ends_with(suite->filename, *param_file)) {
-    if (param_verbose) {
+    if (param_verbose == V_VERY) {
       String msg = str_concat(R("skipping file: %c"), suite->filename);
       str_print_color(msg->range, CONCOL_Cyan);
       str_delete(&msg);
@@ -415,13 +455,45 @@ end_suite:
   current_suite = NULL;
 }
 
-static void process_args(int argc, char* argv[]) {
+static bool process_args(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
     StringRange param = str_range(argv[i]);
 
     if (str_starts_with(param, R("-"))) {
-      if (str_eq(param, R("-v"))) {
-        param_verbose = TRUE;
+      if (str_eq(param, R("-h")) || str_eq(param, R("--help"))) {
+        print(": Usage: tests [OPTIONS]");
+        print(":      : tests filename [OPTIONS]");
+        print(":      : tests filename:line [OPTIONS]");
+        print(":");
+        print(": If filename is given, limits tests to that file. Matches end of name.");
+        print(": If line is given, runs only that test, context, or group.");
+        print(":");
+        print(": - -- Options       Args");
+        print(": h help                            : prints this message");
+        print(": v                                 : verbose output (maximum)");
+        print(": vr                                : verbose output (prints all tests run)");
+        print(": vn                                : verbose output (includes user notes)");
+        print(": t tab-size         n (default 2)  : spaces per indent in test output");
+        return TRUE;
+
+      } else if (str_eq(param, R("-v"))) {
+        param_verbose = V_VERY;
+
+      } else if (str_eq(param, R("-vr"))) {
+        param_verbose = V_RUN;
+
+      } else if (str_eq(param, R("-vn"))) {
+        param_verbose = V_NOTES;
+
+      } else if (str_eq(param, R("-t")) || str_eq(param, R("--tab-size"))) {
+        if (i + 1 < argc) {
+          StringRange arg = str_range(argv[++i]);
+          int as_i = atoi(arg.begin);
+          param_tabsize = MAX(as_i, 0);
+        } else {
+          print("--tab-size requires a number as an argument");
+          return TRUE;
+        }
       }
     } else {
       // Can't use str_split or other functions that allocate here or it'll
@@ -442,40 +514,38 @@ static void process_args(int argc, char* argv[]) {
       }
     }
   }
+
+  return FALSE;
 }
 
 int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
-  process_args(argc, argv);
+  if (process_args(argc, argv)) {
+    return 0;
+  }
+
   before_run();
 
   for (int i = 0; i < count; ++i) {
     test_run_suite(suites[i]);
   }
 
-  int color = test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed;
-  int ratio = 100;
   if (test_count) {
-    ratio = (int)(100.f * (float)test_passed_count / (float)test_count);
-  }
 
-  String passed = str_from_int(test_passed_count);
-  String total = str_from_int(test_count);
-  String percent = str_from_int(ratio);
-  Array arr = array_new(StringRange);
-  array_push_back(arr, &R("Tests passed: %c"));
-  array_push_back(arr, &passed->range);
-  array_push_back(arr, &R(" out of "));
-  array_push_back(arr, &total->range);
-  array_push_back(arr, &R(", or "));
-  array_push_back(arr, &percent->range);
-  array_push_back(arr, &R("%"));
-  String result = str_join(str_empty->range, arr);
-  str_print_color(result->range, color);
-  array_delete(&arr);
-  str_delete(&result);
-  str_delete(&passed);
-  str_delete(&total);
-  str_delete(&percent);
+    int color = test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed;
+    int ratio = (int)(100.f * (float)test_passed_count / (float)test_count);
+    StringBuilder stb = stb_range(NULL, R("Tests passed: %c"));
+    stb_str(stb, str_from_int(test_passed_count));
+    stb_range(stb, R(" out of "));
+    stb_str(stb, str_from_int(test_count));
+    stb_range(stb, R(", or "));
+    stb_str(stb, str_from_int(ratio));
+    stb_range(stb, R("%"));
+    String result = stb_resolve(&stb);
+    str_print_color(result->range, color);
+    str_delete(&result);
+  } else {
+    str_print_color(R("Tests passed: %c0 out of 0"), CONCOL_bYellow);
+  }
 
   // return the number of failed tests
   return test_count - test_passed_count;
