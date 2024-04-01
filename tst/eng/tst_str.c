@@ -468,20 +468,108 @@ describe(matchers) {
 
 describe(container_matchers) {
 
-  Array arr = array_new(int);
+  context("compositions on an int array [3, 5, 7]") {
+    Array arr = array_new(int);
 
-  array_push_back(arr, &(int){3});
-  array_push_back(arr, &(int){5});
-  array_push_back(arr, &(int){7});
+    array_push_back(arr, &(int){3});
+    array_push_back(arr, &(int){5});
+    array_push_back(arr, &(int){7});
 
-  context("compositions on an array") {
+    context("tests succeed") {
 
-    it("contains only positive values") {
-      expect(arr, to all(be_positive, int, array));
+      it("contains only positive values") {
+        expect(arr, to all(be_positive, int, array));
+      }
+
+      context("a negative number is added to the array [..., -1]") {
+        array_push_back(arr, &(int){-1});
+
+        it("does not contain only positive values") {
+          expect(arr, to_not all(be_positive, int, array));
+        }
+
+        context_end;
+      }
+
+      it("contains values within 2 of 5") {
+        expect(arr, to all(be_within(2 of 5), int, array));
+      }
+
+      it("contains values that are not all within 2 of 6") {
+        expect(arr, to_not all(be_within(2 of 6), int, array));
+      }
+
+      it("contains all values which are not within 2 of 10") {
+        expect(arr, to all(not be_within(2 of 10), int, array));
+      }
+
+      it("contains at least one value within 2 of 8") {
+        expect(arr, to_not all(not be_within(2 of 8), int, array));
+      }
+
+      it("compares the values using the 'be' matcher") {
+        expect(arr, to all(be( < , 10), int, array));
+      }
+
+      it("contains values not all equal to 3") {
+        expect(arr, to_not all(be( == , 3), int, array));
+      }
+
+      it("contains values all not equal to 4") {
+        expect(arr, to_not all(be( == , 4), int, array));
+      }
+
+      context_end;
     }
 
-    it("contains values within 2 of 5") {
-      expect(arr, to_not all(not be_within(2 of 5), int, array));
+    context("tests fail") {
+
+      expect(to_fail);
+
+      context("a negative number is added to the array [..., -1]") {
+        array_push_back(arr, &(int){-1});
+
+        it("contains only positive values") {
+          array_push_back(arr, &(int){-1});
+          expect(arr, to all(be_positive, int, array));
+        }
+
+        it("wants ONLY values that are not positive") {
+          expect(arr, to all(not be_positive, int, array));
+        }
+
+        context_end;
+      }
+
+      it("wants values only within 2 of 4") {
+        expect(arr, to all(be_within(2 of 4), int, array));
+      }
+
+      it("wants values that are not all within 2 of 5") {
+        expect(arr, to_not all(be_within(2 of 5), int, array));
+      }
+
+      it("wants only values which are not within 2 of 9") {
+        expect(arr, to all(not be_within(2 of 9), int, array));
+      }
+
+      it("wants at least one value within 2 of 10") {
+        expect(arr, to_not all(not be_within(2 of 10), int, array));
+      }
+
+      it("checks that all numbers are over 5") {
+        expect(arr, to all(be( > , 5), int, array));
+      }
+
+      it("asks for not all numbers to be less than 10") {
+        expect(arr, to_not all(be( < , 10), int, array));
+      }
+
+      it("asks for all numbers to not be less than 4") {
+        expect(arr, to all(be( < , 4), int, array));
+      }
+
+      context_end;
     }
 
     context_end;

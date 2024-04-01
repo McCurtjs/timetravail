@@ -134,6 +134,9 @@ typedef struct TestSuite {
 //    (thinking of a way to avoid needing this)
 #define test_suite_end _test_suite_end
 
+void test_run_suite(const TestSuite* suite);
+#define test_run_all(suites) _test_run_all_suites(suites)
+
 ////////////////////////////////////////////////////////////////////////////////
 // Contexts
 ////////////////////////////////////////////////////////////////////////////////
@@ -320,6 +323,10 @@ typedef struct TestSuite {
 // \brief It also works as a regular matcher, ie: in the form
 //    `expect(A, to be( < , 7))`, but I don't know why you'd use that over the
 //    basic form of `expect(A < 7)`.
+// 
+// \brief Note: does not work with preceding `not` specifier :(
+//    but given every math operator has an inverse, this is probably not
+//    much of a big deal.
 //
 // \param operator - A basic C comparison operator (==, !=, >, <, >=, <=).
 //
@@ -354,17 +361,10 @@ bool _test_expect_to_fail();
 //  const void* a, const void* b, const void* tA, const void* tB);
 int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
-void test_run_suite(const TestSuite* suite);
-#define test_run_all(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
-
+#define _test_run_all_suites(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
 #define LINESTR STR(__LINE__)
 #define _test_msg(msg, c) &R("line "LINESTR": "c msg)
-
-
-
-
-
 
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; int test_##NAME(void)
 #define _describe_end while(0); _test_end(0); return 0
@@ -406,12 +406,10 @@ void test_run_suite(const TestSuite* suite);
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
 #define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
 
-#define _all_comp(A, B, C) B(_arrval, A) { bool _tmp = _test; _test = C(*_arrval); if (_test != _tmp) { break; } }
-#define _be_comp(A, B, C) B(_arrval, A) { bool _tmp = _test; _test = ((*_arrval) C); if (_test != _tmp) { break; } }
-#define _all_b(T_el, T_con, matcher) TRUE; T_el* T_con##_foreach, matcher, _be_comp, 0, 0
-#define _all_a(T_el, T_con, matcher) TRUE; T_el* T_con##_foreach, matcher, _all_comp, 0, 0
-#define _all_va(T_el, T_con, matcher, _, F, ...) F(T_el, T_con, matcher)
-#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_b, _all_a)
+#define _all_comp(A, B, C) B(_arrval, A) { _test = C(*_arrval); if (!_test) { break; } } _test ^= _tmp
+#define _be_comp(A, B, C) B(_arrval, A) { _test = ((*_arrval) C); if (!_test) { break; } } _test ^= _tmp
+#define _all_va(T_el, T_con, matcher, _, F, ...) FALSE; bool _tmp = _test; T_el* T_con##_foreach, matcher, F, 0, 0
+#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _be_comp, _all_comp)
 //#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
 
 // Test suites
