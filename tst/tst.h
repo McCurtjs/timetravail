@@ -6,12 +6,10 @@
 
 #include "wasm.h"
 
-#define LINESTR STR(__LINE__)
-
-typedef int (*test_fn)(int line);
+typedef int (*test_fn)(void);
 
 typedef struct TestGroup {
-  int line;
+  const int* line;
   StringRange header;
   test_fn group_fn;
 } TestGroup;
@@ -19,86 +17,373 @@ typedef struct TestGroup {
 typedef struct TestSuite {
   StringRange header;
   StringRange filename;
-  TestGroup test_groups[];
+  TestGroup (*test_groups)[];
 } TestSuite;
 
-typedef struct TestContext {
-  int line;
+// This is a custom test library based roughly on the RSpec testing library
+//    for Ruby: https://rspec.info/features/3-12/rspec-core/
+//
+// RSpec "is a behavior-driven development (BDD) framework" which is something I
+//    wanted to try and emulate in C before realizing it's been done before...
+//    That said, it's been an interesting excuse to see what I could get away
+//    with using macros, and the result seems to be surprisingly functional and
+//    closer to what Ruby has than the other projects I've found attempting the
+//    same thing.
+//
+// Example of basic setup:
+//
+//    file: /src/engine/widget.c
+//
+//        int widget_operate(void) {
+//            // very critically important source code
+//        }
+//
+//    file: /test/engine/test_widget.c
+//
+//        describe(widget_operate)
+//        {
+//            it ("returns 0 after operating the widget")
+//            {
+//                int result = widget_operate();
+//                expect(result == 0);
+//            }
+//
+//            describe_end;
+//        }
+//
+//        create_test_suite(widget_tests) {
+//            test_group(widget_operate),
+//            test_suite_end
+//        }
+//
+//    file: /test/test_main.c
+//
+//        int main(int argc, char* argv[])
+//        {
+//            TestSuite* suites[] = {
+//                widget_tests
+//            };
+//
+//            return test_run_all_suites(argc, argv, suites);
+//        }
+//
 
-} TestContext;
+////////////////////////////////////////////////////////////////////////////////
+// Test setup
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief Describes an example group containing tests that explain how
+//    the function being tested should behave in various contexts.
+//
+// \brief Under the hood, an exmaple group is simply a function. The group
+//    is executed once for every included test rather than in a single
+//    iteration, meaning any function-scope changes in execution context will
+//    not be preserved between example units.
+//
+// \param NAME - NOT A STRING - The name of the test example group being
+//    described. This name will later need to be included in a test suite in
+//    order to be executed. (see `test_group` for info)
+#define describe(NAME)          _describe(NAME)
+#define test_func(NAME)         _describe(NAME)
+
+// \brief Ends a description block (would like to find a way to avoid needing).
+#define describe_end            _describe_end
+#define test_end                _describe_end
+
+// \brief An `it` block declares an example case for testing.
+//
+// \brief Each "it" statement is run one at a time in its own execution context
+//    that won't impact the result of other examples.
+//
+// \param DESC - String Literal: a brief description of the test that will be
+//    printed with the test results.
+#define it(DESC)                _test("it "DESC)
+#define test(DESC)              _test(DESC)
+
+////////////////////////////////////////////////////////////////////////////////
+// Composing test suites
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief A test suite is a batch of test groups to be executed together as a
+//    conceptual object.
+//
+// \brief Conceptually, while a test group might describe the behaviors of a
+//    given function related to a particular class, the test suite will contain
+//    the set of descriptions for all functions that make up that class.
+//
+// \brief Use this to begin a declarative block at the end of a test file. The
+//    block should contain only `test_group` calls and end with `test_suite_end`
+//
+// \param NAME - NOT A STRING - The name of the test suite. This will later need
+//  to be given to the test_run functions to execute the tests.
+#define test_suite_begin(NAME) _test_suite_begin(NAME)
+
+// \brief Used within the block of test_suite_begin to add groups to the suite.
+//
+// \brief Example usage:
+// \brief     test_suite_begin(widget_class_tests) {
+// \brief         test_group(widget_tests),
+// \brief         test_suite_end
+// \brief     };
+//
+// \param TEST_FN - NOT A STRING - The name of the test group to include in the
+//    suite. This should be the same value passed into `describe` above.
+#define test_group(TEST_FN) _test_group(TEST_FN)
+
+// \brief Must be included at the end of the test suite declaration list.
+//    (thinking of a way to avoid needing this)
+#define test_suite_end _test_suite_end
+
+////////////////////////////////////////////////////////////////////////////////
+// Contexts
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief Opens a descriptive context block that can contain other example
+//    statements or contexts.
+//
+// \brief Variables can be defined in a context to be shared between between
+//    multiple tests, or functions can be called to share pre-test setups.
+//
+// \brief Contexts can be nested. Statements in contexts will be executed in
+//    order - function calls will be made in the order they appear, and any
+//    variables defined in an earlier context that are changed in later ones
+//    will use the last set value in the test.
+//
+// \param DESC - String Literal: a brief description of the context that
+//    applies to all included tests and will be printed along with their output.
+#define context(DESC) _context(DESC)
+
+// \brief Closes a test context
+#define context_end _context_end
+
+////////////////////////////////////////////////////////////////////////////////
+// Logging
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief Logs a baisc message in the console output. The message will only be
+//    printed once between all runs of the test group.
+//
+// \brief This level of non-critical log will not be printed unless the verbose
+//    flag is set to some level (using -vn, -v, or -va)
+//
+// \param message - String Literal: The message to be printed. Fairly limited
+//    currently in that it can only print compile-time c-string literals, but
+//    somewhat useful for debugging with conditional statements. Would like
+//    to replace with a version that can do dynamic strings.
+#define test_log(message) _test_log(message)
+
+// \brief An alias for `test_log`
+#define test_note(message) _test_log(message)
+
+// \brief Logs a warning message in the console output. The message is of higher
+//    importance than a basic log, and will appear even if the verbose level is
+//    not set.
+//
+// \param warning - String Literal: The warning to be printed. Same
+//    restrictions as with test_log.
+#define test_warn(warning) _test_warn(warning)
+
+// \brief Automatically fails the test. Do not pass GO. Do not collect $200.
+//
+// \param issue - String Literal: The error to print.
+#define test_fail(issue) _test_fail(issue)
+
+////////////////////////////////////////////////////////////////////////////////
+// Value checking with "Expect"
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief An `expect` clause within a test is used to check the validity of
+//    output for the operations being tested. The value passed is expected to
+//    evaluate to TRUE, and if it doesn't, the test aborts as a failure
+//
+// \brief The expect statement can be given in many formats. The basic forms are
+//    described below:
+//
+// \param - `expect(condition);` - ex: `expect(var == 5); expect(var < c);
+//    expect(str_eq(a, b));` etc. Does any truthy test, but output is limited to
+//    the string equivalent of `condition`. The benefit of course is that this
+//    can be used for just about anything.
+//
+// \param - `expect(A, operator, B);` - ex: `expect(a, == , b);` - Same as
+//    above, but with options separated by commas.
+//
+// \param - `expect(A, operator, B, TYPE);` - ex: `expect(a, < , b, float);`
+//    Same as above, but A and B must be convertable to type TYPE, and will have
+//    their values printed in addition to the expression.
+//
+// \param - `expect(A, operator, B, type_A, type_B)` - Same as above, but
+//    A and B are treated as separate types for output.
+//
+// \param - `expect(...)` - There are other uses for the `expect` macro that
+//    make use of other parameters, such as matchers. The usage of these will be
+//    described below.
+#define expect(...) _expect(#__VA_ARGS__, __VA_ARGS__)
+
+////////////////////////////////////////////////////////////////////////////////
+// Directives
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief A pre-test directive telling the system that the test being run is
+//    supposed to fail. When this is used before a test, if the test would fail,
+//    it's logged as a success, but if it would otherwise succeed, it's logged
+//    as a failure.
+//
+// \param expect(to_fail);
+#define to_fail _test_expect_to_fail()
+
+////////////////////////////////////////////////////////////////////////////////
+// Matchers
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief This can be used as syntactic sugar for matchers
+//
+// \param - `expect(value, to matcher);`
+#define to
+
+// \brief This is used in the same way as `to`, but also negates the result
+//
+// \param - `expect(value, to_not matcher);`
+#define to_not !
+
+// \brief alias for to_not
+#define not_to !
+
+// \brief This is an example of a matcher which checks if a value is positive.
+//    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
+//    concept for matchers in general.
+//
+// \param - `expect(value, to be_positive);` - The value given on the left is
+//    evaluated by the macro given on the right. A simple matcher can be any
+//    basic test that takes a single value and does a statically defined test.
+#define be_positive(A) ((A) >= 0)
+
+// \brief This is a matcher that takes params and uses them to compose a more
+//    complex expectation for the test. It checks if the value is between
+//    a minimum and maximum bound. By default, the check is inclusive and
+//    assumes integer values.
+//
+// \param - `expect(value, to be_between(A, B));` - succeeds if the given value
+//    is between A and B inclusive. In this case, the value is expected to be
+//    an int.
+//
+// \param - `expect(value, to be_between(A, B, TYPE));` - inclusive check
+//    between A and B, but interprets all three as values of type TYPE.
+//
+// \param - `expect(value, to be_between(A, B, TYPE, inclusive));` - same as
+//    previous, but can be explicitly specified as inclusive or exclusive.
+#define be_between(...) _be_between(__VA_ARGS__)
+
+// \brief This matcher will check if the test value is between two numbers.
+//    By default, the check is inclusive and assumes integer values.
+//
+// \param - `expect(value, to be_within(A of B));` - expects the value to be
+//    within A of B in either direction. All three params are expected to be
+//    ints, and the check is inclusive.
+//
+// \param - `expect(value, to be_within(A of B, TYPE));` - same as above but
+//    specifies a type for the comparison.
+//
+// \param - `expect(value, to be_within(A of B, TYPE, inclusive)); - same as
+//    above, but can be explicitly specified as inclusive or exclusive.
+#define be_within(...) _be_within(__VA_ARGS__)
+
+// \brief syntactic sugar for `be_within`
+#define of ,
+
+// \brief The `all` parameter composes matchers into a test against a container.
+//    All values in the container must satisfy the condition in order to pass.
+//
+// \brief In order to function, the container must support a "foreach" macro
+//    that takes the form (using array for example),
+//    `int* array_foreach(it_val, arr) {...}`, as well as a "get" function in
+//    the form `void* array_get(arr);`.
+//
+// \brief Given that definition for iterating an `array` class, the expect all
+//    check would look like: `expect(arr, to all(be_positive, int, array));`.
+//
+// \param matcher - A regular matcher, such as be_positive, or be_within(A, B).
+//
+// \param T_elem - The type of the elements in the container. Note: this
+//    should be the actual type of the elements in the container, not the
+//    pointer type expected to be returned from TYPE_get().
+//
+// \param T_container - The type of container. This value is not the actual
+//    type name of the container's struct, but an associated prefix expected to
+//    be used by functions associated with that type. For example, the
+//    aforementioned "array_get" function is associated with the struct `Array`.
+#define all(matcher, T_elem, T_container) _all(T_elem, T_container, matcher)
+
+// \brief A matcher that appears to do nothing, but allows basic condition
+//    checking within an "expect all" statement. Used in the form:
+//    `expect(arr, to all(be( > , 50 ), int, array ));`.
+//
+// \brief It also works as a regular matcher, ie: in the form
+//    `expect(A, to be( < , 7))`, but I don't know why you'd use that over the
+//    basic form of `expect(A < 7)`.
+//
+// \param operator - A basic C comparison operator (==, !=, >, <, >=, <=).
+//
+// \param value - The value to test the leading parameter with.
+#define be(operator, value) operator (value),
+
+#ifndef not
+// \brief Syntactic sugar for use with all and not.
+//
+// \param - `expect(arr, to all(not be( > 6), int, array));`.
+# define not !
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation details, turn back now, here there be dragons.
+////////////////////////////////////////////////////////////////////////////////
+
+
 
 bool _test_begin(int line, const StringRange* desc);
 bool _test_end(int line);
 bool _test_context_begin(int line, const StringRange* desc);
 void _test_context_end(int line);
-void _test_error(const StringRange* message);
-void _test_log(const StringRange* messgae);
-void _test_warn(const StringRange* message);
+void _test_log_fn(int line, const StringRange* messgae);
+void _test_warn_fn(int line, const StringRange* message);
+void _test_error_fn(const StringRange* message);
+void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
+  const StringRange* type_A, const StringRange* type_B);
+bool _test_expect_to_fail();
 //void _test_error_params(const StringRange* fmt, const void* a, const void* b);
-//void _test_error_2(const StringRange* fmt, const StringRange* desc, 
+//void _test_error_2(const StringRange* fmt, const StringRange* desc,
 //  const void* a, const void* b, const void* tA, const void* tB);
+int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
 void test_run_suite(const TestSuite* suite);
-int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define test_run_all(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
-#define describe(NAME) test_func(NAME)
-#define test_func(NAME) const static int _fn_line_##NAME = __LINE__; int test_##NAME(int _line)
-#define it(DESC) test("it "DESC)
-#define test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("test %c["LINESTR"] "DESC))) do
-#define test_end while(0); _test_end(0); return 0
-#define context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("context: %c["LINESTR"] "DESC))) {
-#define context_end while(0); _test_end(__LINE__); _test_context_end(__LINE__); return __LINE__; }
 
-#define test_not_implemented { .line = 0, .group_fn = NULL },
-#define test_group(TEST_FN) { .line = _fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN },
-#define test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = {
-#define test_suite_end test_not_implemented } }
-
+#define LINESTR STR(__LINE__)
 #define _test_msg(msg, c) &R("line "LINESTR": "c msg)
-#define test_log(message) if (_line < __LINE__) _test_log(_test_msg(message, ""))
-#define test_note(message) if (_line < __LINE__) test_log(message)
-#define test_warn(message) if (_line < __LINE__) _test_warn(_test_msg(message, "%c"))
-#define test_fail(issue) do { _test_error(_test_msg(issue, "")); return __LINE__; } while(0)
-//#define expect(lhs, cmp, rhs) unless((lhs) cmp (rhs)) test_fail(#lhs" "#cmp" "#rhs)
-//#define _test_fail(s) _test_error_params(_test_msg(s, ""), &_A, &_B); break;
-//#define _expect(Lf, C, Rt, t) _test_fail(#Lf" "#C" "#Rt" with values: %"#t" "#C" %"#t)
-//#define _expect_t(Lf, C, Rt, t, T) { T _A=(Lf), _B=(Rt); unless(_A C _B) _expect(Lf, C, Rt, t) }
-//#define expect_int(lhs, cmp, rhs) _expect_t(lhs, cmp, rhs, i, int)
-//#define expect_float(lhs, cmp, rhs) _expect_t(lhs, cmp, rhs, f, float)
-//#define expect_bool(lhs, cmp, rhs) _expect_t(lhs, cmp, rhs, b, bool)
 
 
 
-#define expect(...) _expect(#__VA_ARGS__, __VA_ARGS__)
 
-#define to_fail _test_expect_to_fail()
 
-// matchers
-#define be_between(...) _be_between(__VA_ARGS__)
-#define be_within(...) _be_within(__VA_ARGS__)
-#define be_positive(A) ((A) >= 0)
 
-#define be(B, C) B (C), 
+#define _describe(NAME) static const int _fn_line_##NAME = __LINE__; int test_##NAME(void)
+#define _describe_end while(0); _test_end(0); return 0
 
-#define all(matcher, element_type, container_type) _all(element_type, container_type, matcher)
+#define _test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("test %c["LINESTR"] "DESC))) do
 
-#define to
-#define to_not !
-#define not_to !
-#define of ,
+#define _context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("context: %c["LINESTR"] "DESC))) {
+#define _context_end while(0); _test_end(__LINE__); _test_context_end(__LINE__); return __LINE__; }
 
-#ifndef not
-# define not !
-#endif
+#define _test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = (TestGroup(*)[])(&(TestGroup[])
+#define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN }
+#define _test_suite_end { .line = NULL, .group_fn = NULL } })
 
-bool _test_expect_to_fail();
-
-void _test_error_typed(const StringRange* fmt, const void* A, const void* B, 
-  const StringRange* type_A, const StringRange* type_B);
+#define _test_log(message) _test_log_fn(__LINE__, _test_msg(message, ""))
+#define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
+#define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return __LINE__; } while(0)
 
 #define _expect_t(A, B, C, Ta, Tc) _test_error_typed(_test_msg(#A" "#B" "#C" with values: $ "#B" $", ""), &_A, &_C, &R(#Ta), &R(#Tc))
-#define _expect_comp2(S, A, B, C, D, ...) do { bool _test = D(A, B, C); unless(_test) test_fail("expected "#S); } while(0)
+#define _expect_comp2(S, A, B, C, D, ...) do { bool _test = D(A, B, C); unless(_test) test_fail("expected "S); } while(0)
 #define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _expect_t(A, B, C, D, E); } while(0)
 #define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _expect_t(A, B, C, D, D); } while(0)
 #define _expect_true2(S, A, B, C, ...) _expect_true(#A" "#B" "#C, (A) B C)
@@ -115,8 +400,8 @@ void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
 #define _be_between_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_between_##F
 #define _be_between(...) _be_between_va(__VA_ARGS__, int, inclusive, exclusive)
 
-#define _be_within_exclusive(A) (A); _test ^= (_B - _C < _A && _A < _B + _C)
-#define _be_within_inclusive(A) (A); _test ^= (_B - _C <= _A && _A <= _B + _C)
+#define _be_within_exclusive(A) (A); _test ^= (_C - _B < _A && _A < _C + _B)
+#define _be_within_inclusive(A) (A); _test ^= (_C - _B <= _A && _A <= _C + _B)
 #define _be_within_int(A) _be_within_inclusive(A)
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
 #define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)

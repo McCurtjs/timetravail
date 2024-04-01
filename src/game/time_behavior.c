@@ -6,9 +6,9 @@
 #include "../test_behaviors.h"
 
 static float reverse_speed = 1;
-const static float reverse_max = -2.7f;
-const static float reverse_jolt = 0.0007f;
-const static float reverse_accel_start = 0.f;
+static float const reverse_max = -2.7f;
+static float const reverse_jolt = 0.0007f;
+static float const reverse_accel_start = 0.f;
 static float reverse_accel = 0.f;
 
 static void create_new_player(Game* game, Entity* e) {
@@ -34,14 +34,9 @@ static void create_new_player(Game* game, Entity* e) {
   });
 }
 
-#ifdef __WASM__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#endif
-void behavior_time_controller(Entity* _, Game* game, float dt) {
-#ifdef __WASM__
-#pragma clang diagnostic pop
-#endif
+void behavior_time_controller(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(e);
+  PARAM_UNUSED(dt);
 
   // Only true on the frame the speed changes from forward to backward
   game->reverse_triggered = FALSE;

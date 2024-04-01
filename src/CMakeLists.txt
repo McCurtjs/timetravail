@@ -1,5 +1,6 @@
 add_executable(${PROJECT_NAME})
 add_library(${PROJECT_NAME}_impl)
+add_library(galogen)
 
 #target_precompile_headers(${PROJECT_NAME} PRIVATE def.h)
 
@@ -14,6 +15,18 @@ if (WIN32)
   target_compile_definitions(${PROJECT_NAME}_impl PRIVATE
       _CRT_SECURE_NO_WARNINGS
   )
+endif()
+
+if (MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
+  target_compile_options(${PROJECT_NAME}_impl PRIVATE /W4 /WX)
+else()
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_compile_options(${PROJECT_NAME}_impl PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+    #-Wno-cast-function-type # Galogen does this a lot and I'm not editing those
+  )
+  set_source_files_properties(eng/native/galogen.c PROPERTIES COMPILE_OPTIONS -Wall)
 endif()
 
 target_sources(${PROJECT_NAME}_impl PRIVATE
@@ -53,7 +66,9 @@ target_sources(${PROJECT_NAME}_impl PRIVATE
   eng/utility.c
   eng/vec.c
   eng/wasm.c
+)
 
+target_sources(galogen PRIVATE
   eng/native/galogen.c
 )
 
@@ -61,4 +76,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   main.c
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE libraries ${PROJECT_NAME}_impl)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+  libraries
+  galogen
+  ${PROJECT_NAME}_impl
+)

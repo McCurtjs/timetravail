@@ -534,14 +534,15 @@ Animation player_animations[] = {
 };
 
 Hitbox player_hitboxes[7] = {
-  { }, // placeholder - index 0 is no hitbox
+  // placeholder - index 0 is no hitbox (annoyingly, can't use {0} because of a bug in GCC (53119?)
+  { .pos = {.f={ 0, 0 }}, .radius = 0.0f, .knockback = {.f={0, 0}}, .hitstun = 0}, 
   //   center          radius   knockback   hitstun
-  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = { 25.f, 12.f }, .hitstun = 12 }, // KICK
-  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = { 15.f, 38.f }, .hitstun = 25 }, // DASH
-  { .pos = { 0.75f, 0.2f }, .radius = .5f, .knockback = {  5.f, 30.f }, .hitstun = 20 }, // NAIR
-  { .pos = { 0.90f, 0.0f }, .radius = .7f, .knockback = { 40.f, 20.f }, .hitstun = 35 }, // FAIR
-  { .pos = { 0.90f,-0.1f }, .radius = .3f, .knockback = { 60.f, 25.f }, .hitstun = 120}, // BAIR sweetspot
-  { .pos = { 0.90f, 0.3f }, .radius = .8f, .knockback = {  8.f, 20.f }, .hitstun = 30 }, // BAIR sourspot
+  { .pos = {.f={ 0.75f, 0.2f }}, .radius = .5f, .knockback = {.f={ 25.f, 12.f }}, .hitstun = 12 }, // KICK
+  { .pos = {.f={ 0.75f, 0.2f }}, .radius = .5f, .knockback = {.f={ 15.f, 38.f }}, .hitstun = 25 }, // DASH
+  { .pos = {.f={ 0.75f, 0.2f }}, .radius = .5f, .knockback = {.f={  5.f, 30.f }}, .hitstun = 20 }, // NAIR
+  { .pos = {.f={ 0.90f, 0.0f }}, .radius = .7f, .knockback = {.f={ 40.f, 20.f }}, .hitstun = 35 }, // FAIR
+  { .pos = {.f={ 0.90f,-0.1f }}, .radius = .3f, .knockback = {.f={ 60.f, 25.f }}, .hitstun = 120}, // BAIR sweetspot
+  { .pos = {.f={ 0.90f, 0.3f }}, .radius = .8f, .knockback = {.f={  8.f, 20.f }}, .hitstun = 30 }, // BAIR sourspot
 };
 
 // Used to tell if an animation contains an idle sequence

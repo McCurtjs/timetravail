@@ -4,7 +4,7 @@
 
 #define FN_SIGNATURE_PRINT void print(const char* str)
 #define FN_SIGNATURE_PRINT_STR void str_print(StringRange str)
-#define FN_SIGNATURE_PRINT_STR_C void str_print_color(StringRange str, int c)
+#define FN_SIGNATURE_PRINT_STR_C void str_print_color(StringRange str, ConsoleColor c)
 #define FN_SIGNATURE_PRINT_INT void print_int(long long int i)
 #define FN_SIGNATURE_PRINT_PTR void print_ptr(const void* p)
 #define FN_SIGNATURE_PRINT_FLOAT void print_float(float f)

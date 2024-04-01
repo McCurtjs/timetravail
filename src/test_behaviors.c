@@ -5,13 +5,14 @@
 #include "types.h"
 #include "draw.h"
 
-void behavior_test_camera(Entity* _, Game* game, float dt) {
+void behavior_test_camera(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(e);
 
   float xrot = d2r(-game->input.mouse.move.y * 180 / (float)game->window.h);
   float yrot = d2r(-game->input.mouse.move.x * 180 / (float)game->window.x);
 
   if (game->input.pressed.lmb) {
-    vec3 angles = (vec3){xrot, yrot, 0};
+    vec3 angles = v3f(xrot, yrot, 0);
     camera_orbit(&game->camera, game->target, angles.xy);
   }
 
@@ -41,22 +42,30 @@ void behavior_test_camera(Entity* _, Game* game, float dt) {
   }
 }
 
-void behavior_cubespin(Entity* e, Game* _, float dt) {
+void behavior_cubespin(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(game);
+
   e->transform = m4translation(e->pos);
-  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){1.f, 1.5f, -.7f}), e->angle));
-  e->transform = m4mul(e->transform, m4rotation(v3norm((vec3){-4.f, 1.5f, 1.f}), e->angle/3.6f));
+  e->transform = m4mul(e->transform, m4rotation(v3norm(v3f(1.f, 1.5f, -.7f)), e->angle));
+  e->transform = m4mul(e->transform, m4rotation(v3norm(v3f(-4.f, 1.5f, 1.f)), e->angle/3.6f));
   e->angle += 2 * dt;
 }
 
-void behavior_stare(Entity* e, Game* game, float _) {
+void behavior_stare(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(dt);
+
   e->transform = m4look(e->pos, game->camera.pos.xyz, v3y);
 }
 
-void behavior_attach_to_light(Entity* e, Game* game, float _) {
+void behavior_attach_to_light(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(dt);
+
   e->transform = m4translation(game->light_pos.xyz);
 }
 
-void behavior_attach_to_camera_target(Entity* e, Game* game, float _) {
+void behavior_attach_to_camera_target(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(dt);
+
   e->transform = m4translation(game->target);
 }
 

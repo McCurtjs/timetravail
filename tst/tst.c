@@ -38,11 +38,7 @@ static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
-#ifdef __WASM__
 static Verbosity param_verbose = V_NONE;
-#else
-static Verbosity param_verbose = V_RUN;
-#endif
 static int param_line = 0;
 static int param_tabsize = 2;
 static StringRange* param_file = NULL;
@@ -168,7 +164,7 @@ void _test_context_end(int line) {
   }
 
   if (ctx_stack_top->prev == NULL) {
-    _test_warn(&R("Test system error: %cEnded context while stack is empty!"));
+    _test_warn_fn(0, &R("Test error: %cEnded context while stack is empty!"));
   } else {
     Context* tmp = ctx_stack_top;
     ctx_stack_top = tmp->prev;
@@ -210,7 +206,7 @@ static int print_headers(
   if (!test_function_printed) {
     StringBuilder stb = stb_pad(NULL, param_tabsize, ' ');
     stb_range(stb, R("in function ("));
-    stb_str(stb, str_from_int(test_function->line));
+    stb_str(stb, str_from_int(*test_function->line));
     stb_range(stb, test_function->header);
     String s = stb_resolve(&stb);
     str_print_color(s->range, CONCOL_bCyan);
@@ -256,7 +252,11 @@ static int print_headers(
   return level + 1;
 }
 
-void _test_log(const StringRange* message) {
+void _test_log_fn(int line, const StringRange* message) {
+  if (test_current_line && test_current_line >= line) {
+    return;
+  }
+
   if (param_verbose < V_NOTES) return;
   int mcmallocs = memory_count_mallocs;
   int mcfrees = memory_count_frees;
@@ -268,7 +268,11 @@ void _test_log(const StringRange* message) {
   memory_count_frees = mcfrees;
 }
 
-void _test_warn(const StringRange* message) {
+void _test_warn_fn(int line, const StringRange* message) {
+  if (test_current_line && test_current_line >= line) {
+    return;
+  }
+
   int mcmallocs = memory_count_mallocs;
   int mcfrees = memory_count_frees;
   int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
@@ -279,7 +283,7 @@ void _test_warn(const StringRange* message) {
   memory_count_frees = mcfrees;
 }
 
-void _test_error(const StringRange* message) {
+void _test_error_fn(const StringRange* message) {
   if (!test_expect_fail) {
     int mcmallocs = memory_count_mallocs;
     int mcfrees = memory_count_frees;
@@ -347,7 +351,7 @@ bool _test_end(int line) {
       stb_c_str(stb, "/");
       stb_str(stb, str_from_int(free_count));
       String s = stb_resolve(&stb);
-      _test_error(&s->range);
+      _test_error_fn(&s->range);
       str_delete(&s);
     }
 
@@ -367,7 +371,7 @@ bool _test_end(int line) {
     }
   } else if (test_expect_fail) {
     test_expect_fail = FALSE; // clear this so it prints the error
-    _test_error(&R("Test was expected to fail, but succeeded instead"));
+    _test_error_fn(&R("Test was expected to fail, but succeeded instead"));
   }
 
   test_in_progress = FALSE;
@@ -405,7 +409,7 @@ void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
 
   if (split->size != 3) {
     String to_print = str_concat(*fmt, R(" - Error formatting, expect two % specifiers"));
-    _test_error(&to_print->range);
+    _test_error_fn(&to_print->range);
     str_delete(&to_print);
   } else {
     String first = resolve_param(array_get(split, 1), a);
@@ -417,7 +421,7 @@ void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
     String result = str_join(str_empty->range, split);
     str_delete(&first);
     str_delete(&second);
-    _test_error(&result->range);
+    _test_error_fn(&result->range);
     str_delete(&result);
   }
 
@@ -441,7 +445,7 @@ static String resolve_param_(const StringRange* fmt, const StringRange* type_N, 
 
   } else {
     String s = str_concat(R("Error formatting: Missing conversion info for type: "), *type_N);
-    _test_error(&s->range);
+    _test_error_fn(&s->range);
     str_delete(&s);
     return str_empty;
   }
@@ -458,7 +462,7 @@ void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
 
   if (split->size != 3) {
     String to_print = str_concat(*fmt, R(" - Error formatting, expect two $ specifiers"));
-    _test_error(&to_print->range);
+    _test_error_fn(&to_print->range);
     str_delete(&to_print);
   }
   else {
@@ -471,7 +475,7 @@ void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
     String result = str_join(str_empty->range, split);
     str_delete(&first);
     str_delete(&second);
-    _test_error(&result->range);
+    _test_error_fn(&result->range);
     str_delete(&result);
   }
 
@@ -504,7 +508,7 @@ static void process_function(const TestGroup* t) {
   do {
     ctx_stack_ptr = &ctx_stack_root;
     test_expect_fail = FALSE;
-    test_current_line = t->group_fn(test_current_line);
+    test_current_line = t->group_fn();
   } while(test_current_line);
   context_clear_stack();
 }
@@ -521,10 +525,10 @@ void test_run_suite(const TestSuite* suite) {
     return;
   }
 
-  const TestGroup* t = &suite->test_groups[0];
-  while (t->line != 0) {
+  const TestGroup* t = &(*suite->test_groups)[0];
+  while (t->line) {
     int tmp_line = param_line;
-    if (t->line == param_line) param_line = 0;
+    if (*t->line == param_line) param_line = 0;
     process_function(t++);
     param_line = tmp_line;
   }

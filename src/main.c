@@ -57,18 +57,18 @@ void export(wasm_preload) (uint w, uint h) {
   image_open_async(&image_anim_test, "./res/textures/spritesheet.png");
   #endif
 
-  vec2i windim = {w, h};
-  game = (Game){
+  vec2i windim = v2i(w, h);
+  game = (Game) {
     .window = windim,
     .camera = {
-      .pos = (vec4){0, 0, 60, 1},
+      .pos = v4f(0, 0, 60, 1),
       .front = v4front,
       .up = v4y,
-      .persp = {d2r(20), i2aspect((vec2i){w, h}), 0.1f, 500}
+      .persp = {d2r(20), i2aspect(windim), 0.1f, 500}
       //.ortho = {-6 * i2aspect(windim), 6 * i2aspect(windim), 6, -6, 0.1, 500}
     },
     .target = v3zero,
-    .light_pos = (vec4){4, 3, 5, 1},
+    .light_pos = v4f(4, 3, 5, 1),
     .input.mapping.keys = {'w', 's', 'a', 'd', 'c', 'r',
       /* // Attack button, useful on F for testing
       'f',
@@ -111,9 +111,9 @@ static void cheesy_loading_animation(float dt) {
   shader_program_use(&game.shaders.basic);
   int projViewMod_loc = game.shaders.basic.uniform.projViewMod;
 
-  mat4 model = m4translation((vec3){0, 0, 0});
-  model = m4mul(model, m4rotation(v3norm((vec3){1.f, 1.5f, -.7f}), cubespin));
-  model = m4mul(model, m4rotation(v3norm((vec3){-4.f, 1.5f, 1.f}), cubespin/3.6f));
+  mat4 model = m4translation(v3f(0, 0, 0));
+  model = m4mul(model, m4rotation(v3norm(v3f(1.f, 1.5f, -.7f)), cubespin));
+  model = m4mul(model, m4rotation(v3norm(v3f(-4.f, 1.5f, 1.f)), cubespin/3.6f));
 
   glUniformMatrix4fv(projViewMod_loc, 1, 0, m4mul(projview, model).f);
   model_render(&game.models.color_cube);
@@ -205,7 +205,7 @@ void export(wasm_render) () {
 
 #ifndef __WASM__
 
-int main(int argc, char* argv[]) {
+int main() {
   print("Hello, world!");
 
   return 0;

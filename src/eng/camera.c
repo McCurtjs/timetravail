@@ -99,11 +99,11 @@ vec3 camera_ray(const Camera* camera, vec2i scr_wh, vec2 ndc_pos) {
   // find a point 1 unit away on a plane defined by our field of view
   float half_field_of_view = camera->persp.fov / 2;
   float screen_plane_halfwidth = tanf(half_field_of_view);
-  return (vec3) {
+  return v3f(
     screen_plane_halfwidth * i2aspect(scr_wh) * ndc_pos.x,
     screen_plane_halfwidth * ndc_pos.y,
     -1
-  };
+  );
 }
 
 // convert screen space from [0, w] and [0, 1-h] to [-1, 1]

@@ -36,12 +36,12 @@ mat4 m4perspective(float fov_rads, float aspect, float near, float far) {
 }
 
 mat4 m4basis(vec3 x, vec3 y, vec3 z, vec3 origin) {
-  return (mat4){
+  return (mat4) {.f={
     x.x, y.x, z.x, 0,
     x.y, y.y, z.y, 0,
     x.z, y.z, z.z, 0,
     -v3dot(x, origin), -v3dot(y, origin), -v3dot(z, origin), 1
-  };
+  }};
 }
 
 mat4 m4look(vec3 pos, vec3 target, vec3 up) {
@@ -123,7 +123,7 @@ vec4 mv4mul(mat4 m, vec4 v) {
 }
 
 mat4 m4inverse(mat4 m) {
-  return (mat4) {
+  return (mat4) {.f={
     m.f[5] * m.f[10] * m.f[15] - m.f[5] * m.f[11] * m.f[14] -
     m.f[9] * m.f[6] * m.f[15] + m.f[9] * m.f[7] * m.f[14] +
     m.f[13] * m.f[6] * m.f[11] - m.f[13] * m.f[7] * m.f[10]
@@ -187,5 +187,5 @@ mat4 m4inverse(mat4 m) {
     m.f[0] * m.f[5] * m.f[10] - m.f[0] * m.f[6] * m.f[9] -
     m.f[4] * m.f[1] * m.f[10] + m.f[4] * m.f[2] * m.f[9] +
     m.f[8] * m.f[1] * m.f[6] - m.f[8] * m.f[2] * m.f[5]
-  };
+  }};
 }

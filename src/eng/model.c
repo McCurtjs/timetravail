@@ -108,7 +108,7 @@ static int model_build_grid(Model_Grid* grid) {
   if (ext > 0) {
 
     for (uint j = 0; i < 12; i += 2, ++j) {
-      colors[i] = colors[i+1] = (color3b){255, 255, 255};
+      colors[i] = colors[i+1] = v3b(255, 255, 255);
       points[i] = points[i+1] = v3zero;
       points[i] = v3scale(basis[j], -exf);
     }
@@ -126,7 +126,7 @@ static int model_build_grid(Model_Grid* grid) {
       points[i+7] = v3add(v3scale(basis[ga],-jf), v3scale(basis[gb],-exf));
 
       byte c = (j % 10 == 0 ? 128 : (j % 5 == 0 ? 0 : 63));
-      color3b color = (color3b){c, c, c};
+      color3b color = v3b(c, c, c);
       for (uint k = 0; k < 8; ++k) {
         colors[i + k] = color;
       }
@@ -172,7 +172,9 @@ static int model_build_cube(Model_Cube* cube) {
   return 1;
 }
 
-static void model_render_cube(const Model_Cube* _) {
+static void model_render_cube(const Model_Cube* cube) {\
+  PARAM_UNUSED(cube);
+
   glBindVertexArray(cube_vao);
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
@@ -191,7 +193,9 @@ static int model_build_cube_color(Model_CubeColor* cube) {
   return 1;
 }
 
-static void model_render_cube_color(const Model_CubeColor* _) {
+static void model_render_cube_color(const Model_CubeColor* cube) {
+  PARAM_UNUSED(cube);
+
   glBindVertexArray(cube_color_vao);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
   glBindVertexArray(0);
@@ -263,11 +267,11 @@ void model_sprites_draw(
 
   frame = frame % (spr->grid.w * spr->grid.h);
 
-  vec2 extent = (vec2) { 1.f / spr->grid.w, -1.f / spr->grid.h };
-  vec2 corner = (vec2) {
-    .x = (frame % spr->grid.w) / (float)spr->grid.w,
-    .y = 1 - (frame / spr->grid.w) / (float)spr->grid.h,
-  };
+  vec2 extent = v2f( 1.f / spr->grid.w, -1.f / spr->grid.h );
+  vec2 corner = v2f(
+    (frame % spr->grid.w) / (float)spr->grid.w,
+    1 - (frame / spr->grid.w) / (float)spr->grid.h
+  );
 
   if (mirror) {
     corner.x += 1.f / (float)spr->grid.w;
@@ -279,27 +283,27 @@ void model_sprites_draw(
 
   BL = (SpriteVertex) {
     .pos  = v2add(pos, v2neg(scale)),
-    .uv   = (vec2){corner.x, corner.y + extent.y},
+    .uv   = v2f(corner.x, corner.y + extent.y),
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   TR = (SpriteVertex) {
     .pos  = v2add(pos, scale),
-    .uv   = (vec2){corner.x + extent.x, corner.y},
+    .uv   = v2f(corner.x + extent.x, corner.y),
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   TL = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){-scale.x, scale.y}),
+    .pos  = v2add(pos, v2f(-scale.x, scale.y)),
     .uv   = corner,
     .norm = v3z,
     .tint = b4white.rgb,
   };
 
   BR = (SpriteVertex) {
-    .pos  = v2add(pos, (vec2){scale.x, -scale.y}),
+    .pos  = v2add(pos, v2f(scale.x, -scale.y)),
     .uv   = v2add(corner, extent),
     .norm = v3z,
     .tint = b4white.rgb,

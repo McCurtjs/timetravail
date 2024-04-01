@@ -19,13 +19,13 @@ typedef struct {
   char head;
 } String_Internal;
 
-const static char str_chr_literal_empty = '\0';
+static char const str_chr_literal_empty = '\0';
 static struct _Str_Base str_constants[] = {
   { .begin = &str_chr_literal_empty, .size = 0 },
   { .begin = "true", .size = 4 },
   { .begin = "false", .size = 5 },
 };
-const static String str_constants_end = &str_constants[0] + sizeof(str_constants);
+static String const str_constants_end = &str_constants[0] + sizeof(str_constants);
 
 const String str_empty = &str_constants[0];
 const String str_true  = &str_constants[1];
@@ -491,14 +491,7 @@ String stb_resolve(StringBuilder* stb_in_ptr) {
     // not yet implemented...
   }
 
-  #include "wasm.h"
-
   String* array_foreach(to_delete, to_xibalba) {
-    print("-------");
-    print_ptr(&to_delete);
-    print_ptr(to_delete);
-    print_ptr((*to_delete)->begin);
-    print_int((*to_delete)->begin[0]);
     str_delete(to_delete);
   }
   array_delete(&to_xibalba);

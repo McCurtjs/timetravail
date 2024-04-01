@@ -12,7 +12,8 @@
 static Array editor_colliders = NULL;
 static vec2 player_start = svNzero;
 
-void behavior_editor(Entity* _, Game* game, float dt) {
+void behavior_editor(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(e);
 
   if (game->input.pressed.rmb) {
     vec2* pos = &game->camera.pos.xy;
@@ -49,7 +50,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
 
   // draw the player start location
   draw.color = c4cyan;
-  draw_circle(v23(v2add(player_start, (vec2){0, 1.5})), 1.5);
+  draw_circle(v23(v2add(player_start, v2f(0, 1.5))), 1.5);
 
   if (game->input.pressed.lmb) {
     end_point = cursor.xy;
@@ -84,7 +85,7 @@ void behavior_editor(Entity* _, Game* game, float dt) {
 
 void level_load_editor(Game* game) {
 
-  game->camera.pos = (vec4){0, 0, 100, 1};
+  game->camera.pos = v4f(0, 0, 100, 1);
   game->camera.front = v4front;
 
   if (!editor_colliders) {
@@ -121,7 +122,7 @@ void level_load_editor_test(Game* game) {
     return;
   }
 
-  game->camera.pos = (vec4){0, 0, 60, 1};
+  game->camera.pos = v4f(0, 0, 60, 1);
   game->camera.front = v4front;
 
   game->colliders = array_get_front(editor_colliders);

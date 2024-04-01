@@ -33,7 +33,11 @@ typedef struct ReplayNode {
   PlayerFrameData data;
 } ReplayNode;
 
-void behavior_player(Entity* e, Game* game, float _) {
+void behavior_player(Entity* e, Game* game, float _dt) {
+  PARAM_UNUSED(_dt);
+
+  // don't use the passed-in dt value, lock the framerate to 0.016 for
+  // consistent playback. This can probably be done in a better way?
   float dt = 0.016f;
 
   // Convert inputs from source game booleans to bitmask
@@ -248,7 +252,7 @@ void behavior_player(Entity* e, Game* game, float _) {
 
   // Update rendering
   e->transform = m4uniform(3);
-  e->transform = m4mul(m4translation(v23f(v2add(e->fd.pos, (vec2){0, 1.5}), 0)), e->transform);
+  e->transform = m4mul(m4translation(v23f(v2add(e->fd.pos, v2f(0, 1.5)), 0)), e->transform);
 
   // Camera control
   // (you want to guarantee the camera control is at the end to avoid stuttering

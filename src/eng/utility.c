@@ -57,7 +57,7 @@ const char* itos(int i) {
   while (r < c) {
     i = *r;
     *r++ = *c;
-    *c-- = i;
+    *c-- = (char)i;
   }
 
   return number_result;

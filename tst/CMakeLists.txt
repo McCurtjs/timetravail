@@ -13,6 +13,15 @@ if (WIN32)
   )
 endif()
 
+if (MSVC)
+  target_compile_options(${PROJECT_NAME}_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(${PROJECT_NAME}_tests PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+    -Wno-cast-function-type # Galogen does this a lot and I'm not editing those
+  )
+endif()
+
 target_compile_definitions(${PROJECT_NAME}_tests PRIVATE
   "malloc=malloc_test"
   "calloc=calloc_test"

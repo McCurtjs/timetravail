@@ -6,14 +6,9 @@
 #include "draw.h"
 #include "wasm.h"
 
-#ifdef __WASM__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#endif
-void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
-#ifdef __WASM__
-#pragma clang diagnostic pop
-#endif
+void behavior_draw_physics_colliders(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(e);
+  PARAM_UNUSED(dt);
 
   float z = 0.01f;
 
@@ -21,11 +16,11 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
   for (uint i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
 
-    draw.color = (vec4){0.5, 0.5, 1, 1};
-    if (line.droppable) draw.color = (vec4) {76/255.f, 229/255.f, 209/255.f, 1};
-    if (line.wall) draw.color = (vec4) {250/255.f, 128/255.f, 114/255.f, 1};
-    if (line.moving) draw.color = (vec4) {173/255.f, 229/255.f, 76/255.f, 1};
-    if (line.bouncy) draw.color = (vec4) {202/255.f, 193/255.f, 150/255.f, 1};
+    draw.color = v4f(0.5, 0.5, 1, 1);
+    if (line.droppable) draw.color = v4f(76/255.f, 229/255.f, 209/255.f, 1);
+    if (line.wall) draw.color = v4f(250/255.f, 128/255.f, 114/255.f, 1);
+    if (line.moving) draw.color = v4f(173/255.f, 229/255.f, 76/255.f, 1);
+    if (line.bouncy) draw.color = v4f(202/255.f, 193/255.f, 150/255.f, 1);
 
     draw_line(v23f(line.a, z), v23f(line.b, z));
 
@@ -42,7 +37,7 @@ void behavior_draw_physics_colliders(Entity* _, Game* game, float dt) {
 
 void render_sprites(Entity* e, Game* g) {
   vec2 pos = mv4mul(e->transform, p4origin).xy;
-  vec2 scale = mv4mul(e->transform, (vec4){1, 1, 0, 0}).xy;
+  vec2 scale = mv4mul(e->transform, v4f(1, 1, 0, 0)).xy;
 
   uint current_frame = (uint)g->frame - e->fd.start_frame;
   uint frame_index = anim_frame(e->fd.animation, current_frame)->frame;
@@ -72,10 +67,12 @@ void finish_rendering_sprites(
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void behavior_gearspin(Entity* e, Game* game, float _) {
+void behavior_gearspin(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(dt);
+
   e->transform = m4translation(e->pos);
   e->transform = m4mul(e->transform, m4rotation(
-    v3norm((vec3){0, 0, 1}),game->frame / (60 * e->angle))
+    v3norm(v3f(0, 0, 1)),game->frame / (60 * e->angle))
   );
 }
 

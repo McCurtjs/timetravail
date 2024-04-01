@@ -56,7 +56,7 @@ void process_system_events(Game* game) {
       } break;
 
       case SDL_EVENT_MOUSE_MOTION: {
-        game->input.mouse.pos = (vec2){ event.motion.x, event.motion.y };
+        game->input.mouse.pos = v2f(event.motion.x, event.motion.y);
 
         // you can get many mouse move inputs per frame, so accumulate motion
         game->input.mouse.move.x += event.motion.xrel;

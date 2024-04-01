@@ -4,6 +4,12 @@
 #include "tst.h"
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+#pragma warning ( push)
+// Disable MSVC warning "conditional expression is constant"
+#pragma warning ( disable : 4127 )
+#endif
+
 
 void _test_error_params2(const StringRange* fmt, const void* a, const void* b, const char* ta, const char* tb);
 
@@ -110,9 +116,14 @@ test_func(test_new) {
 
 #endif
 
+#ifdef _MSC_VER
+#pragma warning ( push )
+// Disable MSVC warning about the break; test causing unreachable code.
+#pragma warning ( disable : 4702 )
+#endif
 describe(tests) {
 
-  test("an empty test that succeeds");
+  test("an empty test that succeeds") { }
 
   test("doesn't fail because a break; saves us from the fail statement") {
     break;
@@ -147,6 +158,9 @@ describe(tests) {
 
   test_end;
 }
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif
 
 describe(memory) {
 
@@ -241,7 +255,7 @@ describe(expect_basic_triplet) {
 
   float pi = PI;
 
-  context("using the basic format without commas") {
+  context("using the basic format but with commas") {
 
     context("tests succeed") {
 
@@ -411,6 +425,10 @@ describe(matchers) {
         expect(4, to_not be_between(2, 3));
       }
 
+      it("uses the 'be' matcher but on a single item") {
+        expect(5, to be( > , 4));
+      }
+
       context_end;
     }
 
@@ -435,6 +453,10 @@ describe(matchers) {
         expect(4, to_not be_between(3, 5));
       }
 
+      it("uses the 'be' matcher but on a single item") {
+        expect(5, to be( < , 4));
+      }
+
       context_end;
     }
     context_end;
@@ -442,7 +464,29 @@ describe(matchers) {
   test_end;
 }
 
+#include "array.h"
+
 describe(container_matchers) {
+
+  Array arr = array_new(int);
+
+  array_push_back(arr, &(int){3});
+  array_push_back(arr, &(int){5});
+  array_push_back(arr, &(int){7});
+
+  context("compositions on an array") {
+
+    it("contains only positive values") {
+      expect(arr, to all(be_positive, int, array));
+    }
+
+    it("contains values within 2 of 5") {
+      expect(arr, to_not all(not be_within(2 of 5), int, array));
+    }
+
+    context_end;
+  }
+
   test_end;
 }
 
@@ -531,16 +575,20 @@ int test_macros(int _line, int _context)
 }
 #endif
 
-test_suite_begin(tests_string)
-  //test_group(test_new)
-  test_group(tests)
-  test_group(memory)
-  test_group(contexts)
-  test_group(expect_basic)
-  test_group(expect_basic_triplet)
-  test_group(expect_basic_var_output)
-  test_group(matchers)
-test_suite_end;
+test_suite_begin(tests_string) {
+  test_group(tests),
+  test_group(memory),
+  test_group(contexts),
+  test_group(expect_basic),
+  test_group(expect_basic_triplet),
+  test_group(expect_basic_var_output),
+  test_group(matchers),
+  test_group(container_matchers),
+  test_group(matcher_be_positive),
+  test_group(matcher_be_between),
+  test_group(matcher_be_within),
+  test_suite_end
+};
 
 // TODO:
 //    - Update un-rolled example below and keep this in an "example" file.
@@ -548,3 +596,7 @@ test_suite_end;
 //    - Do memory tester!
 //
 //    - Eventually json...
+
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif

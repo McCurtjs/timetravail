@@ -4,7 +4,9 @@
 
 #include "wasm.h"
 
-void behavior_moving_platform(Entity* e, Game* game, float _) {
+void behavior_moving_platform(Entity* e, Game* game, float dt) {
+  PARAM_UNUSED(dt);
+
   Movement* m = &e->movement_params;
 
   if (!m->line) {

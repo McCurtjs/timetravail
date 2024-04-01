@@ -16,8 +16,24 @@ vec3 qtransform(quat q, vec3 v) {
   //return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
 }
 
+vec3b v3b(byte r, byte g, byte b) {
+  return (vec3b){.i={r, g, b}};
+}
+
+vec4b v4b(byte r, byte g, byte b, byte a) {
+  return (vec4b){.i={r, g, b, a}};
+}
+
 float i2aspect(vec2i v) {
   return (float)v.w / (float)v.h;
+}
+
+vec2i v2i(int x, int y) {
+  return (vec2i){.i={x, y}};
+}
+
+vec3i v3i(int x, int y, int z) {
+  return (vec3i){.i={x, y, z}};
 }
 
 float v2mag(vec2 v) {
@@ -38,23 +54,23 @@ float v2distsq(vec2 P, vec2 Q) {
 
 vec2 v2norm(vec2 v) {
   float mag = v2mag(v);
-  return (vec2){v.x / mag, v.y / mag};
+  return v2f(v.x / mag, v.y / mag);
 }
 
 vec2 v2neg(vec2 v) {
-  return (vec2){-v.x, -v.y};
+  return v2f(-v.x, -v.y);
 }
 
 vec2 v2add(vec2 a, vec2 b) {
-  return (vec2){a.x + b.x, a.y + b.y};
+  return v2f(a.x + b.x, a.y + b.y);
 }
 
 vec2 v2sub(vec2 a, vec2 b) {
-  return (vec2){a.x - b.x, a.y - b.y};
+  return v2f(a.x - b.x, a.y - b.y);
 }
 
 vec2 v2scale(vec2 v, float f) {
-  return (vec2){v.x * f, v.y * f};
+  return v2f(v.x * f, v.y * f);
 }
 
 float v2dot(vec2 a, vec2 b) {
@@ -62,7 +78,7 @@ float v2dot(vec2 a, vec2 b) {
 }
 
 vec2 v2had(vec2 a, vec2 b) {
-  return (vec2){a.x * b.x, a.y * b.y};
+  return v2f(a.x * b.x, a.y * b.y);
 }
 
 float v2cross(vec2 a, vec2 b) {
@@ -70,7 +86,7 @@ float v2cross(vec2 a, vec2 b) {
 }
 
 vec2 v2perp(vec2 v) {
-  return (vec2){-v.y, v.x};
+  return v2f(-v.y, v.x);
 }
 
 vec2 v2reflect(vec2 v, vec2 mirror) {
@@ -88,14 +104,14 @@ vec2 v2dir(float theta) {
   float sint, cost;
   //sincosf(theta, &sint, &cost);
   sint = sinf(theta); cost = sinf(theta);
-  return (vec2){cost, sint};
-};
+  return v2f( cost, sint );
+}
 
 vec2 v2rot(vec2 v, float theta) {
   float sint, cost;
   //sincosf(theta, &sint, &cost);
   sint = sinf(theta); cost = cosf(theta);
-  return (vec2){cost * v.x - sint * v.y, sint * v.x + cost * v.y};
+  return v2f( cost * v.x - sint * v.y, sint * v.x + cost * v.y );
 }
 
 vec2 v2lerp(vec2 P, vec2 Q, float t) {
@@ -165,28 +181,32 @@ bool v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out) {
   return TRUE;
 }
 
+vec2 v2f(float x, float y) {
+  return (vec2){.f = {x, y} };
+}
+
 vec3 v23(vec2 v) {
-  return (vec3){v.x, v.y, 0};
+  return v3f(v.x, v.y, 0);
 }
 
 vec4 v24(vec2 v) {
-  return (vec4){v.x, v.y, 0, 0};
+  return v4f(v.x, v.y, 0, 0);
 }
 
 vec4 p24(vec2 v) {
-  return (vec4){v.x, v.y, 0, 1};
+  return v4f(v.x, v.y, 0, 1);
 }
 
 vec3 v23f(vec2 v, float z) {
-  return (vec3){v.x, v.y, z};
+  return v3f(v.x, v.y, z);
 }
 
 vec4 v24f(vec2 v, float z, float w) {
-  return (vec4){v.x, v.y, z, w};
+  return v4f(v.x, v.y, z, w);
 }
 
 vec4 p24f(vec2 v, float z) {
-  return (vec4){v.x, v.y, z, 1};
+  return v4f(v.x, v.y, z, 1);
 }
 
 float v3mag(vec3 v) {
@@ -199,23 +219,23 @@ float v3magsq(vec3 v) {
 
 vec3 v3norm(vec3 v) {
   float mag = v3mag(v);
-  return (vec3) {v.x / mag, v.y / mag, v.z / mag};
+  return v3f( v.x / mag, v.y / mag, v.z / mag );
 }
 
 vec3 v3neg(vec3 v) {
-  return (vec3) { -v.x, -v.y, -v.z };
+  return v3f( -v.x, -v.y, -v.z );
 }
 
 vec3 v3add(vec3 a, vec3 b) {
-  return (vec3) { a.x + b.x, a.y + b.y, a.z + b.z };
+  return v3f( a.x + b.x, a.y + b.y, a.z + b.z );
 }
 
 vec3 v3sub(vec3 a, vec3 b) {
-  return (vec3) { a.x - b.x, a.y - b.y, a.z - b.z };
+  return v3f( a.x - b.x, a.y - b.y, a.z - b.z );
 }
 
 vec3 v3scale(vec3 a, float f) {
-  return (vec3) { a.x * f, a.y * f, a.z * f };
+  return v3f( a.x * f, a.y * f, a.z * f );
 }
 
 float v3dot(vec3 a, vec3 b) {
@@ -223,15 +243,15 @@ float v3dot(vec3 a, vec3 b) {
 }
 
 vec3  v3had(vec3 a, vec3 b) {
-  return (vec3) { a.x * b.x, a.y * b.y, a.z * b.z };
+  return v3f( a.x * b.x, a.y * b.y, a.z * b.z );
 }
 
 vec3 v3cross(vec3 a, vec3 b) {
-  return (vec3) {
+  return v3f(
     a.y * b.z - a.z * b.y,
     a.z * b.x - a.x * b.z,
     a.x * b.y - a.y * b.x
-  };
+  );
 }
 
 // Gets an arbitrary vector that's perpendicular to v
@@ -239,12 +259,12 @@ vec3 v3cross(vec3 a, vec3 b) {
 // From Ken Whatmough's post on
 // https://math.stackexchange.com/questions/137362/how-to-find-perpendicular-vector-to-another-vector
 vec3 v3perp(vec3 v) {
-  return (vec3) {
+  return v3f(
     copysignf(v.z, v.x),
     copysignf(v.z, v.y),
     -copysignf((float)fabs(v.x) + (float)fabs(v.y), v.z)
     // or -copysignf(v.x, v.z) - copysignf(v.y, v.z)
-  };
+  );
 }
 
 float v3angle(vec3 a, vec3 b) {
@@ -285,17 +305,29 @@ bool v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out) {
   return TRUE;
 }
 
+// Constructs a vec3 out of floats.
+// Generally would prefer to use the form "(vec3){x, y, z}", but gcc is annoying
+// about that syntax, throwing -Wmissing-braces because it actaully wants the
+// form "(vec3){ .f = {x, y, z}}", which is annoying to type, so here we are.
+vec3 v3f(float x, float y, float z) {
+  return (vec3){.f = {x, y, z} };
+}
+
 // Converts a vec3 to a vec4 with homogeneous w component set to 0
 vec4 v34(vec3 v) {
-  return (vec4){v.x, v.y, v.z, 0};
+  return v4f(v.x, v.y, v.z, 0);
 }
 
 // Converts a vec3 to a vec4 with homogeneous w component set to 1
 vec4 p34(vec3 p) {
-  return (vec4){p.x, p.y, p.z, 1};
+  return v4f(p.x, p.y, p.z, 1);
 }
 
 // Converts a vec3 and a given float w to a vec4
 vec4 v34f(vec3 v, float w) {
-  return (vec4){v.x, v.y, v.z, w};
+  return v4f(v.x, v.y, v.z, w);
+}
+
+vec4 v4f(float x, float y, float z, float w) {
+  return (vec4){ .f = {x, y, z, w} };
 }

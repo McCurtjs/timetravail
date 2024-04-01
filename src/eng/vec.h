@@ -136,79 +136,85 @@ typedef vec4 color4;
 
 // MSVC is dumb and can't resolve the typed macros (v3zero) as constants
 // so we have to make non-typed versions for static uses
-#define svNzero     { 0 }
-#define svNx        { 1 }
-#define svNy        { 0, 1 }
-#define svNz        { 0, 0, 1 }
-#define svNw        { 0, 0, 0, 1 }
-#define sc4black    { 0, 0, 0, 1 }
-#define sc4red      { 1, 0, 0, 1 }
-#define sc4green    { 0, 1, 0, 1 }
-#define sc4blue     { 0, 0, 1, 1 }
-#define sc4yellow   { 1, 1, 0, 1 }
-#define sc4cyan     { 0, 1, 1, 1 }
-#define sc4magenta  { 1, 0, 1, 1 }
-#define sc4white    { 1, 1, 1, 1 }
-#define sc4gray     {.5,.5,.5, 1 }
+#define svNzero     {.f={ 0 } }
+#define svNx        {.f={ 1 } }
+#define svNy        {.f={ 0, 1 } }
+#define svNz        {.f={ 0, 0, 1 } }
+#define svNw        {.f={ 0, 0, 0, 1 } }
+#define sc4black    {.f={ 0, 0, 0, 1 } }
+#define sc4red      {.f={ 1, 0, 0, 1 } }
+#define sc4green    {.f={ 0, 1, 0, 1 } }
+#define sc4blue     {.f={ 0, 0, 1, 1 } }
+#define sc4yellow   {.f={ 1, 1, 0, 1 } }
+#define sc4cyan     {.f={ 0, 1, 1, 1 } }
+#define sc4magenta  {.f={ 1, 0, 1, 1 } }
+#define sc4white    {.f={ 1, 1, 1, 1 } }
+#define sc4gray     {.f={.5,.5,.5, 1 } }
 
-#define b3zero      ((vec3b){ 0, 0, 0 })
-#define i3zero      ((vec3i){ 0, 0, 0 })
-#define v2ones      ((vec2){ 1, 1 })
-#define v2zero      ((vec2){ 0, 0 })
-#define v2x         ((vec2){ 1, 0 })
-#define v2y         ((vec2){ 0, 1 })
-#define v2right     ((vec2){ 1, 0 })
-#define v2up        ((vec2){ 0, 1 })
-#define v2left      ((vec2){-1, 0 })
-#define v2down      ((vec2){ 0,-1 })
-#define v3ones      ((vec3){ 1, 1, 1 })
-#define v3zero      ((vec3){ 0, 0, 0 })
-#define v3origin    ((vec3){ 0, 0, 0 })
-#define v3x         ((vec3){ 1, 0, 0 })
-#define v3y         ((vec3){ 0, 1, 0 })
-#define v3z         ((vec3){ 0, 0, 1 })
-#define v3right     ((vec3){ 1, 0, 0 })
-#define v3up        ((vec3){ 0, 1, 0 })
-#define v3back      ((vec3){ 0, 0, 1 })
-#define v3left      ((vec3){-1, 0, 0 })
-#define v3down      ((vec3){ 0,-1, 0 })
-#define v3front     ((vec3){ 0, 0,-1 })
-#define v4ones      ((vec4){ 1, 1, 1, 0 })
-#define v4zero      ((vec4){ 0, 0, 0, 0 })
-#define v4x         ((vec4){ 1, 0, 0, 0 })
-#define v4y         ((vec4){ 0, 1, 0, 0 })
-#define v4z         ((vec4){ 0, 0, 1, 0 })
-#define v4w         ((vec4){ 0, 0, 0, 1 })
-#define v4right     ((vec4){ 1, 0, 0, 0 })
-#define v4up        ((vec4){ 0, 1, 0, 0 })
-#define v4back      ((vec4){ 0, 0, 1, 0 })
-#define v4left      ((vec4){-1, 0, 0, 0 })
-#define v4down      ((vec4){ 0,-1, 0, 0 })
-#define v4front     ((vec4){ 0, 0,-1, 0 })
-#define p4ones      ((vec4){ 1, 1, 1, 1 })
-#define p4origin    ((vec4){ 0, 0, 0, 1 })
-#define c4black     ((vec4){ 0, 0, 0, 1 })
-#define c4red       ((vec4){ 1, 0, 0, 1 })
-#define c4green     ((vec4){ 0, 1, 0, 1 })
-#define c4blue      ((vec4){ 0, 0, 1, 1 })
-#define c4yellow    ((vec4){ 1, 1, 0, 1 })
-#define c4cyan      ((vec4){ 0, 1, 1, 1 })
-#define c4magenta   ((vec4){ 1, 0, 1, 1 })
-#define c4white     ((vec4){ 1, 1, 1, 1 })
-#define c4gray      ((vec4){.5,.5,.5, 1 })
-#define b4black     ((vec4b){   0,   0,   0, 255 })
-#define b4red       ((vec4b){ 255,   0,   0, 255 })
-#define b4green     ((vec4b){   0, 255,   0, 255 })
-#define b4blue      ((vec4b){   0,   0, 255, 255 })
-#define b4yellow    ((vec4b){ 255, 255,   0, 255 })
-#define b4cyan      ((vec4b){   0, 255, 255, 255 })
-#define b4magenta   ((vec4b){ 255,   0, 255, 255 })
-#define b4white     ((vec4b){ 255, 255, 255, 255 })
-#define b4gray      ((vec4b){ 128, 128, 128, 255 })
+#define b3zero      ((vec3b){.i={ 0, 0, 0 }})
+#define i3zero      ((vec3i){.i={ 0, 0, 0 }})
+#define v2ones      ((vec2){.f= { 1, 1 } })
+#define v2zero      ((vec2){.f= { 0, 0 } })
+#define v2x         ((vec2){.f= { 1, 0 } })
+#define v2y         ((vec2){.f= { 0, 1 } })
+#define v2right     ((vec2){.f= { 1, 0 } })
+#define v2up        ((vec2){.f= { 0, 1 } })
+#define v2left      ((vec2){.f= {-1, 0 } })
+#define v2down      ((vec2){.f= { 0,-1 } })
+#define v3ones      ((vec3){.f= { 1, 1, 1 } })
+#define v3zero      ((vec3){.f= { 0, 0, 0 } })
+#define v3origin    ((vec3){.f= { 0, 0, 0 } })
+#define v3x         ((vec3){.f= { 1, 0, 0 } })
+#define v3y         ((vec3){.f= { 0, 1, 0 } })
+#define v3z         ((vec3){.f= { 0, 0, 1 } })
+#define v3right     ((vec3){.f= { 1, 0, 0 } })
+#define v3up        ((vec3){.f= { 0, 1, 0 } })
+#define v3back      ((vec3){.f= { 0, 0, 1 } })
+#define v3left      ((vec3){.f= {-1, 0, 0 } })
+#define v3down      ((vec3){.f= { 0,-1, 0 } })
+#define v3front     ((vec3){.f= { 0, 0,-1 } })
+#define v4ones      ((vec4){.f= { 1, 1, 1, 0 } })
+#define v4zero      ((vec4){.f= { 0, 0, 0, 0 } })
+#define v4x         ((vec4){.f= { 1, 0, 0, 0 } })
+#define v4y         ((vec4){.f= { 0, 1, 0, 0 } })
+#define v4z         ((vec4){.f= { 0, 0, 1, 0 } })
+#define v4w         ((vec4){.f= { 0, 0, 0, 1 } })
+#define v4right     ((vec4){.f= { 1, 0, 0, 0 } })
+#define v4up        ((vec4){.f= { 0, 1, 0, 0 } })
+#define v4back      ((vec4){.f= { 0, 0, 1, 0 } })
+#define v4left      ((vec4){.f= {-1, 0, 0, 0 } })
+#define v4down      ((vec4){.f= { 0,-1, 0, 0 } })
+#define v4front     ((vec4){.f= { 0, 0,-1, 0 } })
+#define p4ones      ((vec4){.f= { 1, 1, 1, 1 } })
+#define p4origin    ((vec4){.f= { 0, 0, 0, 1 } })
+#define c4black     ((vec4){.f= { 0, 0, 0, 1 } })
+#define c4red       ((vec4){.f= { 1, 0, 0, 1 } })
+#define c4green     ((vec4){.f= { 0, 1, 0, 1 } })
+#define c4blue      ((vec4){.f= { 0, 0, 1, 1 } })
+#define c4yellow    ((vec4){.f= { 1, 1, 0, 1 } })
+#define c4cyan      ((vec4){.f= { 0, 1, 1, 1 } })
+#define c4magenta   ((vec4){.f= { 1, 0, 1, 1 } })
+#define c4white     ((vec4){.f= { 1, 1, 1, 1 } })
+#define c4gray      ((vec4){.f= {.5,.5,.5, 1 } })
+#define b4black     ((vec4b){.i={   0,   0,   0, 255 } })
+#define b4red       ((vec4b){.i={ 255,   0,   0, 255 } })
+#define b4green     ((vec4b){.i={   0, 255,   0, 255 } })
+#define b4blue      ((vec4b){.i={   0,   0, 255, 255 } })
+#define b4yellow    ((vec4b){.i={ 255, 255,   0, 255 } })
+#define b4cyan      ((vec4b){.i={   0, 255, 255, 255 } })
+#define b4magenta   ((vec4b){.i={ 255,   0, 255, 255 } })
+#define b4white     ((vec4b){.i={ 255, 255, 255, 255 } })
+#define b4gray      ((vec4b){.i={ 128, 128, 128, 255 } })
 
 vec3 qtransform(quat q, vec3 v);
 
+vec3b v3b(byte r, byte g, byte b);
+vec4b v4b(byte r, byte g, byte b, byte a);
+
 float i2aspect(vec2i v);
+vec2i v2i(int x, int y);
+
+vec3i v3i(int x, int y, int z);
 
 float v2mag(vec2 v);
 float v2magsq(vec2 v);
@@ -235,6 +241,7 @@ bool  v2ray_line(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out);
 bool  v2ray_ray(vec2 P, vec2 v, vec2 Q, vec2 u, float* t_out, float* s_out);
 bool  v2ray_seg(vec2 P, vec2 v, vec2 Q1, vec2 Q2, float* t_out);
 bool  v2seg_seg(vec2 P1, vec2 P2, vec2 Q1, vec2 Q2, vec2* out);
+vec2  v2f(float x, float y);
 vec3  v23(vec2 xy);
 vec4  v24(vec2 xy);
 vec4  p24(vec2 xy);
@@ -256,9 +263,12 @@ vec3  v3perp(vec3 v);
 float v3angle(vec3 a, vec3 b);
 bool  v3line_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
 bool  v3ray_plane(vec3 P, vec3 v, vec3 R, vec3 n, float* t_out);
+vec3  v3f(float x, float y, float z);
 vec4  v34(vec3 xyz);
 vec4  p34(vec3 xyz);
 vec4  v34f(vec3 xyz, float w);
+
+vec4  v4f(float x, float y, float z, float w);
 
 //vec2  v2orbit(vec2 a, vec2 center, float theta);
 //vec3  v3reflect(vec3 v, vec3 axis);

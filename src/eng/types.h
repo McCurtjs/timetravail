@@ -29,8 +29,6 @@ typedef unsigned short u16;
 typedef unsigned char byte;
 typedef size_t jshandle;
 
-#define CV const volatile
-
 #ifndef NULL
 # define NULL ((void*)0)
 #endif
@@ -59,9 +57,18 @@ typedef size_t jshandle;
 # define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+// Converts from degrees into radians
 #define d2r(DEG)  ((DEG) * PI / 180.0f)
+
+// True if an integer value is a power of 2
 #define isPow2(n) ((n & (n-1)) == 0)
 
+// Allows writing loops in the form:
+//    loop {
+//      // setup that happens on every iteration but always at least once
+//      until (condition);
+//      // do stuff each iteration after the conditional check
+//    }
 #define loop while (TRUE)
 #define until(condition) if (condition) break;
 #define unless(condition) if (!(condition))
@@ -71,5 +78,16 @@ typedef size_t jshandle;
 
 #define STR_RECUR(S) #S
 #define STR(S) STR_RECUR(S)
+
+// Squelches warnings about unused parameters.
+// Ideally, for GCC and Clang this should be __attribute__((unused)) in the
+//    function declaration, but there's no equivalent for MSVC that would work
+//    there. C++ supports omitting the name, but C does not. Casting the param
+//    to void in the function body works on all three with max level warnings.
+#define PARAM_UNUSED(PARAM) (void)PARAM;
+
+// Using this in container classes for return values that act as properties
+// Is this a bad pattern? Probably, but it's an idea I'm trying out.
+#define CV const volatile
 
 #endif

@@ -7,7 +7,8 @@
 str_static(str_test_1, "|Hello, this is a static string|");
 str_static(str_test_2, "|This is another test!|");
 
-int export(canary) (int _) {
+int export(canary) (int nothing) {
+  PARAM_UNUSED(nothing);
   print("WASM is connected! Only running tests.");
   return 1;
 }
@@ -182,7 +183,7 @@ void run_tests() {
 
 #ifdef __WASM__
 static int argc = 0;
-static char* argv[] = {""};
+static char* argv[] = {"-v"};
 int export(wasm_tests) ()
 #else
 int main(int argc, char* argv[])
