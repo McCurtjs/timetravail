@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <string.h>
 
 #include "wasm.h"
 #include "types.h"
@@ -22,6 +23,7 @@ typedef struct Array_Internal {
 
 #define DARRAY_INTERNAL Array_Internal* a = (Array_Internal*)(a_in)
 #define DARRAY_INTERNAL_CONST const Array_Internal* a = (const Array_Internal*)(a_in)
+#define GROWTH_FACTOR MAX(capacity_min, a->capacity + a->capacity / 2)
 
 Array _array_new_(uint element_size) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));
@@ -93,10 +95,27 @@ void array_delete(Array* a_in) {
   *a_in = NULL;
 }
 
+uint array_insert(Array a_in, uint position, const void* element) {
+  DARRAY_INTERNAL;
+  if (!a) return 0;
+  if (position >= a->size) {
+    return array_push_back(a_in, element);
+  }
+  if (a->size >= a->capacity) {
+    array_reserve(a_in, GROWTH_FACTOR);
+  }
+  byte* pos = a->data + a->element_size * position;
+  memmove(pos + a->element_size, pos, a->size_bytes - position * a->element_size);
+  memcpy(pos, element, a->element_size);
+  a->size_bytes += a->element_size;
+  return ++a->size;
+}
+
 uint array_push_back(Array a_in, const void* element) {
   DARRAY_INTERNAL;
+  if (!a) return 0;
   if (a->size >= a->capacity) {
-    array_reserve(a_in, MAX(capacity_min, a->capacity + a->capacity / 2));
+    array_reserve(a_in, GROWTH_FACTOR);
   }
   memcpy(a->data + a->size * a->element_size, element, a->element_size);
   a->size_bytes += a->element_size;
@@ -118,7 +137,7 @@ void* array_get(Array a_in, uint index) {
 
 void array_read(const Array a_in, uint index, void* element) {
   DARRAY_INTERNAL_CONST;
-  if (!a || index >= a->size) return;
+  if (!a || index >= a->size || !element) return;
   memcpy(element, a->data + index * a->element_size, a->element_size);
 }
 
@@ -130,7 +149,7 @@ void* array_get_front(Array a_in) {
 
 void array_read_front(const Array a_in, void* element) {
   DARRAY_INTERNAL_CONST;
-  if (!a || a->size == 0) return;
+  if (!a || a->size == 0 || !element) return;
   memcpy(element, a->data, a->element_size);
 }
 
@@ -142,6 +161,6 @@ void* array_get_back(Array a_in) {
 
 void array_read_back(const Array a_in, void* element) {
   DARRAY_INTERNAL_CONST;
-  if (!a || a->size == 0) return;
+  if (!a || a->size == 0 || !element) return;
   memcpy(element, a->data + (a->size - 1) * a->element_size, a->element_size);
 }

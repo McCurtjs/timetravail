@@ -28,6 +28,7 @@ void  array_truncate(Array array, uint capacity);
 void  array_clear(Array array);
 void  array_free(Array array);
 void  array_delete(Array* array);
+uint  array_insert(Array array, uint position, const void* in_element);
 uint  array_push_back(Array array, const void* in_element);
 uint  array_pop_back(Array array);
 void* array_get(Array array, uint index);

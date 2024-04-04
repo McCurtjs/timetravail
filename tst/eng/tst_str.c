@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #ifdef _MSC_VER
-#pragma warning ( push)
+#pragma warning ( push )
 // Disable MSVC warning "conditional expression is constant"
 #pragma warning ( disable : 4127 )
 #endif
@@ -152,11 +152,8 @@ describe(tests) {
     }
 
     //test("is expected to fail but succeeds, so it fails");
-
-    context_end;
   }
 
-  test_end;
 }
 #ifdef _MSC_VER
 #pragma warning ( pop )
@@ -174,11 +171,10 @@ describe(memory) {
     str_delete(&s);
   }
 
-  test_end;
 }
 
 describe(contexts) {
-  test_end;
+
 }
 
 describe(expect_basic) {
@@ -213,7 +209,6 @@ describe(expect_basic) {
         expect(str_contains(str1, R("Test")));
       }
 
-      context_end;
     }
 
     context("tests fail") {
@@ -244,11 +239,10 @@ describe(expect_basic) {
         expect(str_contains(str1, R("xyz")));
       }
 
-      context_end;
     }
-    context_end;
+
   }
-  test_end;
+
 }
 
 describe(expect_basic_triplet) {
@@ -279,7 +273,6 @@ describe(expect_basic_triplet) {
         expect(2, < , 3);
       }
 
-      context_end;
     }
 
     context("tests fail") {
@@ -306,11 +299,10 @@ describe(expect_basic_triplet) {
         expect(2, > , 3);
       }
 
-      context_end;
     }
-    context_end;
+
   }
-  test_end;
+
 }
 
 describe(expect_basic_var_output) {
@@ -356,7 +348,6 @@ describe(expect_basic_var_output) {
         expect(x, == , 10, float, int);
       }
 
-      context_end
     }
 
     context("tests fail") {
@@ -395,11 +386,10 @@ describe(expect_basic_var_output) {
         expect(x, == , 10, float, int);
       }
 
-      context_end;
     }
-    context_end;
+
   }
-  test_end;
+
 }
 
 describe(matchers) {
@@ -419,6 +409,7 @@ describe(matchers) {
       it("gives an incrementing value to a matcher that generates temporary values (i starts at 2)") {
         int i = 2;
         expect(++i, to be_between(2, 3));
+        expect(i, ==, 3, int);
       }
 
       it("uses to_not on a matcher that generates temporary") {
@@ -429,7 +420,6 @@ describe(matchers) {
         expect(5, to be( > , 4));
       }
 
-      context_end;
     }
 
     context("tests fail") {
@@ -457,11 +447,10 @@ describe(matchers) {
         expect(5, to be( < , 4));
       }
 
-      context_end;
     }
-    context_end;
+
   }
-  test_end;
+
 }
 
 #include "array.h"
@@ -469,6 +458,7 @@ describe(matchers) {
 describe(container_matchers) {
 
   context("compositions on an int array [3, 5, 7]") {
+
     Array arr = array_new(int);
 
     array_push_back(arr, &(int){3});
@@ -487,8 +477,6 @@ describe(container_matchers) {
         it("does not contain only positive values") {
           expect(arr, to_not all(be_positive, int, array));
         }
-
-        context_end;
       }
 
       it("contains values within 2 of 5") {
@@ -516,10 +504,13 @@ describe(container_matchers) {
       }
 
       it("contains values all not equal to 4") {
-        expect(arr, to_not all(be( == , 4), int, array));
+        expect(arr, to all(be(!= , 4), int, array));
       }
 
-      context_end;
+      it("contains only non-even values") {
+        expect(arr, to all(be( %2 != , 0), int, array));
+      }
+
     }
 
     context("tests fail") {
@@ -530,15 +521,12 @@ describe(container_matchers) {
         array_push_back(arr, &(int){-1});
 
         it("contains only positive values") {
-          array_push_back(arr, &(int){-1});
           expect(arr, to all(be_positive, int, array));
         }
 
         it("wants ONLY values that are not positive") {
           expect(arr, to all(not be_positive, int, array));
         }
-
-        context_end;
       }
 
       it("wants values only within 2 of 4") {
@@ -565,103 +553,31 @@ describe(container_matchers) {
         expect(arr, to_not all(be( < , 10), int, array));
       }
 
-      it("asks for all numbers to not be less than 4") {
-        expect(arr, to all(be( < , 4), int, array));
+      it("contains at least one value equal to 4") {
+        expect(arr, to_not all(be( != , 4), int, array));
       }
 
-      context_end;
+      it("wants at least one even value") {
+        expect(arr, to_not all(be(% 2 != , 0), int, array));
+      }
+
     }
 
-    context_end;
+    array_delete(&arr);
   }
-
-  test_end;
 }
 
 describe(matcher_be_positive) {
-  test_end;
+
 }
 
 describe(matcher_be_between) {
-  test_end;
+
 }
 
 describe(matcher_be_within) {
-  test_end;
+
 }
-
-#if 0
-/* test_func(test_macros) */
-int test_macros(int _line, int _context)
-/**/
-{
-  int LINE = 0; // because splitting the macro makes it not work :P
-
-  // user vars for every test can go here, resets every pass
-
-  /* context */
-  while(0); LINE = __LINE__;
-  char _ctxlo61 = 1;
-  if (_test_context(LINE)) while(_ctxlo61--) // if _context > LINE, don't use this context
-  /**/
-  {
-
-    // user vars here, resets every pass while context is in scope
-
-    /* test */
-    while(0); LINE = __LINE__;
-    if (_line < LINE) // we're closing the previous test's run
-      return _test_reset(LINE, &R("    ["LINESTR"] %c"));
-    else if (_line == LINE) do // if line > LINE, we've already done this test, so skip it
-    /**/
-    {
-
-      // user code here
-
-    }
-    /* test */
-    while(0); LINE = __LINE__;
-    if (_line < LINE) // we're closing the previous test's run
-      return _test_reset(LINE, &R("    ["LINESTR"] %c"));
-    else if (_line == LINE) do // if line > LINE, we've already done this test, so skip it
-    /**/
-    {
-
-      // user code here
-
-    }
-    /* context */
-    while(0); LINE = __LINE__;
-    if (_test_context(LINE)) do { // if _context > LINE, don't use this context
-    /**/
-
-      /* test */
-      while(0); LINE = __LINE__;
-      if (_line < LINE) // we're closing the previous test's run
-        return _test_reset(LINE, &R("    ["LINESTR"] %c"));
-      else if (_line == LINE) do // if line > LINE, we've already done this test, so skip it
-      /**/
-      {
-
-        // user code here
-
-      }
-
-    /* context_end */
-    while(0); }
-    /**/
-
-  /* context_end */
-  while(0); }
-  /**/
-
-  /* test_end */
-  while(0); LINE = __LINE__;
-  _test_reset(0, &R(""));
-  return 0;
-  /**/
-}
-#endif
 
 test_suite_begin(tests_string) {
   test_group(tests),

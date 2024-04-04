@@ -6,7 +6,7 @@
 
 #include "wasm.h"
 
-typedef int (*test_fn)(void);
+typedef void (*test_fn)(void);
 
 typedef struct TestGroup {
   const int* line;
@@ -261,9 +261,9 @@ void test_run_suite(const TestSuite* suite);
 #define be_positive(A) ((A) >= 0)
 
 // \brief This is a matcher that takes params and uses them to compose a more
-//    complex expectation for the test. It checks if the value is between
-//    a minimum and maximum bound. By default, the check is inclusive and
-//    assumes integer values.
+//    complex expectation for the test. It checks if the value is between a
+//    minimum and maximum bound. By default, the check is inclusive and assumes
+//    integer values.
 //
 // \param - `expect(value, to be_between(A, B));` - succeeds if the given value
 //    is between A and B inclusive. In this case, the value is expected to be
@@ -290,7 +290,7 @@ void test_run_suite(const TestSuite* suite);
 //    above, but can be explicitly specified as inclusive or exclusive.
 #define be_within(...) _be_within(__VA_ARGS__)
 
-// \brief syntactic sugar for `be_within`
+// \brief A little syntactic sugar for `be_within`, as a treat.
 #define of ,
 
 // \brief The `all` parameter composes matchers into a test against a container.
@@ -327,11 +327,13 @@ void test_run_suite(const TestSuite* suite);
 // \brief Note: does not work with preceding `not` specifier :(
 //    but given every math operator has an inverse, this is probably not
 //    much of a big deal.
+// 
+// \brief Note: Not single-access safe
 //
-// \param operator - A basic C comparison operator (==, !=, >, <, >=, <=).
+// \param opr - A basic C comparison operator (==, !=, >, <, >=, <=).
 //
 // \param value - The value to test the leading parameter with.
-#define be(operator, value) operator (value),
+#define be(opr, value) opr (value),
 
 #ifndef not
 // \brief Syntactic sugar for use with all and not.
@@ -346,33 +348,38 @@ void test_run_suite(const TestSuite* suite);
 
 
 
-bool _test_begin(int line, const StringRange* desc);
-bool _test_end(int line);
-bool _test_context_begin(int line, const StringRange* desc);
-void _test_context_end(int line);
+bool _test_begin(int line, StringRange desc);
+bool _test_end();
+bool _test_context_begin(int line, StringRange desc);
+bool _test_context_end(int line);
 void _test_log_fn(int line, const StringRange* messgae);
 void _test_warn_fn(int line, const StringRange* message);
 void _test_error_fn(const StringRange* message);
-void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
-  const StringRange* type_A, const StringRange* type_B);
 bool _test_expect_to_fail();
-//void _test_error_params(const StringRange* fmt, const void* a, const void* b);
-//void _test_error_2(const StringRange* fmt, const StringRange* desc,
-//  const void* a, const void* b, const void* tA, const void* tB);
-int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
+int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
+void _test_error_typed(
+  const StringRange* prefix, const StringRange* fmt,
+  const void* A, const void* B,
+  const StringRange* type_A, const StringRange* type_B
+);
 
 #define _test_run_all_suites(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
 #define LINESTR STR(__LINE__)
 #define _test_msg(msg, c) &R("line "LINESTR": "c msg)
+#define _test_msg2(msg, fmt, c) &R("line "LINESTR": "c msg), &R(fmt)
 
-#define _describe(NAME) static const int _fn_line_##NAME = __LINE__; int test_##NAME(void)
-#define _describe_end while(0); _test_end(0); return 0
+#define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
+#define _describe_end while(0); return;
 
-#define _test(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; else if (_test_begin(__LINE__, &R("test %c["LINESTR"] "DESC))) do
+#define _loop_tst MACRO_CONCAT(_tstloop_, __LINE__)
+#define _loop_ctx MACRO_CONCAT(_ctxloop_, __LINE__)
+#define _iter_all MACRO_CONCAT(_alliter_, __LINE__)
+#define _loop_all MACRO_CONCAT(_allloop_, __LINE__)
 
-#define _context(DESC) while(0); if (_test_end(__LINE__)) return __LINE__; if (_test_context_begin(__LINE__, &R("context: %c["LINESTR"] "DESC))) {
-#define _context_end while(0); _test_end(__LINE__); _test_context_end(__LINE__); return __LINE__; }
+#define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, R("test %c["LINESTR"] "DESC));)
+
+#define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, R("context: %c["LINESTR"] "DESC));) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
 
 #define _test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = (TestGroup(*)[])(&(TestGroup[])
 #define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN }
@@ -380,17 +387,17 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
 #define _test_log(message) _test_log_fn(__LINE__, _test_msg(message, ""))
 #define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
-#define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return __LINE__; } while(0)
+#define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
 
-#define _expect_t(A, B, C, Ta, Tc) _test_error_typed(_test_msg(#A" "#B" "#C" with values: $ "#B" $", ""), &_A, &_C, &R(#Ta), &R(#Tc))
-#define _expect_comp2(S, A, B, C, D, ...) do { bool _test = D(A, B, C); unless(_test) test_fail("expected "S); } while(0)
+#define _expect_t(A, B, C, Ta, Tc) _test_error_typed(_test_msg2(#A" "#B" "#C, " with values: $ "#B" $", ""), &_A, &_C, &R(#Ta), &R(#Tc))
+#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_error_typed(&R("expected "S), &R(", but found $ on iteration $"), _pvalue, &_index, &R(#T), &R("uint")); } while(0)
 #define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _expect_t(A, B, C, D, E); } while(0)
 #define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _expect_t(A, B, C, D, D); } while(0)
 #define _expect_true2(S, A, B, C, ...) _expect_true(#A" "#B" "#C, (A) B C)
 #define _expect_comp(S, A, B, ...) do { bool _test = B(A); unless(_test) test_fail("expected "S); } while(0)
 #define _expect_true(S, A, ...) do { unless(A) test_fail("expected "S); } while(0)
 #define _expect_va(S, A, B, C, D, E, _, F, ...) _expect##F(S, A, B, C, D, E)
-#define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp2, _type2, _type1, _true2, _comp, _true)
+#define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
 #define _matcher_setup(B, C, D) FALSE; D _B = (B); D _C = (C); D _A =
 
@@ -406,10 +413,11 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
 #define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
 
-#define _all_comp(A, B, C) B(_arrval, A) { _test = C(*_arrval); if (!_test) { break; } } _test ^= _tmp
-#define _be_comp(A, B, C) B(_arrval, A) { _test = ((*_arrval) C); if (!_test) { break; } } _test ^= _tmp
-#define _all_va(T_el, T_con, matcher, _, F, ...) FALSE; bool _tmp = _test; T_el* T_con##_foreach, matcher, F, 0, 0
-#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _be_comp, _all_comp)
+#define _all_comp_part(A, B, F) B(_iter_all, _loop_all, A) { _test = F; if (!_test) { _index = _loop_all; _pvalue = _iter_all; break; } } _test ^= _tmp
+#define _all_comp(A, B, C) _all_comp_part(A, B, C(*_iter_all))
+#define _all_be_comp(A, B, C) _all_comp_part(A, B, ((*_iter_all) C))
+#define _all_va(T_el, T_con, matcher, _, F, ...) FALSE; bool _tmp = _test; uint _index = 0; void* _pvalue = NULL; T_el* T_con##_foreach_index, matcher, F, T_el, 0
+#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
 //#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
 
 // Test suites

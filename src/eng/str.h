@@ -5,18 +5,18 @@
 
 #include "array.h"
 
-#define _STR_RANGE_DEF(SRC)   \
-  struct {                    \
-    SRC char* SRC begin;      \
-    union {                   \
-      size_t SRC length;      \
-      size_t SRC size;        \
-    };                        \
-  }                          //
+#define _STR_RANGE_DEF(SRCA, SRCB)    \
+  struct {                            \
+    SRCA char*  SRCB begin;           \
+    union {                           \
+      size_t    SRCB length;          \
+      size_t    SRCB size;            \
+    };                                \
+  }                                  //
 
-#define _STR_RANGE_DEF_BODY(C_STR)        \
-  .begin = C_STR,                         \
-  .size = sizeof(C_STR)-1                //
+#define _STR_RANGE_DEF_BODY(C_STR)    \
+  .begin = C_STR,                     \
+  .size = sizeof(C_STR)-1            //
 
 // \brief StringRange is a basic immutable string segment containing the start
 //    and size of a string.
@@ -31,7 +31,7 @@
 //    1) a constant string literal (using R, str_literal, or str_static).
 //    2) a range within a String object (including the implicit str->range).
 //    3) a or a range along a standard C-style char* string (str_range).
-typedef _STR_RANGE_DEF(const) StringRange;
+typedef _STR_RANGE_DEF(const,) StringRange;
 
 // \brief String is a handle type pointing to an immutable string on the heap.
 //
@@ -43,7 +43,7 @@ typedef _STR_RANGE_DEF(const) StringRange;
 typedef struct _Str_Base {
   union {
     const StringRange range;
-    _STR_RANGE_DEF(const);
+    _STR_RANGE_DEF(const, const);
   };
 }* String;
 

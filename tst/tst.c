@@ -25,7 +25,7 @@ typedef enum Verbosity {
 // TODO: take all these and split them into a meta-context object so we
 // can at least pretend to be thread-safe.
 static const TestGroup* test_function = NULL;
-static const StringRange* test_description = NULL;
+static StringRange test_description = M("");
 static const TestSuite* current_suite = NULL;
 static bool test_filename_printed = FALSE;
 static bool test_function_printed = FALSE;
@@ -41,7 +41,7 @@ static int test_passed_count = 0;
 static Verbosity param_verbose = V_NONE;
 static int param_line = 0;
 static int param_tabsize = 2;
-static StringRange* param_file = NULL;
+static StringRange param_file = M("");
 static bool param_no_expect_fail = FALSE;
 
 static int memory_count_mallocs = 0;
@@ -83,21 +83,19 @@ void free_test(void* mem) {
 // test group (between multiple calls of the group function), and is used to
 // keep track of
 typedef struct Context {
-  const StringRange* desc;
+  StringRange desc;
   bool printed;
   bool requested_context;
   struct Context* prev;
   struct Context* next;
-  int level;
 } Context;
 
-static Context ctx_stack_root = {
-  .desc = &R("<root context>"),
+Context ctx_stack_root = {
+  .desc = M("<root context>"),
   .printed = FALSE,
   .requested_context = FALSE,
   .prev = NULL,
   .next = NULL,
-  .level = 0,
 };
 
 // Pointer to the top of the stack.
@@ -109,12 +107,24 @@ static Context* ctx_stack_top = &ctx_stack_root;
 static Context* ctx_stack_ptr = NULL;
 
 // Called whenever the test enters a "context()" block
-bool _test_context_begin(int line, const StringRange* desc) {
+bool _test_context_begin(int line, StringRange desc) {
+
+  // If we are currently executing a test, skip the context (allow previous
+  // contexts to close out their post-test statements)
+  if (test_in_progress) {
+    return FALSE;
+  }
 
   // On each pass of the test function, we have to walk up the stack. If our
   // context is already there, don't create a duplicate of it.
-  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc == desc) {
+  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc.begin == desc.begin) {
     ctx_stack_ptr = ctx_stack_ptr->next;
+    return TRUE;
+  }
+
+  // If we're completing execution of the context, we expect it to be at the
+  // top of the stack
+  if (ctx_stack_ptr->desc.begin == desc.begin) {
     return TRUE;
   }
 
@@ -124,6 +134,10 @@ bool _test_context_begin(int line, const StringRange* desc) {
     return FALSE;
   }
 
+  // Any other context on the stack should still be open (and thus already
+  // passed by the stack ptr), or have already closed out and be gone.
+  assert(ctx_stack_ptr == ctx_stack_top);
+
   // If this context's line was specified in the input params, run all the
   // tests in this context, and end the tests as soon as it's popped.
   bool is_requested = FALSE;
@@ -132,29 +146,50 @@ bool _test_context_begin(int line, const StringRange* desc) {
     param_line = 0;
   }
 
+  // When this is added to the stack, we can set it as the current line.
+  // (not strictly necessary, but good for bookkeeping?)
+  test_current_line = line;
+
   // If we get here, we are entering a context for the first time.
-  Context* tmp = ctx_stack_top;
   ctx_stack_top = malloc(sizeof(Context));
-  tmp->next = ctx_stack_top;
+  ctx_stack_ptr->next = ctx_stack_top;
+
   *ctx_stack_top = (Context) {
     .desc = desc,
     .printed = false,
     .requested_context = is_requested,
-    .prev = tmp,
+    .prev = ctx_stack_ptr,
     .next = NULL,
-    .level = tmp->level + 1,
   };
+
+  ctx_stack_ptr = ctx_stack_top;
 
   return TRUE;
 }
 
 // Called at the end of a context block in "context_end"
-void _test_context_end(int line) {
-  if (test_current_line >= line) {
-    return;
+bool _test_context_end(int line) {
+
+  // If we're at the end of a context, we want to pop it off the stack if we
+  // didn't actually run any tests in this pass. Otherwise, return false to
+  // keep executing within this context.
+  if (test_in_progress) {
+    return FALSE;
   }
 
-  test_current_line = line;
+  // Sanity check - this generally shouldn't be possible to hit?
+  //assert(test_current_line < line);
+  //if (test_current_line >= line) {
+  //  return FALSE;
+  //}
+
+  // Update to the next line, because the context begin and end statements
+  // should actually be on the same line.
+  //
+  // This will usually make the line value go down (unless the context is
+  // empty), which is ok because as long as it's above the context line
+  // the entire block will be skipped.
+  test_current_line = line + 1;
 
   // Once we pop a specifically requested context, end the tests.
   // If we're in verbose mode, we want to still go thorugh them all to print
@@ -163,36 +198,35 @@ void _test_context_end(int line) {
     param_line = -1;
   }
 
-  if (ctx_stack_top->prev == NULL) {
-    _test_warn_fn(0, &R("Test error: %cEnded context while stack is empty!"));
-  } else {
-    Context* tmp = ctx_stack_top;
-    ctx_stack_top = tmp->prev;
-    ctx_stack_top->next = NULL;
-    free(tmp);
-  }
+  // Make sure we're not trying to pop the stack root
+  assert(ctx_stack_top->prev != NULL);
+
+  // Pop the context from the stack
+  Context* tmp = ctx_stack_top;
+  ctx_stack_top = tmp->prev;
+  ctx_stack_top->next = NULL;
+  free(tmp);
+
+  return TRUE;
 }
 
 // Called between each test group, after all passes on a function are completed
 static void context_clear_stack() {
   Context* ctx = ctx_stack_root.next;
-  ctx_stack_root.next = 0;
+  ctx_stack_root.next = NULL;
 
   while (ctx) {
     Context* tmp = ctx->next;
     free(ctx);
     ctx = tmp;
   }
+
   ctx_stack_ptr = &ctx_stack_root;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Output Printing/Formatting
 ////////////////////////////////////////////////////////////////////////////////
-
-static bool test_blank() {
-  return test_description == NULL || test_description->size == 0;
-}
 
 static int print_headers(
   int desc_color, PrintLevel desc_level, const StringRange* to_append
@@ -219,7 +253,7 @@ static int print_headers(
   while (ctx->next) {
     ctx = ctx->next;
     if (!ctx->printed) {
-      String s = str_prepend(*ctx->desc, param_tabsize * level, ' ');
+      String s = str_prepend(ctx->desc, param_tabsize * level, ' ');
       str_print_color(s->range, CONCOL_Cyan);
       str_delete(&s);
       ctx->printed = TRUE;
@@ -236,7 +270,7 @@ static int print_headers(
       test_desc_printed = PRINTED;
 
     } else {
-      s = str_prepend(*test_description, param_tabsize * level, ' ');
+      s = str_prepend(test_description, param_tabsize * level, ' ');
       if (to_append) {
         String t = str_concat(s->range, *to_append);
         str_delete(&s);
@@ -298,23 +332,109 @@ void _test_error_fn(const StringRange* message) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Printing fo typed values
+////////////////////////////////////////////////////////////////////////////////
+
+static String resolve_param_(const StringRange* fmt, const StringRange* type_N, const void* N) {
+  String formatted;
+
+  // TODO: before converting, check for a user-defined conversion function that
+  // either does the conversion, or returns a string literal with an alternate
+  // type name to use instead (ie, "SDL_sint32" -> "int").
+  // This function will always be responsible for deleting, make sure to inform
+  // the user to "#undef malloc" before allocating memory for this.
+
+  if (str_eq(*type_N, R("int"))) {
+    formatted = str_from_int(*(int*)N);
+  }
+  else if (str_eq(*type_N, R("uint"))) {
+    formatted = str_from_int((int)*(uint*)N); // should also make a uint one.
+  }
+  else if (str_eq(*type_N, R("size_t"))) {
+    formatted = str_from_int((int)*(size_t*)N); // should make a long-int constructor
+  }
+  else if (str_eq(*type_N, R("float"))) {
+    formatted = str_from_float(*(float*)N);
+  }
+  else if (str_eq(*type_N, R("_Bool"))) {
+    formatted = str_from_bool(*(bool*)N);
+  }
+  else {
+    String s = str_concat(R("Error formatting: Missing conversion info for type: "), *type_N);
+    _test_error_fn(&s->range);
+    str_delete(&s);
+    return str_empty;
+  }
+
+  String result = str_concat(formatted->range, *fmt);
+  str_delete(&formatted);
+  return result;
+}
+
+void _test_error_typed(
+  const StringRange* prefix, const StringRange* fmt,
+  const void* A, const void* B,
+  const StringRange* typ_A, const StringRange* typ_B
+) {
+
+  if ((fmt == NULL) || (typ_A && !A) || (typ_B && !B) || (B && !A)) {
+    _test_error_fn(prefix);
+    return;
+  }
+
+  Array split = str_split(*fmt, R("$"));
+
+  array_insert(split, 0, prefix);
+
+  String first = NULL;
+  String second = NULL;
+
+  if (split->size == 4) {
+    second = resolve_param_(array_get_back(split), typ_B, B);
+    array_pop_back(split);
+  }
+
+  if (split->size == 3) {
+    first = resolve_param_(array_get_back(split), typ_A, A);
+    array_pop_back(split);
+  }
+
+  if (first) array_push_back(split, &first->range);
+  if (second) array_push_back(split, &second->range);
+
+  String result = str_join(str_empty->range, split);
+  str_delete(&first);
+  str_delete(&second);
+  _test_error_fn(&result->range);
+  str_delete(&result);
+
+  array_delete(&split);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Test Begin/End
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_begin(int line, const StringRange* desc) {
+bool _test_begin(int line, StringRange desc) {
 
-  // Current line is past this, we've already run this test
-  if (test_current_line > line) {
+  // A test is currently in progress, just ignore this test for now
+  if (test_in_progress) {
     return FALSE;
   }
 
+  // Current line is past this, we've already run this test
+  if (test_current_line >= line) {
+    return FALSE;
+  }
+
+  test_current_line = line;
   test_description = desc;
   test_desc_printed = NOT_PRINTED;
   test_failed = FALSE;
-  memory_count_mallocs = 0;
-  memory_count_frees = 0;
   /* TODO: store memory 'end' pointer here to not count context allocations? */
 
+  // At this point, normally we'rd run the test, but if we have a specific test
+  //    number requested, we might still want to skip it.
   if (param_line == 0 || param_line == line) {
     test_in_progress = TRUE;
     test_skipped = FALSE;
@@ -333,13 +453,13 @@ bool _test_begin(int line, const StringRange* desc) {
   return test_in_progress;
 }
 
-bool _test_end(int line) {
-  if ((line && test_current_line >= line) || !test_in_progress) {
+bool _test_end() {
+  if (!test_in_progress) {
     return FALSE;
   }
 
   // TODO: I don't think we need to check test_blank anymore (thanks to in_prog)
-  if (!test_blank() && !test_failed) {
+  if (!test_failed) {
 
     bool memory_safe = memory_count_mallocs == memory_count_frees;
 
@@ -385,103 +505,6 @@ bool _test_expect_to_fail() {
   return TRUE;
 }
 
-static String resolve_param(StringRange* r, const void* v) {
-  String formatted;
-  int n = 1;
-
-  switch (r->begin[0]) {
-    case 'i': formatted = str_from_int(*(int*)v); break;
-    case 'f': formatted = str_from_float(*(float*)v); break;
-    case 'b': formatted = str_from_bool(*(bool*)v); break;
-
-    default:
-      return str_new(" - Error formatting: Nonexistent type specifier");
-    break;
-  }
-
-  String result = str_concat(formatted->range, str_substring(*r, n));
-  str_delete(&formatted);
-  return result;
-}
-
-void _test_error_params(const StringRange* fmt, const void* a, const void* b) {
-  Array split = str_split(*fmt, R("%"));
-
-  if (split->size != 3) {
-    String to_print = str_concat(*fmt, R(" - Error formatting, expect two % specifiers"));
-    _test_error_fn(&to_print->range);
-    str_delete(&to_print);
-  } else {
-    String first = resolve_param(array_get(split, 1), a);
-    String second = resolve_param(array_get(split, 2), b);
-    array_pop_back(split);
-    array_pop_back(split);
-    array_push_back(split, &first->range);
-    array_push_back(split, &second->range);
-    String result = str_join(str_empty->range, split);
-    str_delete(&first);
-    str_delete(&second);
-    _test_error_fn(&result->range);
-    str_delete(&result);
-  }
-
-  array_delete(&split);
-}
-
-static String resolve_param_(const StringRange* fmt, const StringRange* type_N, const void* N) {
-  String formatted;
-
-  if (str_eq(*type_N, R("int"))) {
-    formatted = str_from_int(*(int*)N);
-
-  } else if (str_eq(*type_N, R("size_t"))) {
-    formatted = str_from_int((int)*(size_t*)N); // should make a long-int constructor
-
-  } else if (str_eq(*type_N, R("float"))) {
-    formatted = str_from_float(*(float*)N);
-
-  } else if (str_eq(*type_N, R("_Bool"))) {
-    formatted = str_from_bool(*(bool*)N);
-
-  } else {
-    String s = str_concat(R("Error formatting: Missing conversion info for type: "), *type_N);
-    _test_error_fn(&s->range);
-    str_delete(&s);
-    return str_empty;
-  }
-
-  String result = str_concat(formatted->range, *fmt);
-  str_delete(&formatted);
-  return result;
-}
-
-void _test_error_typed(const StringRange* fmt, const void* A, const void* B,
-  const StringRange* typ_A, const StringRange* typ_B//, const StringRange* Op
-) {
-  Array split = str_split(*fmt, R("$"));
-
-  if (split->size != 3) {
-    String to_print = str_concat(*fmt, R(" - Error formatting, expect two $ specifiers"));
-    _test_error_fn(&to_print->range);
-    str_delete(&to_print);
-  }
-  else {
-    String first = resolve_param_(array_get(split, 1), typ_A, A);
-    String second = resolve_param_(array_get(split, 2), typ_B, B);
-    array_pop_back(split);
-    array_pop_back(split);
-    array_push_back(split, &first->range);
-    array_push_back(split, &second->range);
-    String result = str_join(str_empty->range, split);
-    str_delete(&first);
-    str_delete(&second);
-    _test_error_fn(&result->range);
-    str_delete(&result);
-  }
-
-  array_delete(&split);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Test Runners
 ////////////////////////////////////////////////////////////////////////////////
@@ -502,21 +525,35 @@ static void before_fn(const TestGroup* t) {
   test_function = t;
 }
 
+static void before_pass() {
+  ctx_stack_ptr = &ctx_stack_root;
+  test_expect_fail = FALSE;
+  memory_count_mallocs = 0;
+  memory_count_frees = 0;
+}
+
 static void process_function(const TestGroup* t) {
   before_fn(t);
   test_current_line = 0;
-  do {
-    ctx_stack_ptr = &ctx_stack_root;
-    test_expect_fail = FALSE;
-    test_current_line = t->group_fn();
-  } while(test_current_line);
+  int prev_line;
+
+  loop {
+    before_pass();
+    prev_line = test_current_line;
+    t->group_fn();
+
+    until (!test_in_progress && prev_line == test_current_line);
+
+    _test_end();
+  }
+
   context_clear_stack();
 }
 
 void test_run_suite(const TestSuite* suite) {
   before_suite(suite);
 
-  if (param_file && !str_ends_with(suite->filename, *param_file)) {
+  if (!str_ends_with(suite->filename, param_file)) {
     if (param_verbose == V_VERY) {
       String msg = str_concat(R("skipping file: %c"), suite->filename);
       str_print_color(msg->range, CONCOL_Purple);
@@ -592,10 +629,7 @@ static bool process_args(int argc, char* argv[]) {
       // so we'll take the number, but not single it to a file. Maybe someone
       // meticulously puts a specific test on one line of every file, who knows.
       if (sep != 0) {
-        param_file = malloc(sizeof(StringRange));
-        assert(param_file);
-        StringRange to_copy = str_substring(param, 0, sep);
-        memcpy(param_file, &to_copy, sizeof(StringRange));
+        param_file = str_substring(param, 0, sep);
       }
     }
   }

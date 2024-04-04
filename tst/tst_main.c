@@ -182,8 +182,8 @@ void run_tests() {
 }
 
 #ifdef __WASM__
-static int argc = 0;
-static char* argv[] = {"-v"};
+static int argc = 2;
+static char* argv[] = {"WASM", "-v"};
 int export(wasm_tests) ()
 #else
 int main(int argc, char* argv[])

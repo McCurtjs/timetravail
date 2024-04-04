@@ -12,7 +12,7 @@ typedef struct {
   // public (read-only)
   union {
     StringRange range;
-    _STR_RANGE_DEF();
+    _STR_RANGE_DEF(,);
   };
 
   // private
