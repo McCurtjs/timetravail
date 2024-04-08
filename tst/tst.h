@@ -47,11 +47,10 @@ typedef struct TestSuite {
 //                int result = widget_operate();
 //                expect(result == 0);
 //            }
-//
-//            describe_end;
 //        }
 //
-//        create_test_suite(widget_tests) {
+//        create_test_suite(widget_tests)
+//        {
 //            test_group(widget_operate),
 //            test_suite_end
 //        }
@@ -234,22 +233,30 @@ void test_run_suite(const TestSuite* suite);
 // \param expect(to_fail);
 #define to_fail _test_expect_to_fail()
 
+// \brief Memory errors are treated differently from regular errors; a test
+//    expecting to fail will still actually fail if it encounters memory. This
+//    will similarly expect memory errors to occur in the test. This is mostly
+//    only for testing the memory checker itself, there's little other reason
+//    to use this.
+//
+// \param expect(memory_errors);
+#define memory_errors _test_memory_expect_to_fail()
+
 ////////////////////////////////////////////////////////////////////////////////
 // Matchers
 ////////////////////////////////////////////////////////////////////////////////
 
 // \brief This can be used as syntactic sugar for matchers
 //
-// \param - `expect(value, to matcher);`
-#define to
+// \param - `expect(value to matcher);`
+#define to ,
 
-// \brief This is used in the same way as `to`, but also negates the result
+#ifndef not
+// \brief Syntactic sugar used to negate matchers.
 //
-// \param - `expect(value, to_not matcher);`
-#define to_not !
-
-// \brief alias for to_not
-#define not_to !
+// \param - `expect(value to not be_positive);`.
+# define not !
+#endif
 
 // \brief This is an example of a matcher which checks if a value is positive.
 //    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
@@ -293,8 +300,9 @@ void test_run_suite(const TestSuite* suite);
 // \brief A little syntactic sugar for `be_within`, as a treat.
 #define of ,
 
-// \brief The `all` parameter composes matchers into a test against a container.
-//    All values in the container must satisfy the condition in order to pass.
+// \brief The `all` parameter is a composite matcher that applies the condition
+//    of the given matcher to all elements in a container. All values in the
+//    container must satisfy the condition in order to pass.
 //
 // \brief In order to function, the container must support a "foreach" macro
 //    that takes the form (using array for example),
@@ -310,43 +318,32 @@ void test_run_suite(const TestSuite* suite);
 //    should be the actual type of the elements in the container, not the
 //    pointer type expected to be returned from TYPE_get().
 //
-// \param T_container - The type of container. This value is not the actual
+// \param T_cont - The type of container. This value is not the actual
 //    type name of the container's struct, but an associated prefix expected to
 //    be used by functions associated with that type. For example, the
 //    aforementioned "array_get" function is associated with the struct `Array`.
-#define all(matcher, T_elem, T_container) _all(T_elem, T_container, matcher)
+#define all(matcher, T_elem, T_cont) _all(matcher, T_elem, T_cont)
 
-// \brief A matcher that appears to do nothing, but allows basic condition
-//    checking within an "expect all" statement. Used in the form:
-//    `expect(arr, to all(be( > , 50 ), int, array ));`.
-//
-// \brief It also works as a regular matcher, ie: in the form
-//    `expect(A, to be( < , 7))`, but I don't know why you'd use that over the
-//    basic form of `expect(A < 7)`.
+// \brief The `all_be` matcher is similar to the `all` matcher, but rather than
+//    composing other matchers, it applies a basic expression to every element
+//    in the container. 
 // 
-// \brief Note: does not work with preceding `not` specifier :(
-//    but given every math operator has an inverse, this is probably not
-//    much of a big deal.
-// 
-// \brief Note: Not single-access safe
+// \brief Example: expect(arr to all_be( > , 7, int, array));
 //
-// \param opr - A basic C comparison operator (==, !=, >, <, >=, <=).
+// \param op - A basic C comparison operator (==, !=, >, <, >=, <=)
 //
-// \param value - The value to test the leading parameter with.
-#define be(opr, value) opr (value),
-
-#ifndef not
-// \brief Syntactic sugar for use with all and not.
+// \param value - The value to compare container elements with
 //
-// \param - `expect(arr, to all(not be( > 6), int, array));`.
-# define not !
-#endif
+// \T_elem - The type of the elements of the container
+//
+// \T_cont - The type of the container. Like with the `all` matcher, this is not
+//    an actual type name of an object/struct, but a standard prefix used by
+//    functions associated with the type (ie: array_get(...))
+#define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation details, turn back now, here there be dragons.
 ////////////////////////////////////////////////////////////////////////////////
-
-
 
 bool _test_begin(int line, StringRange desc);
 bool _test_end();
@@ -356,6 +353,7 @@ void _test_log_fn(int line, const StringRange* messgae);
 void _test_warn_fn(int line, const StringRange* message);
 void _test_error_fn(const StringRange* message);
 bool _test_expect_to_fail();
+bool _test_memory_expect_to_fail();
 int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 void _test_error_typed(
   const StringRange* prefix, const StringRange* fmt,
@@ -369,17 +367,14 @@ void _test_error_typed(
 #define _test_msg(msg, c) &R("line "LINESTR": "c msg)
 #define _test_msg2(msg, fmt, c) &R("line "LINESTR": "c msg), &R(fmt)
 
+#define _loop_tst MACRO_CONCAT(_loop_tst_, __LINE__)
+#define _loop_ctx MACRO_CONCAT(_loop_ctx_, __LINE__)
+#define _iter_all MACRO_CONCAT(_iter_all_, __LINE__)
+#define _loop_all MACRO_CONCAT(_loop_all_, __LINE__)
+
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
-#define _describe_end while(0); return;
-
-#define _loop_tst MACRO_CONCAT(_tstloop_, __LINE__)
-#define _loop_ctx MACRO_CONCAT(_ctxloop_, __LINE__)
-#define _iter_all MACRO_CONCAT(_alliter_, __LINE__)
-#define _loop_all MACRO_CONCAT(_allloop_, __LINE__)
-
-#define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, R("test %c["LINESTR"] "DESC));)
-
 #define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, R("context: %c["LINESTR"] "DESC));) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
+#define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, R("test %c["LINESTR"] "DESC));)
 
 #define _test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = (TestGroup(*)[])(&(TestGroup[])
 #define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN }
@@ -388,14 +383,15 @@ void _test_error_typed(
 #define _test_log(message) _test_log_fn(__LINE__, _test_msg(message, ""))
 #define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
 #define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
+#define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), &R(fmt), A, C, &R(#Ta), &R(#Tc)); return; } while(0)
+#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: $ "#B" $", &_A, &_C, Ta, Tc);
 
-#define _expect_t(A, B, C, Ta, Tc) _test_error_typed(_test_msg2(#A" "#B" "#C, " with values: $ "#B" $", ""), &_A, &_C, &R(#Ta), &R(#Tc))
-#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_error_typed(&R("expected "S), &R(", but found $ on iteration $"), _pvalue, &_index, &R(#T), &R("uint")); } while(0)
-#define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _expect_t(A, B, C, D, E); } while(0)
-#define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _expect_t(A, B, C, D, D); } while(0)
+#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found $ on iteration $", _pvalue, &_index, T, uint); } while(0)
+#define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, E); } while(0)
+#define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, D); } while(0)
 #define _expect_true2(S, A, B, C, ...) _expect_true(#A" "#B" "#C, (A) B C)
-#define _expect_comp(S, A, B, ...) do { bool _test = B(A); unless(_test) test_fail("expected "S); } while(0)
-#define _expect_true(S, A, ...) do { unless(A) test_fail("expected "S); } while(0)
+#define _expect_comp(S, A, B, ...) do { bool _test = B(A); unless(_test) _test_fail("expected "S); } while(0)
+#define _expect_true(S, A, ...) do { unless(A) _test_fail("expected "S); } while(0)
 #define _expect_va(S, A, B, C, D, E, _, F, ...) _expect##F(S, A, B, C, D, E)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
@@ -413,11 +409,17 @@ void _test_error_typed(
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
 #define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
 
-#define _all_comp_part(A, B, F) B(_iter_all, _loop_all, A) { _test = F; if (!_test) { _index = _loop_all; _pvalue = _iter_all; break; } } _test ^= _tmp
+#define _all_comp_part(A, FOREACH, MATCHER) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; break; } } _test ^= _tmp
 #define _all_comp(A, B, C) _all_comp_part(A, B, C(*_iter_all))
 #define _all_be_comp(A, B, C) _all_comp_part(A, B, ((*_iter_all) C))
-#define _all_va(T_el, T_con, matcher, _, F, ...) FALSE; bool _tmp = _test; uint _index = 0; void* _pvalue = NULL; T_el* T_con##_foreach_index, matcher, F, T_el, 0
-#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
+
+#define _all_setup FALSE; bool _tmp = _test; uint _index = 0; void* _pvalue = NULL;
+#define _all(matcher, T_el, T_con) _all_setup T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
+#define _all_be(B, C, T_el, T_con) _all_setup T_el _C = (C); T_el* T_con##_foreach_index, B _C, _all_be_comp, T_el, 0
+
+//#define be(opr, value) opr (value),
+//#define _all_va(T_el, T_con, matcher, _, F, ...) _all_setup T_el* T_con##_foreach_index, matcher, F, T_el, 0
+//#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
 //#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
 
 // Test suites

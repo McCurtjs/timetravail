@@ -7,7 +7,6 @@
 #include "wasm.h"
 #include "types.h"
 
-static const uint capacity_min = 16;
 
 // internal opaque structure:
 typedef struct Array_Internal {
@@ -21,9 +20,11 @@ typedef struct Array_Internal {
   byte* data;
 } Array_Internal;
 
+#define DARRAY_STARTING_SIZE 2
+#define GROWTH_FACTOR MAX(DARRAY_STARTING_SIZE, a->capacity + a->capacity / 2)
+
 #define DARRAY_INTERNAL Array_Internal* a = (Array_Internal*)(a_in)
 #define DARRAY_INTERNAL_CONST const Array_Internal* a = (const Array_Internal*)(a_in)
-#define GROWTH_FACTOR MAX(capacity_min, a->capacity + a->capacity / 2)
 
 Array _array_new_(uint element_size) {
   Array_Internal* ret = malloc(sizeof(Array_Internal));

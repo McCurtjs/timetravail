@@ -33,6 +33,7 @@ const String str_false = &str_constants[2];
 
 static String_Internal* str_new_internal(size_t length) {
   if (length == 0) return NULL; // prompt callers to return empty string
+  // TODO: +1 not necessary for null terminator because StringInternal already has the head byte included
   String_Internal* ret = malloc(length + sizeof(String_Internal) + 1);
   assert(ret);
   ret->begin = &ret->head;

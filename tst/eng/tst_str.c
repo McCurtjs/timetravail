@@ -11,9 +11,10 @@
 #endif
 
 
-void _test_error_params2(const StringRange* fmt, const void* a, const void* b, const char* ta, const char* tb);
 
 #ifdef SKIP_THIS
+void _test_error_params2(const StringRange* fmt, const void* a, const void* b, const char* ta, const char* tb);
+
 test_func(test_new) {
 
   StringRange asdf = M("asdf");
@@ -30,18 +31,18 @@ test_func(test_new) {
   //expect(5, ==, 5, float, int);
   //expect(TRUE == FALSE);
   //expect(str_contains(some_string, R("Stuff")));
-  //expect(5, to_not be_between(2, 6));
-  //expect(5, to_not be_between(2, 6, float));
-  //expect(5, to_not be_between(2, 6, float, exclusive));
-  //expect(5.1, to be_within(5.0f of 5.5f, float));
-  //expect(3, to be_positive);
-  //expect(arr, to all(be_positive, int, array));
-  //expect(arr, to_not all(be_between(2, 3), int, array));
-  //expect(3, to be_within(1 of 4, int, exclusive));
-  //expect(arr, to all(not be_within(1 of 5), int, array));
-  //expect(arr, to_not all(not be_within(1 of 5, float, exclusive), float, array));
-  //expect(arr, to all(be( > , 7), int, array));
-  //expect(5, to be(< , 7));
+  //expect(5 to not be_between(2, 6));
+  //expect(5 to not be_between(2, 6, float));
+  //expect(5 to not be_between(2, 6, float, exclusive));
+  //expect(5.1 to be_within(5.0f of 5.5f, float));
+  //expect(3 to be_positive);
+  //expect(arr to all(be_positive, int, array));
+  //expect(arr to not all(be_between(2, 3), int, array));
+  //expect(3 to be_within(1 of 4, int, exclusive));
+  //expect(arr to all(not be_within(1 of 5), int, array));
+  //expect(arr to not all(not be_within(1 of 5, float, exclusive), float, array));
+  //expect(arr to all(be( > , 7), int, array));
+  //expect(5 to be(< , 7));
 
 
   // "      on line 36: (int)blah < (char)2 with values: 1 < 2"
@@ -162,7 +163,7 @@ describe(tests) {
 describe(memory) {
 
   it("allocates memory and never frees") {
-    expect(to_fail);
+    expect(memory_errors);
     str_new("This allocates a string without deleting");
   }
 
@@ -399,25 +400,21 @@ describe(matchers) {
     context("tests succeed") {
 
       it("has a positive value") {
-        expect(3, to be_positive);
+        expect(3 to be_positive);
       }
 
       it("uses a to_not specifier") {
-        expect(-3, to_not be_positive);
+        expect(-3 to not be_positive);
       }
 
       it("gives an incrementing value to a matcher that generates temporary values (i starts at 2)") {
         int i = 2;
-        expect(++i, to be_between(2, 3));
+        expect(++i to be_between(2, 3));
         expect(i, ==, 3, int);
       }
 
       it("uses to_not on a matcher that generates temporary") {
-        expect(4, to_not be_between(2, 3));
-      }
-
-      it("uses the 'be' matcher but on a single item") {
-        expect(5, to be( > , 4));
+        expect(4 to not be_between(2, 3));
       }
 
     }
@@ -427,24 +424,20 @@ describe(matchers) {
       expect(to_fail);
 
       it("uses the simplest kind of matcher using no temporary values") {
-        expect(-3, to be_positive);
+        expect(-3 to be_positive);
       }
 
       it("uses a to_not modifier") {
-        expect(3, to_not be_positive);
+        expect(3 to not be_positive);
       }
 
       it("uses a matcher that generates temporary values (i starts at 2)") {
         int i = 2;
-        expect(++i, to be_between(1, 2));
+        expect(++i to be_between(1, 2));
       }
 
       it("uses to_not on a matcher that generates temporary") {
-        expect(4, to_not be_between(3, 5));
-      }
-
-      it("uses the 'be' matcher but on a single item") {
-        expect(5, to be( < , 4));
+        expect(4 to not be_between(3, 5));
       }
 
     }
@@ -468,47 +461,47 @@ describe(container_matchers) {
     context("tests succeed") {
 
       it("contains only positive values") {
-        expect(arr, to all(be_positive, int, array));
+        expect(arr to all(be_positive, int, array));
       }
 
       context("a negative number is added to the array [..., -1]") {
         array_push_back(arr, &(int){-1});
 
         it("does not contain only positive values") {
-          expect(arr, to_not all(be_positive, int, array));
+          expect(arr to not all(be_positive, int, array));
         }
       }
 
       it("contains values within 2 of 5") {
-        expect(arr, to all(be_within(2 of 5), int, array));
+        expect(arr to all(be_within(2 of 5), int, array));
       }
 
       it("contains values that are not all within 2 of 6") {
-        expect(arr, to_not all(be_within(2 of 6), int, array));
+        expect(arr to not all(be_within(2 of 6), int, array));
       }
 
       it("contains all values which are not within 2 of 10") {
-        expect(arr, to all(not be_within(2 of 10), int, array));
+        expect(arr to all(not be_within(2 of 10), int, array));
       }
 
       it("contains at least one value within 2 of 8") {
-        expect(arr, to_not all(not be_within(2 of 8), int, array));
+        expect(arr to not all(not be_within(2 of 8), int, array));
       }
 
       it("compares the values using the 'be' matcher") {
-        expect(arr, to all(be( < , 10), int, array));
+        expect(arr to all_be( < , 10, int, array));
       }
 
       it("contains values not all equal to 3") {
-        expect(arr, to_not all(be( == , 3), int, array));
+        expect(arr to not all_be( == , 3, int, array));
       }
 
       it("contains values all not equal to 4") {
-        expect(arr, to all(be(!= , 4), int, array));
+        expect(arr to all_be(!= , 4, int, array));
       }
 
       it("contains only non-even values") {
-        expect(arr, to all(be( %2 != , 0), int, array));
+        expect(arr to all_be( %2 != , 0, int, array));
       }
 
     }
@@ -521,44 +514,44 @@ describe(container_matchers) {
         array_push_back(arr, &(int){-1});
 
         it("contains only positive values") {
-          expect(arr, to all(be_positive, int, array));
+          expect(arr to all(be_positive, int, array));
         }
 
         it("wants ONLY values that are not positive") {
-          expect(arr, to all(not be_positive, int, array));
+          expect(arr to all(not be_positive, int, array));
         }
       }
 
       it("wants values only within 2 of 4") {
-        expect(arr, to all(be_within(2 of 4), int, array));
+        expect(arr to all(be_within(2 of 4), int, array));
       }
 
       it("wants values that are not all within 2 of 5") {
-        expect(arr, to_not all(be_within(2 of 5), int, array));
+        expect(arr to not all(be_within(2 of 5), int, array));
       }
 
       it("wants only values which are not within 2 of 9") {
-        expect(arr, to all(not be_within(2 of 9), int, array));
+        expect(arr to all(not be_within(2 of 9), int, array));
       }
 
       it("wants at least one value within 2 of 10") {
-        expect(arr, to_not all(not be_within(2 of 10), int, array));
+        expect(arr to not all(not be_within(2 of 10), int, array));
       }
 
-      it("checks that all numbers are over 5") {
-        expect(arr, to all(be( > , 5), int, array));
+      it("checks that all numbers are over 12") {
+        expect(arr to all_be( > , 12, int, array));
       }
 
       it("asks for not all numbers to be less than 10") {
-        expect(arr, to_not all(be( < , 10), int, array));
+        expect(arr to not all_be( < , 10, int, array));
       }
 
       it("contains at least one value equal to 4") {
-        expect(arr, to_not all(be( != , 4), int, array));
+        expect(arr to not all_be( != , 4, int, array));
       }
 
       it("wants at least one even value") {
-        expect(arr, to_not all(be(% 2 != , 0), int, array));
+        expect(arr to not all_be(% 2 != , 0, int, array));
       }
 
     }
