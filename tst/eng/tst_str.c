@@ -8,119 +8,10 @@
 #pragma warning ( push )
 // Disable MSVC warning "conditional expression is constant"
 #pragma warning ( disable : 4127 )
-#endif
 
-
-
-#ifdef SKIP_THIS
-void _test_error_params2(const StringRange* fmt, const void* a, const void* b, const char* ta, const char* tb);
-
-test_func(test_new) {
-
-  StringRange asdf = M("asdf");
-
-  test_log("This is a note before the test");
-  test_log("This is another note before the test");
-
-  //StringRange some_string = R("This is just some string");
-  //Array arr = array_new(int);
-
-  //expect(5 == 5);
-  //expect(5, ==, 5);
-  //expect(5, ==, 5, int);
-  //expect(5, ==, 5, float, int);
-  //expect(TRUE == FALSE);
-  //expect(str_contains(some_string, R("Stuff")));
-  //expect(5 to not be_between(2, 6));
-  //expect(5 to not be_between(2, 6, float));
-  //expect(5 to not be_between(2, 6, float, exclusive));
-  //expect(5.1 to be_within(5.0f of 5.5f, float));
-  //expect(3 to be_positive);
-  //expect(arr to all(be_positive, int, array));
-  //expect(arr to not all(be_between(2, 3), int, array));
-  //expect(3 to be_within(1 of 4, int, exclusive));
-  //expect(arr to all(not be_within(1 of 5), int, array));
-  //expect(arr to not all(not be_within(1 of 5, float, exclusive), float, array));
-  //expect(arr to all(be( > , 7), int, array));
-  //expect(5 to be(< , 7));
-
-
-  // "      on line 36: (int)blah < (char)2 with values: 1 < 2"
-
-  //float blah = 1.4f;
-  //EXPECT2(TRUE, ==, FALSE, bool);
-  //"idbfusl";
-
-  /*
-
-  // new Expect fn:
-  // fmt is the input string (ie, "    on line N: blah < what with values {} < {}")
-  // desc is an optional description to append to the failure description above
-  // a is a pointer to parameter value a (ignored if null)
-  // ta is type of param a (ignored if null)
-  // tb_or_desc could be either the type of b, or a description (given valid forms:
-  //    expect(a, <, b, int, "description") and expect(a, <, b, int, char, "description");
-  //    so in this case, check tb_or_desc against all included type values. If it doesn't
-  //    match any of them (and "desc" is NULL), set "desc" to "tb_or_desc" before running
-  //    the code to print "desc".
-  void _test_error_params3(const StringRange* fmt, StringRange desc,
-    const void* a, const void* b, const char* ta, const char* tb_or_desc);
-
-  // unrelated: should there be a "success" macro that just auto-succeeds if hit?
-  // note: actually, that's just "break;"
-
-  //*/
-
-  test("'tst_fail' just outright fails with a message") {
-    test_fail("I failed because I felt like it");
-  }
-
-  context("String 'test' exists")
-
-    String test = str_new("This is a copy of a c-string");
-
-    test("doesn't fail because a break; saves us from the fail statement") {
-      break;
-      test_fail("Can't reach this");
-    }
-
-    test("'expect' tests any two values, but won't print variable values") {
-      expect(2.0, >, 1.0);
-      expect(TRUE, !=, FALSE);
-      expect(str_empty->size, ==, 1);
-      expect(2, ==, 1);
-    }
-
-    context("This is an inner context")
-
-      test("'expect_int' tests two int variables and prints the values") {
-        int i = 2, j = 3;
-        //expect_int(i, >, j);
-      }
-
-    context_end
-
-  context_end
-
-  test("'expect_float' tests two float variables") {
-    float a = 3.4f, b = 1.9f;
-    //expect_float(a, <, b);
-  }
-
-  test("Allocates memory and never frees") {
-    str_new("This allocates a string without deleting");
-    test_warn("This is another note before the test");
-  }
-
-  test_end;
-}
-
-#endif
-
-#ifdef _MSC_VER
 #pragma warning ( push )
 // Disable MSVC warning about the break; test causing unreachable code.
-#pragma warning ( disable : 4702 )
+#pragma warning ( disable : 4702 ) // yeah... that's the point.
 #endif
 describe(tests) {
 
@@ -132,7 +23,7 @@ describe(tests) {
   }
 
   it("prints a warning but doesn't fail") {
-    test_warn("This is a warning");
+    test_warn("The warning has been given. Their fate is now their own.");
   }
 
   context("tests fail") {
@@ -160,19 +51,143 @@ describe(tests) {
 #pragma warning ( pop )
 #endif
 
+#ifdef _MSC_VER
+#pragma warning ( push )
+// Disable MSVC warning about reading from unallocatd memory
+// Note: Why does it warn for _reading_ but not for _writing_, like wut.
+#pragma warning ( disable : 6385 )
+#endif
 describe(memory) {
 
-  it("allocates memory and never frees") {
-    expect(memory_errors);
-    str_new("This allocates a string without deleting");
+  context("tests succeed") {
+
+    it("properly frees the memory after allocating") {
+      String s = str_new("This is a string being allocated");
+      str_delete(&s);
+    }
+
+    it("fills memory without overrunning") {
+      char* buffer = malloc(5);
+      expect(buffer != NULL);
+      for (int i = 0; i < 5; ++i) {
+        buffer[i] = '!';
+      }
+      expect(buffer[0], == , '!', char);
+      expect(buffer[4], == , '!', char);
+      expect(buffer[5], != , '!', char);
+      free(buffer);
+    }
+
+    it("makes malloc return NULL once") {
+      expect(null_malloc);
+
+      char* buffer = malloc(5);
+      expect(buffer == NULL);
+
+      buffer = malloc(5);
+      expect(buffer != NULL);
+      free(buffer);
+    }
+
+    it("makes malloc return NULL for the rest of the test") {
+      expect(null_mallocs);
+
+      char* buffer = malloc(5);
+      expect(buffer == NULL);
+
+      buffer = malloc(5);
+      expect(buffer == NULL);
+    }
+
+    it("makes sure malloc sets non-zero memory") {
+      int* buffer = malloc(sizeof(int) * 5);
+      for (int i = 0; i < 5; ++i) {
+        expect(buffer[i] != 0);
+      }
+      free(buffer);
+    }
+
+    it("ensures calloc returns zero-initialized memory") {
+      int* buffer = calloc(5, sizeof(int));
+      for (int i = 0; i < 5; ++i) {
+        expect(buffer[i] == 0);
+      }
+      free(buffer);
+    }
+
   }
 
-  it("properly frees the memory after allocating") {
-    String s = str_new("This is a string being allocated");
-    str_delete(&s);
+  context("tests fail due to memory errors") {
+
+    expect(memory_errors);
+
+    it("allocates memory and never frees") {
+      str_new("This allocates a string without deleting");
+    }
+
+    it("causes a buffer overrun") {
+      char* buffer = malloc(5);
+      assert(buffer);
+      for (int i = 0; i <= 5; ++i) {
+        buffer[i] = '!';
+      }
+      free(buffer);
+    }
+
+    it("double-frees") {
+      char* buffer = malloc(5);
+      free(buffer);
+      free(buffer);
+    }
+
+    it("passes a bad pointer to realloc") {
+      char* buffer = realloc((void*)1, 5);
+      free(buffer);
+    }
+
+    it("tries to free memory outside of the sandbox") {
+      int x = 0;
+      free(&x);
+    }
+
+    it("tries to free the wrong address within allocated memory") {
+      char* buffer = malloc(5);
+      free(buffer + 1);
+      free(buffer);
+    }
+
+    it("modifies allocated memory after free") {
+      char* buffer = malloc(5);
+      expect(buffer != NULL);
+      free(buffer);
+      buffer[2] = '!';
+    }
+
+    //it("tries to allocate too much memory (can't be ignored with directive)") {
+    //  char* buffer = malloc(999999);
+    //  if (buffer) free(buffer);
+    //}
+
+  }
+
+  context ("tests fail (requesting but not calling is a test issue, not memory)") {
+
+    expect(to_fail);
+
+    it("requests a null malloc, but doesn't call malloc") {
+      expect(null_malloc);
+    }
+
+    it("requests rest of allocations to be NULL, but doesn't call malloc again") {
+      expect(null_mallocs);
+    }
+
   }
 
 }
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif
 
 describe(contexts) {
 
@@ -497,7 +512,7 @@ describe(container_matchers) {
       }
 
       it("contains values all not equal to 4") {
-        expect(arr to all_be(!= , 4, int, array));
+        expect(arr to all_be( != , 4, int, array));
       }
 
       it("contains only non-even values") {
@@ -586,13 +601,6 @@ test_suite_begin(tests_string) {
   test_group(matcher_be_within),
   test_suite_end
 };
-
-// TODO:
-//    - Update un-rolled example below and keep this in an "example" file.
-//      - both for publishing, and let's be real, I'm forgetting this in a week
-//    - Do memory tester!
-//
-//    - Eventually json...
 
 #ifdef _MSC_VER
 #pragma warning ( pop )

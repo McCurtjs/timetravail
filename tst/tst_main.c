@@ -177,9 +177,11 @@ void string_tests() {
   str_delete(&num);
 }
 
-void run_tests() {
-  test_run_suite(&tests_string);
-}
+// Test suites
+
+extern TestSuite tests_string;
+
+// Main
 
 #ifdef __WASM__
 static int argc = 2;

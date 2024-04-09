@@ -36,10 +36,10 @@ static bool test_filename_printed = FALSE;
 static bool test_function_printed = FALSE;
 static PrintLevel test_desc_printed = NOT_PRINTED;
 static bool test_failed = FALSE;
-static bool test_skipped = FALSE;
 static bool test_in_function = FALSE;
 static bool test_in_progress = FALSE;
 static bool test_expect_fail = FALSE;
+static bool test_skip = FALSE;
 static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
@@ -58,10 +58,17 @@ static int memory_count_frees = 0;
 // Memory Testing
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef enum MallocFailLevel {
+  M_NORMAL,
+  M_WAS_EXPECTED,
+  M_FAIL_ONCE,
+  M_FAIL_ALWAYS
+} MallocFailLevel;
+
 static void _test_error_mem(const StringRange* message);
 
 #define memory_size_fence 7
-#define memory_size_max 4096
+//#define memory_size_max 4096 // defined in header for customizability
 
 typedef struct MemoryRecord {
   size_t size;
@@ -78,6 +85,8 @@ static size_t memory_records_capacity;
 static size_t memory_records_size;
 static bool memory_expect_error = FALSE;
 static bool memory_error = FALSE;
+static MallocFailLevel memory_malloc_fail = M_NORMAL;
+static int memory_malloc_forced_failures = 0;
 #define memory_records_grow_factor 1.5f
 
 static bool memory_check_fence(MemoryRecord* record) {
@@ -108,6 +117,8 @@ static void memory_test_reset(bool enable) {
 
   } else {
     memory_expect_error = FALSE;
+    memory_malloc_forced_failures = 0;
+    memory_malloc_fail = M_NORMAL;
     memory_error = FALSE;
     memory_count_mallocs = 0;
     memory_count_frees = 0;
@@ -127,10 +138,27 @@ static void memory_test_reset(bool enable) {
 
 static void memory_final_checks() {
 
-  // Ensure all fences are in-tact
+  // Validate all memory records
   for (size_t i = 0; i < memory_records_size; ++i) {
-    if (!memory_check_fence(&memory_records[i])) {
-      _test_error_mem(&R("memory error: after: detected buffer over/underrun"));
+    MemoryRecord* record = &memory_records[i];
+
+    // Ensure all fences are in-tact
+    if (!memory_check_fence(record)) {
+      _test_error_mem(&R("after: detected buffer over/underrun"));
+    }
+
+    // Ensure memory hasn't been modified after free
+    if (record->is_free) {
+      byte* block = record->block + memory_size_fence;
+      for (size_t j = 0; j < record->size; ++j) {
+        if (block[j] != 'F') {
+          _test_error_mem(&R("after: memory modified after free"));
+        }
+      }
+
+    // Another check for freeing records
+    } else {
+      _test_error_mem(&R("after: allocated memory not freed"));
     }
   }
 
@@ -139,13 +167,22 @@ static void memory_final_checks() {
     int malloc_count = memory_count_mallocs;
     int free_count = memory_count_frees;
     StringBuilder stb = stb_c_str(NULL,
-      "memory error: after: mismatched malloc/free calls: ");
+      "after: mismatched malloc/free calls: ");
     stb_str(stb, str_from_int(malloc_count));
-    stb_c_str(stb, "/");
+    stb_c_str(stb, " / ");
     stb_str(stb, str_from_int(free_count));
     String s = stb_resolve(&stb);
     _test_error_mem(&s->range);
     str_delete(&s);
+  }
+
+  // Ensure malloc was called if it was asked to fail
+  if (memory_malloc_fail >= M_WAS_EXPECTED && !memory_malloc_forced_failures) {
+    char err[] = "memory error: after: malloc fail requested, but never called";
+    // causes regular error rather than memory error, since this is a failure
+    // within the test design rather than memory actually breaking (ie, using
+    // `expect(memory_error)` will not succeed if you forget to call malloc)
+    _test_error_fn(&R(err));
   }
 }
 
@@ -159,12 +196,20 @@ void* malloc_test(size_t size) {
     return NULL;
   }
 
+  if (memory_malloc_fail >= M_FAIL_ONCE) {
+    if (memory_malloc_fail == M_FAIL_ONCE) {
+      memory_malloc_fail = M_WAS_EXPECTED;
+    }
+    ++memory_malloc_forced_failures;
+    return NULL;
+  }
+
   size_t next = memory_ptr + memory_size_fence*2 + size;
 
   if (next >= memory_size_max - memory_size_fence*2) {
     memory_expect_error = FALSE;
     _test_error_mem(&R(
-      "memory error: malloc: ran out of test memory space! Increase limit from "
+      "malloc: ran out of test memory space! Increase limit from "
       STR(memory_size_max)" bytes.")
     );
 
@@ -191,7 +236,7 @@ void* malloc_test(size_t size) {
     size_t fence = memory_ptr - memory_size_fence;
     for (; fence < memory_ptr; ++fence) {
       if (memory[fence] != 'e') {
-        _test_error_mem(&R("memory error: malloc: preceeding fence broken"));
+        _test_error_mem(&R("malloc: preceeding fence broken"));
         return NULL;
       }
     }
@@ -224,7 +269,7 @@ void free_test(void* mem_) {
 
   // check for memory outside of our bounds
   if (mem < memory || mem >= memory + memory_size_max) {
-    StringRange err = R("memory error: free: invalid pointer: out of bounds");
+    StringRange err = R("free: invalid pointer, out of bounds");
     _test_error_mem(&err);
     return;
   }
@@ -237,19 +282,19 @@ void free_test(void* mem_) {
   );
 
   if (record == NULL) {
-    StringRange err = R("memory error: free: invalid pointer, not malloc result");
+    StringRange err = R("free: invalid pointer, not malloc result");
     _test_error_mem(&err);
     return;
   }
 
   // check for double-free
   if (record->is_free) {
-    _test_error_mem(&R("memory error: free: pointer already freed"));
+    _test_error_mem(&R("free: pointer already freed"));
   }
 
   // check fences
   if (!memory_check_fence(record)) {
-    _test_error_mem(&R("memory error: free: broken fence"));
+    _test_error_mem(&R("free: broken fence"));
   }
 
   // free the memory
@@ -284,10 +329,18 @@ void* realloc_test(void* mem, size_t nsize) {
   if (memory_records_size) {
     MemoryRecord* record = &memory_records[memory_records_size - 1];
 
+    if (memory_malloc_fail >= M_FAIL_ONCE) {
+      if (memory_malloc_fail == M_FAIL_ONCE) {
+        memory_malloc_fail = M_WAS_EXPECTED;
+      }
+      ++memory_malloc_forced_failures;
+      return NULL;
+    }
+
     if (record->block + memory_size_fence == mem) {
 
       if (!memory_check_fence(record)) {
-        _test_error_mem(&R("memory error: realloc: broken fence"));
+        _test_error_mem(&R("realloc: broken fence"));
         return NULL;
       }
 
@@ -300,11 +353,10 @@ void* realloc_test(void* mem, size_t nsize) {
 
       return record->block + memory_size_fence;
 
-    }
-    else {
+    } else {
       void* ret = malloc_test(nsize);
       if (!ret) {
-        _test_error_mem(&R("memory error: realloc: malloc failed in realloc"));
+        _test_error_mem(&R("realloc: malloc failed in realloc"));
         return ret;
       }
 
@@ -314,7 +366,7 @@ void* realloc_test(void* mem, size_t nsize) {
     }
   }
 
-  _test_error_mem(&R("memory error: realloc: nothing previously allocated"));
+  _test_error_mem(&R("realloc: nothing previously allocated"));
   return malloc_test(nsize);
 }
 
@@ -472,6 +524,7 @@ static void context_clear_stack() {
   }
 
   ctx_stack_ptr = &ctx_stack_root;
+  ctx_stack_top = &ctx_stack_root;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -578,16 +631,22 @@ void _test_warn_fn(int line, const StringRange* message) {
   test_in_function = mem_test_temp;
 }
 
-static void _test_error_no_fail(const StringRange* message) {
+static void _test_error_no_fail(const StringRange* message, bool is_mem_err) {
   bool mem_test_temp = test_in_function;
   test_in_function = FALSE;
 
   int mcmallocs = memory_count_mallocs;
   int mcfrees = memory_count_frees;
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
+  String t = NULL;
+  if (is_mem_err) {
+    t = str_concat(R("memory error: "), *message);
+    message = &t->range;
+  }
   String s = str_prepend(*message, param_tabsize * level, ' ');
   str_print(s->range);
   str_delete(&s);
+  str_delete(&t);
   memory_count_mallocs = mcmallocs;
   memory_count_frees = mcfrees;
 
@@ -596,14 +655,14 @@ static void _test_error_no_fail(const StringRange* message) {
 
 void _test_error_fn(const StringRange* message) {
   if (!test_expect_fail) {
-    _test_error_no_fail(message);
+    _test_error_no_fail(message, FALSE);
   }
   test_failed = TRUE;
 }
 
 static void _test_error_mem(const StringRange* message) {
   if (!memory_expect_error) {
-    _test_error_no_fail(message);
+    _test_error_no_fail(message, TRUE);
   }
   memory_error = TRUE;
 }
@@ -612,7 +671,9 @@ static void _test_error_mem(const StringRange* message) {
 // Printing fo typed values
 ////////////////////////////////////////////////////////////////////////////////
 
-static String resolve_param_(const StringRange* fmt, const StringRange* type_N, const void* N) {
+static String resolve_param_(
+  const StringRange* fmt, const StringRange* type_N, const void* N
+) {
   String formatted;
 
   // TODO: before converting, check for a user-defined conversion function that
@@ -713,18 +774,15 @@ bool _test_begin(int line, StringRange desc) {
   test_description = desc;
   test_desc_printed = NOT_PRINTED;
   test_failed = FALSE;
-  /* TODO: store memory 'end' pointer here to not count context allocations? */
 
   // At this point, normally we'rd run the test, but if we have a specific test
   //    number requested, we might still want to skip it.
-  if (param_line == 0 || param_line == line) {
+  if ((param_line == 0 || param_line == line) && !test_skip) {
     test_in_progress = TRUE;
-    test_skipped = FALSE;
 
   } else {
-    test_skipped = TRUE; // not needed?
 
-    if (param_verbose == V_VERY) {
+    if (param_verbose == V_VERY || test_skip) {
       // Set test in progress temporarily just so it prints the title in blue
       test_in_progress = TRUE;
       print_headers(CONCOL_Blue, LOGGED, NULL);
@@ -772,24 +830,43 @@ bool _test_end() {
   return TRUE;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Directives
+////////////////////////////////////////////////////////////////////////////////
+
 bool _test_expect_to_fail() {
   unless(param_no_expect_fail)
     test_expect_fail = TRUE;
   return TRUE;
 }
 
-bool _test_memory_expect_to_fail() {
-  if (param_memory_test) {
-    unless(param_no_expect_fail)
-      memory_expect_error = TRUE;
-    return TRUE;
-  } else {
+static bool memory_directive_warning() {
+  if (!param_memory_test) {
     _test_warn_fn(INT_MAX, &R(
       "warning: expecting memory errors, but memory testing is disabled"
     ));
     test_expect_fail = TRUE;
-    return FALSE;
+    return TRUE;
   }
+  return FALSE;
+}
+
+bool _test_memory_expect_to_fail() {
+  if (memory_directive_warning()) {
+    test_skip = TRUE;
+    return !test_in_progress;
+  } else unless(param_no_expect_fail)
+    memory_expect_error = TRUE;
+  return TRUE;
+}
+
+bool _test_memory_malloc_null(bool only_once) {
+  if (memory_directive_warning()) {
+    test_skip = TRUE;
+    return !test_in_progress;
+  } else
+    memory_malloc_fail = only_once ? M_FAIL_ONCE : M_FAIL_ALWAYS;
+  return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -815,6 +892,7 @@ static void before_fn(const TestGroup* t) {
 static void before_pass() {
   ctx_stack_ptr = &ctx_stack_root;
   test_expect_fail = FALSE;
+  test_skip = FALSE;
   memory_test_reset(param_memory_test);
 }
 

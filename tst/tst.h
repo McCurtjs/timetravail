@@ -53,7 +53,7 @@ typedef struct TestSuite {
 //        {
 //            test_group(widget_operate),
 //            test_suite_end
-//        }
+//        };
 //
 //    file: /test/test_main.c
 //
@@ -66,6 +66,12 @@ typedef struct TestSuite {
 //            return test_run_all_suites(argc, argv, suites);
 //        }
 //
+
+// \brief Test scratch-size for memory testing with malloc.
+//
+// \brief Note: This does not account for space for fences between allocations,
+//    the actual available space you can allocate will be lower.
+#define memory_size_max 4096
 
 ////////////////////////////////////////////////////////////////////////////////
 // Test setup
@@ -201,7 +207,7 @@ void test_run_suite(const TestSuite* suite);
 // \brief The expect statement can be given in many formats. The basic forms are
 //    described below:
 //
-// \param - `expect(condition);` - ex: `expect(var == 5); expect(var < c);
+// \param - `expect(<condition>);` - ex: `expect(var == 5); expect(var < c);
 //    expect(str_eq(a, b));` etc. Does any truthy test, but output is limited to
 //    the string equivalent of `condition`. The benefit of course is that this
 //    can be used for just about anything.
@@ -216,9 +222,12 @@ void test_run_suite(const TestSuite* suite);
 // \param - `expect(A, operator, B, type_A, type_B)` - Same as above, but
 //    A and B are treated as separate types for output.
 //
-// \param - `expect(...)` - There are other uses for the `expect` macro that
-//    make use of other parameters, such as matchers. The usage of these will be
-//    described below.
+// \param - `expect(<directive>);` - ex: `expect(to_fail);` - Sets a general
+//    expectation for the test or sets some kind of internal execution state.
+//
+// \param - `expect(A to <matcher>)` - ex: `expect(a to be_positive);` - Tests
+//    the value of A against the given matcher expression. Matchers can be made
+//    in a variety of forms, and are described individaully below.
 #define expect(...) _expect(#__VA_ARGS__, __VA_ARGS__)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -234,13 +243,30 @@ void test_run_suite(const TestSuite* suite);
 #define to_fail _test_expect_to_fail()
 
 // \brief Memory errors are treated differently from regular errors; a test
-//    expecting to fail will still actually fail if it encounters memory. This
-//    will similarly expect memory errors to occur in the test. This is mostly
-//    only for testing the memory checker itself, there's little other reason
-//    to use this.
+//    expecting to fail will still actually fail if it encounters memory
+//    problems. This will similarly expect memory errors to occur in the test.
+//    This is mostly only for testing the memory checker itself, there's little
+//    other reason to use this.
 //
 // \param expect(memory_errors);
 #define memory_errors _test_memory_expect_to_fail()
+
+// \brief Force the next call to malloc to return NULL. Only the first call to
+//    malloc after this will fail. If malloc is not called, the test will fail.
+//
+// \brief Note: this also impacts allocations through calloc and realloc,
+//    including when realloc would normally just grow the memory space.
+//
+// \param expect(null_malloc)
+#define null_malloc _test_memory_malloc_null(TRUE)
+
+// \brief Force all remaining attempts to allocate memory for this test to fail.
+//
+// \brief Note: this also impacts allocations through calloc and realloc,
+//    including when realloc would normally just grow the memory space.
+//
+// \param expect(null_mallocs)
+#define null_mallocs _test_memory_malloc_null(FALSE)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Matchers
@@ -262,7 +288,7 @@ void test_run_suite(const TestSuite* suite);
 //    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
 //    concept for matchers in general.
 //
-// \param - `expect(value, to be_positive);` - The value given on the left is
+// \param - `expect(value to be_positive);` - The value given on the left is
 //    evaluated by the macro given on the right. A simple matcher can be any
 //    basic test that takes a single value and does a statically defined test.
 #define be_positive(A) ((A) >= 0)
@@ -272,45 +298,55 @@ void test_run_suite(const TestSuite* suite);
 //    minimum and maximum bound. By default, the check is inclusive and assumes
 //    integer values.
 //
-// \param - `expect(value, to be_between(A, B));` - succeeds if the given value
+// \param - `expect(value to be_between(A, B));` - succeeds if the given value
 //    is between A and B inclusive. In this case, the value is expected to be
 //    an int.
 //
-// \param - `expect(value, to be_between(A, B, TYPE));` - inclusive check
+// \param - `expect(value to be_between(A, B, TYPE));` - inclusive check
 //    between A and B, but interprets all three as values of type TYPE.
 //
-// \param - `expect(value, to be_between(A, B, TYPE, inclusive));` - same as
+// \param - `expect(value to be_between(A, B, TYPE, inclusive));` - same as
 //    previous, but can be explicitly specified as inclusive or exclusive.
 #define be_between(...) _be_between(__VA_ARGS__)
 
-// \brief This matcher will check if the test value is between two numbers.
-//    By default, the check is inclusive and assumes integer values.
+// \brief This matcher will check if the test value is within a certain range
+//    of the target value. By default, the check is inclusive and assumes
+//    integer values.
 //
-// \param - `expect(value, to be_within(A of B));` - expects the value to be
+// \param - `expect(value to be_within(A of B));` - expects the value to be
 //    within A of B in either direction. All three params are expected to be
 //    ints, and the check is inclusive.
 //
-// \param - `expect(value, to be_within(A of B, TYPE));` - same as above but
+// \param - `expect(value to be_within(A of B, TYPE));` - same as above but
 //    specifies a type for the comparison.
 //
-// \param - `expect(value, to be_within(A of B, TYPE, inclusive)); - same as
+// \param - `expect(value to be_within(A of B, TYPE, inclusive)); - same as
 //    above, but can be explicitly specified as inclusive or exclusive.
 #define be_within(...) _be_within(__VA_ARGS__)
 
 // \brief A little syntactic sugar for `be_within`, as a treat.
+//
+// \param - `expect(value to be_within(A of B));`
 #define of ,
+
+// \brief This matcher will check if a floating point number is about equal
+//    to the given value, within the margin set by `be_about_epsilon`.
+//
+// \param - `expect(value to be_about(5.0f));` - expects the value to be
+//    approximately 5.0f.
+#define be_about(N) be_within(be_about_epsilon, N, float, inclusive)
+#define be_about_epsilon 0.0001f
 
 // \brief The `all` parameter is a composite matcher that applies the condition
 //    of the given matcher to all elements in a container. All values in the
 //    container must satisfy the condition in order to pass.
 //
-// \brief In order to function, the container must support a "foreach" macro
-//    that takes the form (using array for example),
-//    `int* array_foreach(it_val, arr) {...}`, as well as a "get" function in
-//    the form `void* array_get(arr);`.
+// \brief In order to function, the container must support a "foreach_index"
+//    macro that takes the form (using array for example),
+//    `int* array_foreach_index(iter_name, index_tracker_name, arr) {...}`.
 //
 // \brief Given that definition for iterating an `array` class, the expect all
-//    check would look like: `expect(arr, to all(be_positive, int, array));`.
+//    check would look like: `expect(arr to all(be_positive, int, array));`.
 //
 // \param matcher - A regular matcher, such as be_positive, or be_within(A, B).
 //
@@ -326,8 +362,8 @@ void test_run_suite(const TestSuite* suite);
 
 // \brief The `all_be` matcher is similar to the `all` matcher, but rather than
 //    composing other matchers, it applies a basic expression to every element
-//    in the container. 
-// 
+//    in the container, as if calling `expect(<expression>)` on them.
+//
 // \brief Example: expect(arr to all_be( > , 7, int, array));
 //
 // \param op - A basic C comparison operator (==, !=, >, <, >=, <=)
@@ -354,6 +390,7 @@ void _test_warn_fn(int line, const StringRange* message);
 void _test_error_fn(const StringRange* message);
 bool _test_expect_to_fail();
 bool _test_memory_expect_to_fail();
+bool _test_memory_malloc_null(bool only_next);
 int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 void _test_error_typed(
   const StringRange* prefix, const StringRange* fmt,
@@ -421,9 +458,5 @@ void _test_error_typed(
 //#define _all_va(T_el, T_con, matcher, _, F, ...) _all_setup T_el* T_con##_foreach_index, matcher, F, T_el, 0
 //#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
 //#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
-
-// Test suites
-
-extern TestSuite tests_string;
 
 #endif
