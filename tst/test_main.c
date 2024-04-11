@@ -2,7 +2,7 @@
 
 #include "wasm.h"
 #include "str.h"
-#include "tst.h"
+#include "cspec.h"
 
 str_static(str_test_1, "|Hello, this is a static string|");
 str_static(str_test_2, "|This is another test!|");

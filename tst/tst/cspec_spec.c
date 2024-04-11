@@ -1,7 +1,7 @@
 
 
 #include "str.h"
-#include "tst.h"
+#include "cspec.h"
 #include <stdlib.h>
 
 #ifdef _MSC_VER

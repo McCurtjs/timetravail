@@ -3,7 +3,7 @@
 #undef calloc
 #undef free
 
-#include "tst.h"
+#include "cspec.h"
 #include "types.h"
 
 #include <stdlib.h>
@@ -51,9 +51,6 @@ static StringRange param_file = M("");
 static bool param_no_expect_fail = FALSE;
 static bool param_memory_test = TRUE;
 
-static int memory_count_mallocs = 0;
-static int memory_count_frees = 0;
-
 ////////////////////////////////////////////////////////////////////////////////
 // Memory Testing
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +80,8 @@ static size_t memory_ptr;
 static MemoryRecord* memory_records = NULL;
 static size_t memory_records_capacity;
 static size_t memory_records_size;
+static int memory_count_mallocs = 0;
+static int memory_count_frees = 0;
 static bool memory_expect_error = FALSE;
 static bool memory_error = FALSE;
 static MallocFailLevel memory_malloc_fail = M_NORMAL;
@@ -186,7 +185,7 @@ static void memory_final_checks() {
   }
 }
 
-void* malloc_test(size_t size) {
+void* cspec_malloc(size_t size) {
   if (!memory_records || !test_in_function) {
     //++memory_count_mallocs;
     return malloc(size);
@@ -254,7 +253,7 @@ void* malloc_test(size_t size) {
   return record->block + memory_size_fence;
 }
 
-void free_test(void* mem_) {
+void cspec_free(void* mem_) {
   byte* mem = mem_;
 
   if (!memory_records || !test_in_function) {
@@ -303,26 +302,26 @@ void free_test(void* mem_) {
   ++memory_count_frees;
 }
 
-void* calloc_test(size_t ct, size_t sel) {
+void* cspec_calloc(size_t ct, size_t sel) {
   if (!memory_records || !test_in_function) {
     return calloc(ct, sel);
   }
 
-  byte* ret = malloc_test(ct * sel);
+  byte* ret = cspec_malloc(ct * sel);
   if (!ret) return NULL;
 
   memset(ret, 0, ct * sel);
   return ret;
 }
 
-void* realloc_test(void* mem, size_t nsize) {
+void* cspec_realloc(void* mem, size_t nsize) {
   if (!memory_records || !test_in_function) {
     //if (mem == NULL) ++memory_count_mallocs;
     return realloc(mem, nsize);
   }
 
   if (mem == NULL) {
-    return malloc_test(nsize);
+    return cspec_malloc(nsize);
   }
 
   // you can realloc the last block, but that's it
@@ -354,20 +353,20 @@ void* realloc_test(void* mem, size_t nsize) {
       return record->block + memory_size_fence;
 
     } else {
-      void* ret = malloc_test(nsize);
+      void* ret = cspec_malloc(nsize);
       if (!ret) {
         _test_error_mem(&R("realloc: malloc failed in realloc"));
         return ret;
       }
 
       memcpy(ret, record->block, record->size + memory_size_fence * 2);
-      free_test(record->block + memory_size_fence);
+      cspec_free(record->block + memory_size_fence);
       return ret;
     }
   }
 
   _test_error_mem(&R("realloc: nothing previously allocated"));
-  return malloc_test(nsize);
+  return cspec_malloc(nsize);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -805,7 +804,7 @@ bool _test_end() {
 
   ++test_count;
 
-  if (!test_failed ^ test_expect_fail 
+  if (!test_failed ^ test_expect_fail
   && !memory_error ^ memory_expect_error
   ) {
     ++test_passed_count;

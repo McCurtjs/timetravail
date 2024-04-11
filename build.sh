@@ -103,13 +103,14 @@ if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
 
   sources_test="
     tst/*.c \
-    tst/eng/*.c \
+    tst/src/eng/*.c \
+    tst/tst/*.c \
     src/eng/*.c \
   "
 
   flags_test="
-    -Dmalloc=malloc_test -Drealloc=realloc_test \
-    -Dcalloc=calloc_test -Dfree=free_test \
+    -Dmalloc=cspec_malloc -Drealloc=cspec_realloc \
+    -Dcalloc=cspec_calloc -Dfree=cspec_free \
     -I src -I src/eng -I tst \
   "
 
