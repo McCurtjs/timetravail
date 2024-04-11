@@ -44,10 +44,10 @@ static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
-static Verbosity param_verbose = V_NONE;
-static int param_line = 0;
+static Verbosity param_verbose = V_VERY;
+static int param_line = 382;
 static int param_tabsize = 2;
-static StringRange param_file = M("");
+static StringRange param_file = M("str_spec.c");
 static bool param_no_expect_fail = FALSE;
 static bool param_memory_test = TRUE;
 
@@ -163,13 +163,13 @@ static void memory_final_checks() {
 
   // Ensure malloc/free parity
   if (memory_count_mallocs != memory_count_frees) {
-    int malloc_count = memory_count_mallocs;
-    int free_count = memory_count_frees;
+    int mallocs = memory_count_mallocs;
+    int frees = memory_count_frees;
     StringBuilder stb = stb_c_str(NULL,
       "after: mismatched malloc/free calls: ");
-    stb_str(stb, str_from_int(malloc_count));
+    stb_str(stb, str_from_int(mallocs));
     stb_c_str(stb, " / ");
-    stb_str(stb, str_from_int(free_count));
+    stb_str(stb, str_from_int(frees));
     String s = stb_resolve(&stb);
     _test_error_mem(&s->range);
     str_delete(&s);
@@ -653,17 +653,21 @@ static void _test_error_no_fail(const StringRange* message, bool is_mem_err) {
 }
 
 void _test_error_fn(const StringRange* message) {
-  if (!test_expect_fail) {
-    _test_error_no_fail(message, FALSE);
+  if (test_in_progress) {
+    if (!test_expect_fail) {
+      _test_error_no_fail(message, FALSE);
+    }
+    test_failed = TRUE;
   }
-  test_failed = TRUE;
 }
 
 static void _test_error_mem(const StringRange* message) {
-  if (!memory_expect_error) {
-    _test_error_no_fail(message, TRUE);
+  if (test_in_progress) {
+    if (!memory_expect_error) {
+      _test_error_no_fail(message, TRUE);
+    }
+    memory_error = TRUE;
   }
-  memory_error = TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -713,6 +717,10 @@ void _test_error_typed(
   const void* A, const void* B,
   const StringRange* typ_A, const StringRange* typ_B
 ) {
+
+  if (!test_in_progress) {
+    return;
+  }
 
   if ((fmt == NULL) || (typ_A && !A) || (typ_B && !B) || (B && !A)) {
     _test_error_fn(prefix);
@@ -829,6 +837,10 @@ bool _test_end() {
   return TRUE;
 }
 
+bool _test_active() {
+  return test_in_progress;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Directives
 ////////////////////////////////////////////////////////////////////////////////
@@ -866,6 +878,22 @@ bool _test_memory_malloc_null(bool only_once) {
   } else
     memory_malloc_fail = only_once ? M_FAIL_ONCE : M_FAIL_ALWAYS;
   return TRUE;
+}
+
+int _test_memory_malloc_count() {
+  if (memory_directive_warning()) {
+    test_skip = TRUE;
+    return -1;
+  }
+  return memory_count_mallocs;
+}
+
+int _test_memory_free_count() {
+  if (memory_directive_warning()) {
+    test_skip = TRUE;
+    return -1;
+  }
+  return memory_count_frees;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -91,10 +91,6 @@ typedef struct TestSuite {
 #define describe(NAME)          _describe(NAME)
 #define test_func(NAME)         _describe(NAME)
 
-// \brief Ends a description block (would like to find a way to avoid needing).
-#define describe_end            _describe_end
-#define test_end                _describe_end
-
 // \brief An `it` block declares an example case for testing.
 //
 // \brief Each "it" statement is run one at a time in its own execution context
@@ -104,6 +100,9 @@ typedef struct TestSuite {
 //    printed with the test results.
 #define it(DESC)                _test("it "DESC)
 #define test(DESC)              _test(DESC)
+
+// \brief 
+#define after                   _after
 
 ////////////////////////////////////////////////////////////////////////////////
 // Composing test suites
@@ -378,11 +377,26 @@ void test_run_suite(const TestSuite* suite);
 #define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
 
 ////////////////////////////////////////////////////////////////////////////////
+// Other
+////////////////////////////////////////////////////////////////////////////////
+
+// \brief Gets the number of calls to malloc at this point in test execution
+//
+// \param - `expect(malloc_count == 1);`
+#define malloc_count _test_memory_malloc_count()
+
+// \brief Gets the number of calls to free at this point in test execution
+//
+// \param - `expect(free_count == 1);`
+#define free_count _test_memory_free_count()
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation details, turn back now, here there be dragons.
 ////////////////////////////////////////////////////////////////////////////////
 
 bool _test_begin(int line, StringRange desc);
 bool _test_end();
+bool _test_active();
 bool _test_context_begin(int line, StringRange desc);
 bool _test_context_end(int line);
 void _test_log_fn(int line, const StringRange* messgae);
@@ -391,6 +405,8 @@ void _test_error_fn(const StringRange* message);
 bool _test_expect_to_fail();
 bool _test_memory_expect_to_fail();
 bool _test_memory_malloc_null(bool only_next);
+int  _test_memory_malloc_count();
+int  _test_memory_free_count();
 int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 void _test_error_typed(
   const StringRange* prefix, const StringRange* fmt,
@@ -412,6 +428,7 @@ void _test_error_typed(
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
 #define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, R("context: %c["LINESTR"] "DESC));) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
 #define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, R("test %c["LINESTR"] "DESC));)
+#define _after for (int _loop_ctx = 0; _loop_ctx++ < 1 && _test_active();)
 
 #define _test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = (TestGroup(*)[])(&(TestGroup[])
 #define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN }
@@ -426,7 +443,7 @@ void _test_error_typed(
 #define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found $ on iteration $", _pvalue, &_index, T, uint); } while(0)
 #define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, E); } while(0)
 #define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, D); } while(0)
-#define _expect_true2(S, A, B, C, ...) _expect_true(#A" "#B" "#C, (A) B C)
+#define _expect_true2(S, A, B, C, ...) _expect_type1(#A" "#B" "#C, A, B, C, int) // _expect_true(#A" "#B" "#C, (A) B (C))
 #define _expect_comp(S, A, B, ...) do { bool _test = B(A); unless(_test) _test_fail("expected "S); } while(0)
 #define _expect_true(S, A, ...) do { unless(A) _test_fail("expected "S); } while(0)
 #define _expect_va(S, A, B, C, D, E, _, F, ...) _expect##F(S, A, B, C, D, E)

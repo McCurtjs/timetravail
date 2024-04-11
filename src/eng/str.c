@@ -33,8 +33,8 @@ const String str_false = &str_constants[2];
 
 static String_Internal* str_new_internal(size_t length) {
   if (length == 0) return NULL; // prompt callers to return empty string
-  // TODO: +1 not necessary for null terminator because StringInternal already has the head byte included
-  String_Internal* ret = malloc(length + sizeof(String_Internal) + 1);
+  // Include an extra byte for the null terminator
+  String_Internal* ret = malloc(sizeof(StringRange) + length + 1);
   assert(ret);
   ret->begin = &ret->head;
   ret->size = length;
@@ -186,11 +186,12 @@ Array str_split(StringRange str, StringRange del) {
 }
 
 StringRange _str_substring(StringRange str, int start, int end) {
+  if (start == end) return str_empty->range;
   if (start >= (int)str.size) return str_empty->range;
   if (start < 0) start = (int)str.size + start;
   if (start < 0) start = 0;
   if (end > (int)str.size) end = (int)str.size;
-  if (end < 1) end = (int)str.size + end;
+  if (end < 0) end = (int)str.size + end;
   if (end <= start) return str_empty->range;
   return (StringRange) {
     .begin = str.begin + start,

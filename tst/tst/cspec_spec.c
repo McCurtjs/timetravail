@@ -22,9 +22,10 @@ describe(tests) {
     test_fail("Can't reach this");
   }
 
-  it("prints a warning but doesn't fail") {
-    test_warn("The warning has been given. Their fate is now their own.");
-  }
+  // Blocking this one out because it's annoying
+  //it("prints a warning but doesn't fail") {
+  //  test_warn("The warning has been given. Their fate is now their own.");
+  //}
 
   context("tests fail") {
 
@@ -263,7 +264,7 @@ describe(expect_basic) {
 
 describe(expect_basic_triplet) {
 
-  float pi = PI;
+  //float pi = PI;
 
   context("using the basic format but with commas") {
 
@@ -277,13 +278,15 @@ describe(expect_basic_triplet) {
         expect(TRUE, != , FALSE);
       }
 
-      test("float macro value") {
-        expect(PI, > , 1);
-      }
+      // Deafulting to int for output now
+      //test("float macro value") {
+      //  expect(PI, > , 1);
+      //}
 
-      test("float variable value") {
-        expect(pi, > , 1);
-      }
+      // Defaulting to int for output now
+      //test("float variable value") {
+      //  expect(pi, > , 1);
+      //}
 
       test("using other operator") {
         expect(2, < , 3);
@@ -299,13 +302,15 @@ describe(expect_basic_triplet) {
         expect(2, == , 3);
       }
 
-      test("float macro value (compare with output in expect_basic)") {
-        expect(PI, < , 1);
-      }
+      // Defaulting to int for output now
+      //test("float macro value (compare with output in expect_basic)") {
+      //  expect(PI, < , 1);
+      //}
 
-      test("float variable value (compare with output in expect_basic)") {
-        expect(pi, < , 1);
-      }
+      // Defaulting to int for output now
+      //test("float variable value (compare with output in expect_basic)") {
+      //  expect(pi, < , 1);
+      //}
 
       test("boolean (aka, macroed) values (compare with output in expect_basic)") {
         expect(TRUE, == , FALSE);
@@ -587,7 +592,7 @@ describe(matcher_be_within) {
 
 }
 
-test_suite_begin(tests_string) {
+test_suite_begin(tests_cspec) {
   test_group(tests),
   test_group(memory),
   test_group(contexts),

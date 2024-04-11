@@ -179,6 +179,7 @@ void string_tests() {
 
 // Test suites
 
+extern TestSuite tests_cspec;
 extern TestSuite tests_string;
 
 // Main
@@ -192,7 +193,8 @@ int main(int argc, char* argv[])
 #endif
 {
   TestSuite* test_suites[] = {
-      &tests_string
+    &tests_cspec,
+    &tests_string
   };
 
   return test_run_all(test_suites);
