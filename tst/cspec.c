@@ -4,17 +4,57 @@
 # undef realloc
 # undef calloc
 # undef free
+
+// to import real malloc/free/etc.
+# include <stdlib.h>
 #endif
 
 #include "cspec.h"
 #include "types.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
+#ifdef __WASM__
+extern void js_log(const char* str, unsigned len, int color);
 
-#ifndef __WASM__
-#include <stdio.h>
+typedef enum {
+  CONCOL_Black   = 0x000000,
+  CONCOL_Red     = 0xff0000,
+  CONCOL_Green   = 0x00ff00,
+  CONCOL_Yellow  = 0xffff00,
+  CONCOL_Blue    = 0x0000ff,
+  CONCOL_Purple  = 0xff00ff,
+  CONCOL_Cyan    = 0x00ffff,
+  CONCOL_White   = 0xffffff,
+  CONCOL_bBlack  = 0x1000000,
+  CONCOL_bRed    = 0x1ff0000,
+  CONCOL_bGreen  = 0x100ff00,
+  CONCOL_bYellow = 0x1ffff00,
+  CONCOL_bBlue   = 0x10000ff,
+  CONCOL_bPurple = 0x1ff00ff,
+  CONCOL_bCyan   = 0x100ffff,
+  CONCOL_bWhite  = 0x1ffffff,
+} ConsoleColor;
+#else
+//#include <stdio.h>
+extern int puts(const char* s);
+
+typedef enum {
+  CONCOL_Black   = 30, // \033[0;30m
+  CONCOL_Red     = 31, // \033[0;31m
+  CONCOL_Green   = 32, // \033[0;32m
+  CONCOL_Yellow  = 33, // \033[0;33m
+  CONCOL_Blue    = 34, // \033[0;34m
+  CONCOL_Purple  = 35, // \033[0;35m
+  CONCOL_Cyan    = 36, // \033[0;36m
+  CONCOL_White   = 37, // \033[0;37m
+  CONCOL_bBlack  = 40, // \033[1;30m
+  CONCOL_bRed    = 41, // \033[1;31m
+  CONCOL_bGreen  = 42, // \033[1;32m
+  CONCOL_bYellow = 43, // \033[1;33m
+  CONCOL_bBlue   = 44, // \033[1;34m
+  CONCOL_bPurple = 45, // \033[1;35m
+  CONCOL_bCyan   = 46, // \033[1;36m
+  CONCOL_bWhite  = 47, // \033[1;37m
+} ConsoleColor;
 #endif
 
 typedef enum PrintLevel {
@@ -32,9 +72,9 @@ typedef enum Verbosity {
 
 // TODO: take all these and split them into a meta-context object so we
 // can at least pretend to be thread-safe.
-static const TestGroup* test_function = NULL;
-static StringRange test_description = M("");
 static const TestSuite* current_suite = NULL;
+static const TestGroup* test_function = NULL;
+static const char* test_description = NULL;
 static bool test_filename_printed = FALSE;
 static bool test_function_printed = FALSE;
 static PrintLevel test_desc_printed = NOT_PRINTED;
@@ -50,7 +90,7 @@ static int test_passed_count = 0;
 static Verbosity param_verbose = V_NONE;
 static int param_line = 0;
 static int param_tabsize = 2;
-static StringRange param_file = M("");
+static const char* param_file = NULL;
 static bool param_no_expect_fail = FALSE;
 static bool param_memory_test = TRUE;
 
@@ -66,14 +106,51 @@ static char output_buffer[output_size + 1];
 static uint output_index = 0;
 static const char* output_fmt = NULL;
 
-static bool cspec_strcmp(const char* A, const char* B) {
+bool cspec_strcmp(const char* A, const char* B) {
   if (!A || !B) return FALSE;
-
   while (*A && *B) {
     if (*A++ != *B++) return FALSE;
   }
-
   return *A == *B;
+}
+
+uint cspec_strlen(const char* s) {
+  uint ret = 0;
+  while (*(s++)) ++ret;
+  return ret;
+}
+
+bool cspec_strrstr(const char* s, const char* ends_with) {
+  if (!s) return FALSE;
+  if (!ends_with) return TRUE;
+  uint len_s = cspec_strlen(s);
+  uint len_e = cspec_strlen(ends_with);
+  if (len_e > len_s) return FALSE;
+  s += len_s - len_e;
+  for (uint i = 0; i < len_e; ++i) {
+    if (s[i] != ends_with[i]) return FALSE;
+  }
+  return TRUE;
+}
+
+bool cspec_isdigit(char c) {
+  return '0' <= c && c <= '9';
+}
+
+int cspec_atoi(const char* s) {
+  if (!s) return 0;
+  int result = 0;
+  int sign = 1;
+  while (*s) {
+    if (*s == '-') sign *= -1;
+    if (cspec_isdigit(*s)) break;
+    ++s;
+  }
+  while (*s && cspec_isdigit(*s)) {
+    result *= 10;
+    result += *(s++) - '0';
+  }
+  return result * sign;
 }
 
 static void output_continue_format();
@@ -127,7 +204,20 @@ static void output_continue_format() {
 
 static void output_char(char c) {
   if (output_index >= output_size) return;
+  if (c <= 0x1F || c == 0x7F) c = '.';
   output_buffer[output_index++] = c;
+  output_continue_format();
+}
+
+static void output_hex(char c) {
+  if (output_index >= output_size - 1) return;
+  unsigned char h = ((unsigned char)c) % 16;
+  h += h >= 10 ? 'A'-10 : '0';
+  output_buffer[output_index + 1] = h;
+  h = ((unsigned char)c) / 16;
+  h += h >= 10 ? 'A'-10 : '0';
+  output_buffer[output_index] = h;
+  output_index += 2;
   output_continue_format();
 }
 
@@ -140,12 +230,13 @@ static void output_pad(uint until_pos, char c) {
 }
 
 static void _output_uint_ignore_format(unsigned long int i) {
+  if (output_index >= output_size) return;
   if (i == 0) {
     output_buffer[output_index++] = '0';
     return;
   }
   uint start = output_index;
-  while (i) {
+  while (i && output_index < output_size) {
     output_buffer[output_index++] = '0' + (i % 10);
     i /= 10;
   }
@@ -156,6 +247,23 @@ static void _output_uint_ignore_format(unsigned long int i) {
     output_buffer[start++] = output_buffer[end];
     output_buffer[end--] = temp;
   }
+  // caller is expected to null-terminate
+}
+
+static void output_ptr(const void* ptr) {
+  if (output_index >= output_size - 10) return;
+  long long unsigned int p = (long long unsigned int)ptr;
+  char* begin = output_buffer + output_index;
+  begin[0] = '0';
+  begin[1] = 'x';
+  for (int i = 10; i-- > 2;) {
+    char d = p % 16;
+    d += d >= 10 ? 'A'-10 : '0';
+    begin[i] = d;
+    p /= 16;
+  }
+  output_index += 10;
+  output_continue_format();
 }
 
 static void output_uint(unsigned long int i) {
@@ -206,9 +314,9 @@ static void output_reset() {
 
 static void output(const char* s) {
 #ifdef __WASM__
-  str_print(str_range(s));
+  js_log(output_buffer, cspec_strlen(s), -1);
 #else
-  printf("%s\n", s);
+  puts(s);
 #endif
 }
 
@@ -216,9 +324,9 @@ static void output_print() {
   if (output_fmt) output_str(output_fmt);
 
 #ifdef __WASM__
-  str_print(str_range(output_buffer));
+  js_log(output_buffer, output_index, -1);
 #else
-  printf("%s\n", output_buffer);
+  puts(output_buffer);
 #endif
 
   output_reset();
@@ -248,9 +356,9 @@ static void output_print_color(ConsoleColor color) {
 
   // finally print the string
 #ifdef __WASM__
-  str_print_color(str_range(output_buffer), color);
+  js_log(output_buffer, output_index, color);
 #else
-  printf("%s\n", output_buffer);
+  puts(output_buffer);
 #endif
 
   output_reset();
@@ -269,9 +377,9 @@ typedef enum MallocFailLevel {
   M_FAIL_ALWAYS
 } MallocFailLevel;
 
-static void _test_error_mem(const StringRange* message);
-
 #define memory_size_fence 7
+#define memory_size_barrier 16
+#define memory_size_full memory_size_max + memory_size_barrier*2
 //#define memory_size_max 4096 // defined in header for customizability
 
 typedef struct MemoryRecord {
@@ -280,7 +388,10 @@ typedef struct MemoryRecord {
   bool is_free;
 } MemoryRecord;
 
-static byte memory[memory_size_max];
+static int _test_error_mem(const char* message, const MemoryRecord* record);
+
+static byte _memory[memory_size_full];
+static byte* memory = _memory + memory_size_barrier;
 static size_t memory_ptr;
 
 // Not using dynamic array here because, of course, it uses malloc!
@@ -294,6 +405,51 @@ static bool memory_error = FALSE;
 static MallocFailLevel memory_malloc_fail = M_NORMAL;
 static int memory_malloc_forced_failures = 0;
 #define memory_records_grow_factor 1.5f
+
+void cspec_memset(void* s_, byte c, size_t n) {
+  byte* s = s_;
+  while (n--) *(s++) = c;
+}
+
+void cspec_memcpy(void* s_, const void* t_, size_t n) {
+  byte* s = s_; const byte* t = t_;
+  while (n--) *(s++) = *(t++);
+}
+
+static void memory_print_row(const byte* row, int level, bool target) {
+  output_pad(param_tabsize * level, ' ');
+  output_ptr(row);
+  if (target) output_str("-> "); else output_str(":  ");
+  for (int i = 0; i < 16; ++i) {
+    if (row + i < _memory + memory_size_full
+    &&  row + i >= _memory
+    ) {
+      output_hex(row[i]);
+      output_str(" ");
+    } else {
+      output_str("xx ");
+    }
+  }
+  if (target) output_str("= "); else output_str("- ");
+  for (int i = 0; i < 16; ++i) {
+    if (row + i < _memory + memory_size_full
+    && row + i >= _memory
+    ) {
+      output_char(row[i]);
+    } else {
+      output_char(' ');
+    }
+  }
+  output_print();
+}
+
+static void memory_print_record(const MemoryRecord* record, int level) {
+  size_t i = 0;
+  while (i < record->size + memory_size_fence + 16) {
+    memory_print_row(record->block + i - 16 + memory_size_fence, level + 1, i == 16);
+    i += 16;
+  }
+}
 
 static bool memory_check_fence(MemoryRecord* record) {
   for (size_t i = 0; i < memory_size_fence; ++i) {
@@ -338,7 +494,12 @@ static void memory_test_reset(bool enable) {
       memory_records = malloc(memory_records_capacity * sizeof(MemoryRecord));
     }
 
-    memset(memory, 'X', memory_size_max);
+    cspec_memset(_memory, 0xFF, memory_size_barrier);
+    cspec_memset(memory, 'X', memory_size_max);
+    cspec_memset(
+      _memory + memory_size_barrier + memory_size_max, 
+      0xFF, memory_size_barrier
+    );
   }
 }
 
@@ -350,7 +511,7 @@ static void memory_final_checks() {
 
     // Ensure all fences are in-tact
     if (!memory_check_fence(record)) {
-      _test_error_mem(&R("after: detected buffer over/underrun"));
+      _test_error_mem("after: detected buffer over/underrun", record);
     }
 
     // Ensure memory hasn't been modified after free
@@ -358,28 +519,37 @@ static void memory_final_checks() {
       byte* block = record->block + memory_size_fence;
       for (size_t j = 0; j < record->size; ++j) {
         if (block[j] != 'F') {
-          _test_error_mem(&R("after: memory modified after free"));
+          _test_error_mem("after: memory modified after free", record);
         }
       }
 
     // Another check for freeing records
     } else {
-      _test_error_mem(&R("after: allocated memory not freed"));
+      _test_error_mem("after: allocated memory not freed", record);
+    }
+  }
+
+  // Check barrier fences
+  for (size_t i = 0; i < memory_size_barrier; ++i) {
+    if (0xFF != _memory[i]
+    ||  0xFF != _memory[i + memory_size_barrier + memory_size_max]
+    ) {
+      _test_error_mem("after: primary fence broken (large overrun)", NULL);
     }
   }
 
   // Ensure malloc/free parity
   if (memory_count_mallocs != memory_count_frees) {
-    int mallocs = memory_count_mallocs;
-    int frees = memory_count_frees;
-    StringBuilder stb = stb_c_str(NULL,
-      "after: mismatched malloc/free calls: ");
-    stb_str(stb, str_from_int(mallocs));
-    stb_c_str(stb, " / ");
-    stb_str(stb, str_from_int(frees));
-    String s = stb_resolve(&stb);
-    _test_error_mem(&s->range);
-    str_delete(&s);
+    int level = _test_error_mem("after: mismatched malloc/free calls", NULL);
+    if (test_in_progress) {
+      if (!memory_expect_error) {
+        output_pad(param_tabsize * level + 21, ' ');
+        output_str("mallocs: {}, frees: {}");
+        output_sint(memory_count_mallocs);
+        output_sint(memory_count_frees);
+        output_print();
+      }
+    }
   }
 
   // Ensure malloc was called if it was asked to fail
@@ -388,7 +558,7 @@ static void memory_final_checks() {
     // causes regular error rather than memory error, since this is a failure
     // within the test design rather than memory actually breaking (ie, using
     // `expect(memory_error)` will not succeed if you forget to call malloc)
-    _test_error_fn(&R(err));
+    _test_error_fn(err);
   }
 }
 
@@ -414,9 +584,9 @@ void* cspec_malloc(size_t size) {
 
   if (next >= memory_size_max - memory_size_fence*2) {
     memory_expect_error = FALSE;
-    _test_error_mem(&R(
+    _test_error_mem(
       "malloc: ran out of test memory space! Increase limit from "
-      STR(memory_size_max)" bytes.")
+      STR(memory_size_max)" bytes.", NULL
     );
 
     return NULL;
@@ -429,7 +599,7 @@ void* cspec_malloc(size_t size) {
     MemoryRecord* new_mem_rec = realloc(memory_records, new_cap * sizeof(MemoryRecord));
     if (!new_mem_rec) {
       memory_expect_error = FALSE;
-      print("memory error: malloc: ran out of actual memory?");
+      output("memory error: malloc: ran out of actual memory?");
       return NULL;
     }
     memory_records = new_mem_rec;
@@ -442,7 +612,7 @@ void* cspec_malloc(size_t size) {
     size_t fence = memory_ptr - memory_size_fence;
     for (; fence < memory_ptr; ++fence) {
       if (memory[fence] != 'e') {
-        _test_error_mem(&R("malloc: preceeding fence broken"));
+        _test_error_mem("malloc: preceeding fence broken", record - 1);
         return NULL;
       }
     }
@@ -451,9 +621,9 @@ void* cspec_malloc(size_t size) {
   record->size = size;
   record->block = memory + memory_ptr;
   record->is_free = FALSE;
-  memset(record->block, 'b', memory_size_fence);
-  memset(record->block + memory_size_fence, 'N', size);
-  memset(record->block + memory_size_fence + size, 'e', memory_size_fence);
+  cspec_memset(record->block, 'b', memory_size_fence);
+  cspec_memset(record->block + memory_size_fence, 'N', size);
+  cspec_memset(record->block + memory_size_fence + size, 'e', memory_size_fence);
 
   memory_ptr = next;
 
@@ -475,8 +645,10 @@ void cspec_free(void* mem_) {
 
   // check for memory outside of our bounds
   if (mem < memory || mem >= memory + memory_size_max) {
-    StringRange err = R("free: invalid pointer, out of bounds");
-    _test_error_mem(&err);
+    MemoryRecord tmp = {
+      .block = mem_, .size = 16 - memory_size_fence * 2, .is_free = TRUE
+    };
+    _test_error_mem("free: invalid pointer, out of bounds", &tmp);
     return;
   }
 
@@ -488,23 +660,25 @@ void cspec_free(void* mem_) {
   );
 
   if (record == NULL) {
-    StringRange err = R("free: invalid pointer, not malloc result");
-    _test_error_mem(&err);
+    MemoryRecord tmp = {
+      .block = mem_, .size = 16 - memory_size_fence*2, .is_free = TRUE
+    };
+    _test_error_mem("free: invalid pointer, not malloc result", &tmp);
     return;
   }
 
   // check for double-free
   if (record->is_free) {
-    _test_error_mem(&R("free: pointer already freed"));
+    _test_error_mem("free: pointer already freed", NULL);
   }
 
   // check fences
   if (!memory_check_fence(record)) {
-    _test_error_mem(&R("free: broken fence"));
+    _test_error_mem("free: broken fence", record);
   }
 
   // free the memory
-  memset(record->block + memory_size_fence, 'F', record->size);
+  cspec_memset(record->block + memory_size_fence, 'F', record->size);
   record->is_free = TRUE;
   ++memory_count_frees;
 }
@@ -517,7 +691,7 @@ void* cspec_calloc(size_t ct, size_t sel) {
   byte* ret = cspec_malloc(ct * sel);
   if (!ret) return NULL;
 
-  memset(ret, 0, ct * sel);
+  cspec_memset(ret, 0, ct * sel);
   return ret;
 }
 
@@ -546,13 +720,13 @@ void* cspec_realloc(void* mem, size_t nsize) {
     if (record->block + memory_size_fence == mem) {
 
       if (!memory_check_fence(record)) {
-        _test_error_mem(&R("realloc: broken fence"));
+        _test_error_mem("realloc: broken fence", record);
         return NULL;
       }
 
       byte* block_start = record->block + memory_size_fence;
-      memset(block_start + nsize, 'e', memory_size_fence);
-      memset(block_start + record->size, 'N', nsize - record->size);
+      cspec_memset(block_start + nsize, 'e', memory_size_fence);
+      cspec_memset(block_start + record->size, 'N', nsize - record->size);
 
       record->size = nsize;
       memory_ptr = block_start + record->size + memory_size_fence - memory;
@@ -562,27 +736,24 @@ void* cspec_realloc(void* mem, size_t nsize) {
     } else {
       void* ret = cspec_malloc(nsize);
       if (!ret) {
-        _test_error_mem(&R("realloc: malloc failed in realloc"));
+        _test_error_mem("realloc: malloc failed in realloc", NULL);
         return ret;
       }
 
-      memcpy(ret, record->block, record->size + memory_size_fence * 2);
+      cspec_memcpy(ret, record->block, record->size + memory_size_fence * 2);
       cspec_free(record->block + memory_size_fence);
       return ret;
     }
   }
 
-  _test_error_mem(&R("realloc: nothing previously allocated"));
+  _test_error_mem("realloc: nothing previously allocated", NULL);
   return cspec_malloc(nsize);
 }
 
 #else
 
-static void memory_test_reset(bool enable) {
-  (void)enable;
-}
-
 static void memory_final_checks() { }
+static void memory_test_reset(bool enable) { (void)enable; }
 
 #endif
 
@@ -601,7 +772,7 @@ static void memory_final_checks() { }
 // test group (between multiple calls of the group function), and is used to
 // keep track of
 typedef struct Context {
-  StringRange desc;
+  const char* desc;
   bool printed;
   bool requested_context;
   struct Context* prev;
@@ -609,7 +780,7 @@ typedef struct Context {
 } Context;
 
 Context ctx_stack_root = {
-  .desc = M("<root context>"),
+  .desc = "<root context>",
   .printed = FALSE,
   .requested_context = FALSE,
   .prev = NULL,
@@ -625,7 +796,7 @@ static Context* ctx_stack_top = &ctx_stack_root;
 static Context* ctx_stack_ptr = NULL;
 
 // Called whenever the test enters a "context()" block
-bool _test_context_begin(int line, StringRange desc) {
+bool _test_context_begin(int line, const char* desc) {
 
   // If we are currently executing a test, skip the context (allow previous
   // contexts to close out their post-test statements)
@@ -635,14 +806,14 @@ bool _test_context_begin(int line, StringRange desc) {
 
   // On each pass of the test function, we have to walk up the stack. If our
   // context is already there, don't create a duplicate of it.
-  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc.begin == desc.begin) {
+  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc == desc) {
     ctx_stack_ptr = ctx_stack_ptr->next;
     return TRUE;
   }
 
   // If we're completing execution of the context, we expect it to be at the
   // top of the stack
-  if (ctx_stack_ptr->desc.begin == desc.begin) {
+  if (ctx_stack_ptr->desc == desc) {
     return TRUE;
   }
 
@@ -748,20 +919,20 @@ static void context_clear_stack() {
 ////////////////////////////////////////////////////////////////////////////////
 
 static int print_headers(
-  int desc_color, PrintLevel desc_level, const StringRange* to_append
+  int desc_color, PrintLevel desc_level, const char* to_append
 ) {
 
   if (!test_filename_printed) {
-    output_str(current_suite->header.begin);
+    output_str(current_suite->header);
     output_print_color(CONCOL_bPurple);
     test_filename_printed = TRUE;
   }
 
   if (!test_function_printed) {
     output_pad(param_tabsize, ' ');
-    output_str("in function (");
+    output_str("in function ({}):%c test_");
     output_sint(*test_function->line);
-    output_str(test_function->header.begin);
+    output_str(test_function->header);
     output_print_color(CONCOL_bCyan);
     test_function_printed = TRUE;
   }
@@ -772,7 +943,7 @@ static int print_headers(
     ctx = ctx->next;
     if (!ctx->printed) {
       output_pad(param_tabsize * level, ' ');
-      output_str(ctx->desc.begin);
+      output_str(ctx->desc);
       output_print_color(CONCOL_Cyan);
       ctx->printed = TRUE;
     }
@@ -788,8 +959,8 @@ static int print_headers(
       test_desc_printed = PRINTED;
 
     } else {
-      output_str(test_description.begin);
-      output_str(to_append ? to_append->begin : NULL); // may be null
+      output_str(test_description);
+      output_str(to_append ? to_append : NULL); // may be null
       output_print_color(desc_color);
       test_desc_printed = desc_level;
     }
@@ -798,7 +969,7 @@ static int print_headers(
   return level + 1;
 }
 
-void _test_log_fn(int line, const StringRange* message) {
+void _test_log_fn(int line, const char* message) {
   if ((test_current_line && test_current_line >= line)
   || param_verbose < V_NOTES
   ) {
@@ -806,29 +977,30 @@ void _test_log_fn(int line, const StringRange* message) {
   }
   int level = print_headers(CONCOL_bWhite, LOGGED, NULL);
   output_pad(param_tabsize * level, ' ');
-  output_str(message->begin);
+  output_str(message);
   output_print();
 }
 
-void _test_warn_fn(int line, const StringRange* message) {
+void _test_warn_fn(int line, const char* message) {
   if (test_current_line && test_current_line >= line) {
     return;
   }
   int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
   output_pad(param_tabsize * level, ' ');
-  output_str(message->begin);
+  output_str(message);
   output_print_color(CONCOL_Yellow);
 }
 
-static void test_error_no_fail(const StringRange* message, bool is_mem_err) {
+static int test_error_no_fail(const char* message, bool is_mem_err) {
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
   output_pad(param_tabsize * level, ' ');
   if (is_mem_err) output_str("Memory error: ");
-  output_str(message->begin);
+  output_str(message);
   output_print();
+  return level;
 }
 
-void _test_error_fn(const StringRange* message) {
+void _test_error_fn(const char* message) {
   if (test_in_progress) {
     if (!test_expect_fail) {
       test_error_no_fail(message, FALSE);
@@ -839,13 +1011,18 @@ void _test_error_fn(const StringRange* message) {
 
 #ifdef _CSPEC_USE_MEMORY_TESTING_
 
-static void _test_error_mem(const StringRange* message) {
+static int _test_error_mem(const char* message, const MemoryRecord* record) {
+  int level = 0;
   if (test_in_progress) {
     if (!memory_expect_error) {
-      test_error_no_fail(message, TRUE);
+      level = test_error_no_fail(message, TRUE);
+      if (record) {
+        memory_print_record(record, level);
+      }
     }
     memory_error = TRUE;
   }
+  return level;
 }
 
 #endif
@@ -865,51 +1042,66 @@ static void resolve_param(const char* typ_N, const void* N) {
 
     if (written) {
       output_index += written;
-      output_buffer[output_index] = '\0';
+      output_continue_format();
       return;
     }
   }
 
-  if (cspec_strcmp(typ_N, "int")) {
-    output_sint(*(int*)N);
+  if (cspec_strcmp(typ_N, "char*")
+  ||  cspec_strcmp(typ_N, "byte*")
+  ||  cspec_strcmp(typ_N, "unsigned char*")
+  ||  cspec_strcmp(typ_N, "const char*")
+  ||  cspec_strcmp(typ_N, "const byte*")
+  ||  cspec_strcmp(typ_N, "const unsigned char*")
+  ) {
+    output_str(*(const char**)N);
+  }
+  else if (cspec_strrstr(typ_N, "*")
+  ||  cspec_strrstr(typ_N, "_ptr")
+  ) {
+    output_ptr(*(const void**)N);
+  }
+  else if (cspec_strcmp(typ_N, "int")) {
+    output_sint(*(const int*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "short")
   || cspec_strcmp(typ_N, "short int")
   ) {
-    output_sint(*(short int*)N);
+    output_sint(*(const short int*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "long")
   || cspec_strcmp(typ_N, "long int")
   ) {
-    output_sint(*(long int*)N);
+    output_sint(*(const long int*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "uint")
   || cspec_strcmp(typ_N, "unsigned")
   || cspec_strcmp(typ_N, "unsigned int")
   ) {
-    output_uint(*(unsigned int*)N);
+    output_uint(*(const unsigned int*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "ushort")
   || cspec_strcmp(typ_N, "unsigned short")
+  || cspec_strcmp(typ_N, "unsigned short int")
   ) {
-    output_uint(*(unsigned short*)N);
+    output_uint(*(const unsigned short*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "unsigned long")
   || cspec_strcmp(typ_N, "unsigned long int")
   || cspec_strcmp(typ_N, "size_t")
   ) {
-    output_uint(*(unsigned long int*)N);
+    output_uint(*(const unsigned long int*)N);
   }
   else if (cspec_strcmp(typ_N, "float")) {
-    output_float(*(float*)N);
+    output_float(*(const float*)N);
   }
   else if (cspec_strcmp(typ_N, "double")) {
-    output_float(*(double*)N);
+    output_float(*(const double*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "_Bool")
@@ -927,9 +1119,9 @@ static void resolve_param(const char* typ_N, const void* N) {
 }
 
 void _test_error_typed(
-  const StringRange* prefix, const StringRange* fmt,
+  const char* prefix, const char* fmt,
   const void* A, const void* B,
-  const StringRange* typ_A, const StringRange* typ_B
+  const char* typ_A, const char* typ_B
 ) {
 
   if (!test_in_progress) {
@@ -949,11 +1141,11 @@ void _test_error_typed(
 
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
   output_pad(param_tabsize * level, ' ');
-  output_str(prefix->begin);
-  output_str(fmt->begin);
+  output_str(prefix);
+  output_str(fmt);
 
-  if (A && typ_A) resolve_param(typ_A->begin, A);
-  if (B && typ_B) resolve_param(typ_B->begin, B);
+  if (A && typ_A) resolve_param(typ_A, A);
+  if (B && typ_B) resolve_param(typ_B, B);
 
   output_print();
 }
@@ -962,7 +1154,7 @@ void _test_error_typed(
 // Test Begin/End
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_begin(int line, StringRange desc) {
+bool _test_begin(int line, const char* desc) {
 
   // A test is currently in progress, just ignore this test for now
   if (test_in_progress) {
@@ -1021,17 +1213,17 @@ bool _test_end() {
 #ifdef _CSPEC_USE_MEMORY_TESTING_
       failed |= memory_expect_error;
 #endif
-      StringRange* failnote = failed ? &R(" (failed successfully)") : NULL;
+      const char* failnote = failed ? " (failed successfully)" : NULL;
       print_headers(CONCOL_Green, LOGGED, failnote);
     }
   } else {
     if (test_expect_fail) {
       test_expect_fail = FALSE; // clear this so it prints the error
-      _test_error_fn(&R("expected to fail, but succeeded instead"));
+      _test_error_fn("expected to fail, but succeeded instead");
     }
 #ifdef _CSPEC_USE_MEMORY_TESTING_
     if (memory_expect_error) {
-      _test_error_fn(&R("expected memory errors, but none were found"));
+      _test_error_fn("expected memory errors, but none were found");
     }
 #endif
   }
@@ -1058,9 +1250,9 @@ bool _test_expect_to_fail() {
 #ifdef _CSPEC_USE_MEMORY_TESTING_
 static bool memory_directive_warning() {
   if (!param_memory_test) {
-    _test_warn_fn(INT_MAX, &R(
+    _test_warn_fn(0xFFFFFFFF,
       "warning: expecting memory errors, but memory testing is disabled"
-    ));
+    );
     test_expect_fail = TRUE;
     return TRUE;
   }
@@ -1077,7 +1269,7 @@ bool _test_memory_expect_to_fail() {
     memory_expect_error = TRUE;
   return TRUE;
 #else
-  _test_error_fn(&R("Expected memory failure, but memory testing is disabled"));
+  _test_error_fn("Expected memory failure, but memory testing is disabled");
   return TRUE;
 #endif
 }
@@ -1092,7 +1284,7 @@ bool _test_memory_malloc_null(bool only_once) {
   return TRUE;
 #else
   (void)only_once;
-  _test_error_fn(&R("Requesting failed malloc, but memory testing is disabled"));
+  _test_error_fn("Requesting failed malloc, but memory testing is disabled");
   return TRUE;
 #endif
 }
@@ -1105,7 +1297,7 @@ int _test_memory_malloc_count() {
   }
   return memory_count_mallocs;
 #else
-  _test_error_fn(&R("Reading malloc counts, but memory testing is disabled"));
+  _test_error_fn("Reading malloc counts, but memory testing is disabled");
   return -1;
 #endif
 }
@@ -1118,7 +1310,7 @@ int _test_memory_free_count() {
   }
   return memory_count_frees;
 #else
-  _test_error_fn(&R("Reading free counts, but memory testing is disabled"));
+  _test_error_fn("Reading free counts, but memory testing is disabled");
   return -1;
 #endif
 }
@@ -1174,10 +1366,10 @@ static void process_function(const TestGroup* t) {
 void test_run_suite(const TestSuite* suite) {
   before_suite(suite);
 
-  if (!str_ends_with(suite->filename, param_file)) {
+  if (!cspec_strrstr(suite->filename, param_file)) {
     if (param_verbose == V_VERY) {
       output_str("skipping file: %c");
-      output_str(suite->filename.begin);
+      output_str(suite->filename);
       output_print_color(CONCOL_Purple);
     }
     return;
@@ -1246,7 +1438,7 @@ static bool process_args(int argc, char* argv[]) {
       ) {
         if (i + 1 < argc) {
           char* param = argv[++i];
-          int as_i = atoi(param);
+          int as_i = cspec_atoi(param);
           param_tabsize = MAX(as_i, 0);
         } else {
           output("--tab-size requires a number as an argument");
@@ -1254,13 +1446,12 @@ static bool process_args(int argc, char* argv[]) {
         }
       }
     } else {
-      // Can't use str_split or other functions that allocate here or it'll
-      // pollute the test allocator! Use only in-place functions from str.h.
+      // Find the separation point in the parameter "filename:line"
       char* s = arg;
       while (*s) {
         if (*s == ':') {
           *(s++) = '\0';
-          param_line = atoi(s);
+          param_line = cspec_atoi(s);
           break;
         }
         ++s;
@@ -1270,7 +1461,7 @@ static bool process_args(int argc, char* argv[]) {
       // so we'll take the number, but not single it to a file. Maybe someone
       // meticulously puts a specific test on one line of every file, who knows.
       if (arg[0] != '\0') {
-        param_file = str_range(arg);
+        param_file = arg;
       }
     }
   }
@@ -1290,13 +1481,13 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
   }
 
   if (test_count) {
-    output_str("Tests passed: %c{} out of {}, or {}%");
+    output_str("Tests passed:%c {} out of {}, or {}%");
     output_sint(test_passed_count);
     output_sint(test_count);
     output_sint((int)(100.f * (float)test_passed_count / (float)test_count));
     output_print_color(test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed);
   } else {
-    output_str("Tests passed: %c0 out of 0");
+    output_str("Tests passed:%c 0 out of 0");
     output_print_color(CONCOL_bYellow);
   }
 

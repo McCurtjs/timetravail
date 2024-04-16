@@ -31,7 +31,8 @@
     "shader.h": "c",
     "str.h": "c",
     "tst.h": "c",
-    "wasm.h": "c"
+    "wasm.h": "c",
+    "stdio.h": "c"
   },
   "C_Cpp.default.includePath": [
     "src/eng/wasm",

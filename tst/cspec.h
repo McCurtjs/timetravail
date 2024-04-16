@@ -1,22 +1,27 @@
 #ifndef _TST_H_
 #define _TST_H_
 
-#include "types.h"
-#include "str.h"
+//#include "types.h"
+#ifndef _TYPES_H_
+typedef _Bool bool;
+typedef unsigned int uint;
 
-#include "wasm.h"
+# ifndef NULL
+#  define NULL ((void*)0)
+# endif
+#endif
 
 typedef void (*test_fn)(void);
 
 typedef struct TestGroup {
   const int* line;
-  StringRange header;
+  const char* header;
   test_fn group_fn;
 } TestGroup;
 
 typedef struct TestSuite {
-  StringRange header;
-  StringRange filename;
+  const char* header;
+  const char* filename;
   TestGroup (*test_groups)[];
 } TestSuite;
 
@@ -34,8 +39,9 @@ typedef struct TestSuite {
 //
 //    file: /src/engine/widget.c
 //
-//        int widget_operate(void) {
-//            // very critically important source code
+//        int widget_operate(void)
+//        {
+//            // your very critically important source code
 //        }
 //
 //    file: /test/engine/test_widget.c
@@ -424,14 +430,14 @@ extern resolve_user_types_fn resolve_user_types;
 // Implementation details, turn back now, here there be dragons.
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_begin(int line, StringRange desc);
+bool _test_begin(int line, const char* desc);
 bool _test_end();
 bool _test_active();
-bool _test_context_begin(int line, StringRange desc);
+bool _test_context_begin(int line, const char* desc);
 bool _test_context_end(int line);
-void _test_log_fn(int line, const StringRange* messgae);
-void _test_warn_fn(int line, const StringRange* message);
-void _test_error_fn(const StringRange* message);
+void _test_log_fn(int line, const char* messgae);
+void _test_warn_fn(int line, const char* message);
+void _test_error_fn(const char* message);
 bool _test_expect_to_fail();
 bool _test_memory_expect_to_fail();
 bool _test_memory_malloc_null(bool only_next);
@@ -439,16 +445,16 @@ int  _test_memory_malloc_count();
 int  _test_memory_free_count();
 int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 void _test_error_typed(
-  const StringRange* prefix, const StringRange* fmt,
+  const char* prefix, const char* fmt,
   const void* A, const void* B,
-  const StringRange* type_A, const StringRange* type_B
+  const char* type_A, const char* type_B
 );
 
 #define _test_run_all_suites(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
 #define LINESTR STR(__LINE__)
-#define _test_msg(msg, c) &R("line "LINESTR": "c msg)
-#define _test_msg2(msg, fmt, c) &R("line "LINESTR": "c msg), &R(fmt)
+#define _test_msg(msg, c) "line "LINESTR": "c msg
+#define _test_msg2(msg, fmt, c) "line "LINESTR": "c msg, fmt
 
 #define _loop_tst MACRO_CONCAT(_loop_tst_, __LINE__)
 #define _loop_ctx MACRO_CONCAT(_loop_ctx_, __LINE__)
@@ -456,18 +462,18 @@ void _test_error_typed(
 #define _loop_all MACRO_CONCAT(_loop_all_, __LINE__)
 
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
-#define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, R("context: %c["LINESTR"] "DESC));) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
-#define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, R("test %c["LINESTR"] "DESC));)
+#define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, "context: %c["LINESTR"] "DESC);) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
+#define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, "test %c["LINESTR"] "DESC);)
 #define _after for (int _loop_ctx = 0; _loop_ctx++ < 1 && _test_active();)
 
-#define _test_suite_begin(NAME) TestSuite NAME = { .header=M("in file: %c"__FILE__), .filename = M(__FILE__), .test_groups = (TestGroup(*)[])(&(TestGroup[])
-#define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=M("): %ctest_"#TEST_FN), .group_fn = test_##TEST_FN }
+#define _test_suite_begin(NAME) TestSuite NAME = { .header="in file: %c"__FILE__, .filename=__FILE__, .test_groups = (TestGroup(*)[])(&(TestGroup[])
+#define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=#TEST_FN, .group_fn = test_##TEST_FN }
 #define _test_suite_end { .line = NULL, .group_fn = NULL } })
 
 #define _test_log(message) _test_log_fn(__LINE__, _test_msg(message, ""))
 #define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
 #define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
-#define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), &R(fmt), A, C, &R(#Ta), &R(#Tc)); return; } while(0)
+#define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), fmt, A, C, #Ta, #Tc); return; } while(0)
 #define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, Ta, Tc);
 
 #define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, T, uint); } while(0)
