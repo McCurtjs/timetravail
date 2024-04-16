@@ -101,7 +101,7 @@ typedef struct TestSuite {
 #define it(DESC)                _test("it "DESC)
 #define test(DESC)              _test(DESC)
 
-// \brief 
+// \brief
 #define after                   _after
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -391,6 +391,36 @@ void test_run_suite(const TestSuite* suite);
 #define free_count _test_memory_free_count()
 
 ////////////////////////////////////////////////////////////////////////////////
+// Extras
+////////////////////////////////////////////////////////////////////////////////
+
+typedef uint (*resolve_user_types_fn)
+  (const char** ptyp_N, const void* N, char* out, uint out_size);
+
+// \brief A function pointer that is initially null, but can be set by a user to
+//    describe how to print custom types without having to modify cspec.c.
+//
+// \param &typ_N - a pointer to a pointer to string containing the name of the
+//    type to convert. You can compare this to a typename you've defined, and
+//    either add a custom handler to write output to the buffer, or you can
+//    change the pointer to a string representing an equivalent type that can
+//    already be parsed by cspec. Ex: you can use `if(strcmp(*ptyp_N, "MyInt")
+//    == 0) { *ptyp_N = "int"; return 0; }` to set MyInt as an alias for int.
+//
+// \param N - A pointer to the object being written.
+//
+// \param out - The char buffer that can be written to.
+//
+// \param out_size - The amount of space available in the write buffer.
+//
+// \returns The number of characters written to the buffer. Returns 0 if no
+//    characters were written to the buffer, indicating that the type was not
+//    resolved in the user handler and will be written out internally instead.
+//    In this case, if ptyp_N was modified, the updated value will be used to
+//    determine how to write the contents of N.
+extern resolve_user_types_fn resolve_user_types;
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation details, turn back now, here there be dragons.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -438,9 +468,9 @@ void _test_error_typed(
 #define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
 #define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
 #define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), &R(fmt), A, C, &R(#Ta), &R(#Tc)); return; } while(0)
-#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: $ "#B" $", &_A, &_C, Ta, Tc);
+#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, Ta, Tc);
 
-#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found $ on iteration $", _pvalue, &_index, T, uint); } while(0)
+#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, T, uint); } while(0)
 #define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, E); } while(0)
 #define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, D); } while(0)
 #define _expect_true2(S, A, B, C, ...) _expect_type1(#A" "#B" "#C, A, B, C, int) // _expect_true(#A" "#B" "#C, (A) B (C))

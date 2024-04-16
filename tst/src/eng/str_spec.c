@@ -228,7 +228,7 @@ describe(str_eq) {
 		StringRange range1 = str_range(str_1);
 		StringRange range2 = str_range(str_2);
 
-expect(str_eq(range1, range2));
+		expect(str_eq(range1, range2));
 	}
 
 	it("tests that two strings are not equal") {

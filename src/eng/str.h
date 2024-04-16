@@ -154,7 +154,7 @@ StringRange str_trim_end(StringRange str);
 //
 // \returns An array of StringRanges whose lifetimes are bound to str.
 //    The Array must be deleted by the user via array_delete(&arr).
-Array  str_split(StringRange str, StringRange del);
+Array str_split(StringRange str, StringRange del);
 
 // \brief Joins an array of strings into a new string, each separated by a
 //    given delimiter. The array can be of either Strings or StringRanges.

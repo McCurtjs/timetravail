@@ -1,7 +1,10 @@
-#undef malloc
-#undef realloc
-#undef calloc
-#undef free
+#ifdef malloc
+# define _CSPEC_USE_MEMORY_TESTING_
+# undef malloc
+# undef realloc
+# undef calloc
+# undef free
+#endif
 
 #include "cspec.h"
 #include "types.h"
@@ -44,16 +47,220 @@ static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
 
-static Verbosity param_verbose = V_VERY;
-static int param_line = 382;
+static Verbosity param_verbose = V_NONE;
+static int param_line = 0;
 static int param_tabsize = 2;
-static StringRange param_file = M("str_spec.c");
+static StringRange param_file = M("");
 static bool param_no_expect_fail = FALSE;
 static bool param_memory_test = TRUE;
 
 ////////////////////////////////////////////////////////////////////////////////
+// String Handling
+////////////////////////////////////////////////////////////////////////////////
+// To make this work as a "single-header" include as well as to make sure it
+// works on WASM varianets with no libc, all our string handling for output
+// should be done in a static space to avoid the need for malloc/free.
+#define output_size 500
+#define output_float_precision 5
+static char output_buffer[output_size + 1];
+static uint output_index = 0;
+static const char* output_fmt = NULL;
+
+static bool cspec_strcmp(const char* A, const char* B) {
+  if (!A || !B) return FALSE;
+
+  while (*A && *B) {
+    if (*A++ != *B++) return FALSE;
+  }
+
+  return *A == *B;
+}
+
+static void output_continue_format();
+
+static void output_str(const char* s) {
+  if (!s) return;
+  char prev = '\0';
+  while (*s && output_index < output_size) {
+
+    // handle case for {} format specifiers
+    if (!output_fmt && *s == '{') {
+      if (prev == '{') {
+        ++s;
+        prev = '\0';
+        continue;
+      } else if (*(s + 1) == '}') {
+        output_fmt = s + 2;
+        output_buffer[output_index] = '\0';
+        return;
+      }
+    }
+
+    // insert Unix-style color indicators for %c if we're not in WASM
+#ifndef __WASM__
+    char color_indicator[] = "\033[_;3_m";
+    if (*s == '%' && *(s + 1) == 'c'
+    && output_index < output_size - sizeof(color_indicator)
+    ) {
+      for (uint i = 0; i < sizeof(color_indicator) - 1; ++i) {
+        output_buffer[output_index++] = color_indicator[i];
+      }
+      s += 2;
+      continue;
+    }
+#endif
+
+    prev = *(s++);
+    output_buffer[output_index++] = prev;
+  }
+  output_continue_format();
+}
+
+static void output_continue_format() {
+  if (output_fmt) {
+    const char* tmp = output_fmt;
+    output_fmt = NULL;
+    output_str(tmp);
+  }
+  output_buffer[output_index] = '\0';
+}
+
+static void output_char(char c) {
+  if (output_index >= output_size) return;
+  output_buffer[output_index++] = c;
+  output_continue_format();
+}
+
+static void output_pad(uint until_pos, char c) {
+  if (until_pos > output_size) until_pos = output_size;
+  while (output_index < until_pos) {
+    output_buffer[output_index++] = c;
+  }
+  output_continue_format();
+}
+
+static void _output_uint_ignore_format(unsigned long int i) {
+  if (i == 0) {
+    output_buffer[output_index++] = '0';
+    return;
+  }
+  uint start = output_index;
+  while (i) {
+    output_buffer[output_index++] = '0' + (i % 10);
+    i /= 10;
+  }
+  // the above prints it backwards, so flip it
+  uint end = output_index - 1;
+  while (start < end) {
+    char temp = output_buffer[start];
+    output_buffer[start++] = output_buffer[end];
+    output_buffer[end--] = temp;
+  }
+}
+
+static void output_uint(unsigned long int i) {
+  _output_uint_ignore_format(i);
+  output_continue_format();
+}
+
+static void output_sint(long int i) {
+  if (i < 0) {
+    output_buffer[output_index++] = '-';
+    i *= -1;
+  }
+  output_uint((unsigned long int)i);
+}
+
+static void output_float_p(double f, int precision) {
+  if (f < 0.0) {
+    output_buffer[output_index++] = '-';
+    f *= -1.0;
+  }
+  unsigned long int integer_part = (unsigned long int)f;
+  _output_uint_ignore_format(integer_part);
+  f -= integer_part;
+  if (f == 0.0) return;
+  output_buffer[output_index++] = '.';
+  for (int i = precision; i && f >= 0.00000000001; --i) {
+    f *= 10.0;
+    integer_part = (unsigned long int)f;
+    output_buffer[output_index++] = '0' + (char)integer_part;
+    f -= integer_part;
+  }
+  output_continue_format();
+}
+
+static void output_float(double f) {
+  output_float_p(f, output_float_precision);
+}
+
+static void output_bool(bool b) {
+  output_str(b ? "true" : "false");
+}
+
+static void output_reset() {
+  output_index = 0;
+  output_buffer[0] = '\0';
+  output_fmt = NULL;
+}
+
+static void output(const char* s) {
+#ifdef __WASM__
+  str_print(str_range(s));
+#else
+  printf("%s\n", s);
+#endif
+}
+
+static void output_print() {
+  if (output_fmt) output_str(output_fmt);
+
+#ifdef __WASM__
+  str_print(str_range(output_buffer));
+#else
+  printf("%s\n", output_buffer);
+#endif
+
+  output_reset();
+}
+
+static void output_print_color(ConsoleColor color) {
+  // flush any remaining format string
+  if (output_fmt) output_str(output_fmt);
+
+#ifndef __WASM__
+  // find the color specifier if it was added into the string
+  for (uint i = 0; i < output_index; ++i) {
+    if (output_buffer[i] == '\033') {
+      // set boldness flag
+      output_buffer[i + 2] = color >= 40 ? '1' : '0';
+
+      // fill out the color code being requested
+      output_buffer[i + 5] = '0' + color % 10;
+
+      // cap the string with a closing color specifier
+      output_str("\033[0m");
+
+      break;
+    }
+  }
+#endif
+
+  // finally print the string
+#ifdef __WASM__
+  str_print_color(str_range(output_buffer), color);
+#else
+  printf("%s\n", output_buffer);
+#endif
+
+  output_reset();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Memory Testing
 ////////////////////////////////////////////////////////////////////////////////
+
+#ifdef _CSPEC_USE_MEMORY_TESTING_
 
 typedef enum MallocFailLevel {
   M_NORMAL,
@@ -369,6 +576,16 @@ void* cspec_realloc(void* mem, size_t nsize) {
   return cspec_malloc(nsize);
 }
 
+#else
+
+static void memory_test_reset(bool enable) {
+  (void)enable;
+}
+
+static void memory_final_checks() { }
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 // Test Context
 ////////////////////////////////////////////////////////////////////////////////
@@ -535,18 +752,17 @@ static int print_headers(
 ) {
 
   if (!test_filename_printed) {
-    str_print_color(current_suite->header, CONCOL_bPurple);
+    output_str(current_suite->header.begin);
+    output_print_color(CONCOL_bPurple);
     test_filename_printed = TRUE;
   }
 
   if (!test_function_printed) {
-    StringBuilder stb = stb_pad(NULL, param_tabsize, ' ');
-    stb_range(stb, R("in function ("));
-    stb_str(stb, str_from_int(*test_function->line));
-    stb_range(stb, test_function->header);
-    String s = stb_resolve(&stb);
-    str_print_color(s->range, CONCOL_bCyan);
-    str_delete(&s);
+    output_pad(param_tabsize, ' ');
+    output_str("in function (");
+    output_sint(*test_function->line);
+    output_str(test_function->header.begin);
+    output_print_color(CONCOL_bCyan);
     test_function_printed = TRUE;
   }
 
@@ -555,161 +771,159 @@ static int print_headers(
   while (ctx->next) {
     ctx = ctx->next;
     if (!ctx->printed) {
-      String s = str_prepend(ctx->desc, param_tabsize * level, ' ');
-      str_print_color(s->range, CONCOL_Cyan);
-      str_delete(&s);
+      output_pad(param_tabsize * level, ' ');
+      output_str(ctx->desc.begin);
+      output_print_color(CONCOL_Cyan);
       ctx->printed = TRUE;
     }
     level += 1;
   }
 
   if (test_desc_printed < desc_level) {
-    String s;
+    output_pad(param_tabsize * level, ' ');
 
     if (!test_in_progress) {
-      s = str_prepend(R("pre-test"), param_tabsize * level, ' ');
-      str_print(s->range);
+      output_str("pre-test");
+      output_print();
       test_desc_printed = PRINTED;
 
     } else {
-      s = str_prepend(test_description, param_tabsize * level, ' ');
-      if (to_append) {
-        String t = str_concat(s->range, *to_append);
-        str_delete(&s);
-        s = t;
-      }
-      str_print_color(s->range, desc_color);
+      output_str(test_description.begin);
+      output_str(to_append ? to_append->begin : NULL); // may be null
+      output_print_color(desc_color);
       test_desc_printed = desc_level;
     }
-
-    str_delete(&s);
   }
 
   return level + 1;
 }
 
 void _test_log_fn(int line, const StringRange* message) {
-  if (test_current_line && test_current_line >= line) {
+  if ((test_current_line && test_current_line >= line)
+  || param_verbose < V_NOTES
+  ) {
     return;
   }
-
-  if (param_verbose < V_NOTES) return;
-
-  bool mem_test_temp = test_in_function;
-  test_in_function = FALSE;
-
-  int mcmallocs = memory_count_mallocs;
-  int mcfrees = memory_count_frees;
   int level = print_headers(CONCOL_bWhite, LOGGED, NULL);
-  String s = str_prepend(*message, param_tabsize * level, ' ');
-  str_print(s->range);
-  str_delete(&s);
-  memory_count_mallocs = mcmallocs;
-  memory_count_frees = mcfrees;
-
-  test_in_function = mem_test_temp;
+  output_pad(param_tabsize * level, ' ');
+  output_str(message->begin);
+  output_print();
 }
 
 void _test_warn_fn(int line, const StringRange* message) {
   if (test_current_line && test_current_line >= line) {
     return;
   }
-
-  bool mem_test_temp = test_in_function;
-  test_in_function = FALSE;
-
-  int mcmallocs = memory_count_mallocs;
-  int mcfrees = memory_count_frees;
   int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
-  String s = str_prepend(*message, param_tabsize * level, ' ');
-  str_print_color(s->range, CONCOL_Yellow);
-  str_delete(&s);
-  memory_count_mallocs = mcmallocs;
-  memory_count_frees = mcfrees;
-
-  test_in_function = mem_test_temp;
+  output_pad(param_tabsize * level, ' ');
+  output_str(message->begin);
+  output_print_color(CONCOL_Yellow);
 }
 
-static void _test_error_no_fail(const StringRange* message, bool is_mem_err) {
-  bool mem_test_temp = test_in_function;
-  test_in_function = FALSE;
-
-  int mcmallocs = memory_count_mallocs;
-  int mcfrees = memory_count_frees;
+static void test_error_no_fail(const StringRange* message, bool is_mem_err) {
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
-  String t = NULL;
-  if (is_mem_err) {
-    t = str_concat(R("memory error: "), *message);
-    message = &t->range;
-  }
-  String s = str_prepend(*message, param_tabsize * level, ' ');
-  str_print(s->range);
-  str_delete(&s);
-  str_delete(&t);
-  memory_count_mallocs = mcmallocs;
-  memory_count_frees = mcfrees;
-
-  test_in_function = mem_test_temp;
+  output_pad(param_tabsize * level, ' ');
+  if (is_mem_err) output_str("Memory error: ");
+  output_str(message->begin);
+  output_print();
 }
 
 void _test_error_fn(const StringRange* message) {
   if (test_in_progress) {
     if (!test_expect_fail) {
-      _test_error_no_fail(message, FALSE);
+      test_error_no_fail(message, FALSE);
     }
     test_failed = TRUE;
   }
 }
 
+#ifdef _CSPEC_USE_MEMORY_TESTING_
+
 static void _test_error_mem(const StringRange* message) {
   if (test_in_progress) {
     if (!memory_expect_error) {
-      _test_error_no_fail(message, TRUE);
+      test_error_no_fail(message, TRUE);
     }
     memory_error = TRUE;
   }
 }
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 // Printing fo typed values
 ////////////////////////////////////////////////////////////////////////////////
 
-static String resolve_param_(
-  const StringRange* fmt, const StringRange* type_N, const void* N
-) {
-  String formatted;
+resolve_user_types_fn resolve_user_types = NULL;
 
-  // TODO: before converting, check for a user-defined conversion function that
-  // either does the conversion, or returns a string literal with an alternate
-  // type name to use instead (ie, "SDL_sint32" -> "int").
-  // This function will always be responsible for deleting, make sure to inform
-  // the user to "#undef malloc" before allocating memory for this.
+static void resolve_param(const char* typ_N, const void* N) {
 
-  if (str_eq(*type_N, R("int"))) {
-    formatted = str_from_int(*(int*)N);
-  }
-  else if (str_eq(*type_N, R("uint"))) {
-    formatted = str_from_int((int)*(uint*)N); // should also make a uint one.
-  }
-  else if (str_eq(*type_N, R("size_t"))) {
-    formatted = str_from_int((int)*(size_t*)N); // should make a long-int constructor
-  }
-  else if (str_eq(*type_N, R("float"))) {
-    formatted = str_from_float(*(float*)N);
-  }
-  else if (str_eq(*type_N, R("_Bool"))) {
-    formatted = str_from_bool(*(bool*)N);
-  }
-  else {
-    String s = str_concat(R("error formatting: Missing conversion info for type: "), *type_N);
-    _test_error_fn(&s->range);
-    str_delete(&s);
-    return str_empty;
+  if (resolve_user_types) {
+    uint written = resolve_user_types(&typ_N, N,
+      output_buffer + output_index, output_size - output_index
+    );
+
+    if (written) {
+      output_index += written;
+      output_buffer[output_index] = '\0';
+      return;
+    }
   }
 
-  String result = str_concat(formatted->range, *fmt);
-  str_delete(&formatted);
-  return result;
+  if (cspec_strcmp(typ_N, "int")) {
+    output_sint(*(int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "short")
+  || cspec_strcmp(typ_N, "short int")
+  ) {
+    output_sint(*(short int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "long")
+  || cspec_strcmp(typ_N, "long int")
+  ) {
+    output_sint(*(long int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "uint")
+  || cspec_strcmp(typ_N, "unsigned")
+  || cspec_strcmp(typ_N, "unsigned int")
+  ) {
+    output_uint(*(unsigned int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "ushort")
+  || cspec_strcmp(typ_N, "unsigned short")
+  ) {
+    output_uint(*(unsigned short*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "unsigned long")
+  || cspec_strcmp(typ_N, "unsigned long int")
+  || cspec_strcmp(typ_N, "size_t")
+  ) {
+    output_uint(*(unsigned long int*)N);
+  }
+  else if (cspec_strcmp(typ_N, "float")) {
+    output_float(*(float*)N);
+  }
+  else if (cspec_strcmp(typ_N, "double")) {
+    output_float(*(double*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "_Bool")
+  || cspec_strcmp(typ_N, "bool")
+  ) {
+    output_bool(*(bool*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "char")
+  || cspec_strcmp(typ_N, "unsigned char")
+  || cspec_strcmp(typ_N, "byte")
+  ) {
+    output_char(*(char*)N);
+  }
 }
 
 void _test_error_typed(
@@ -722,43 +936,26 @@ void _test_error_typed(
     return;
   }
 
+  test_failed = TRUE;
+
+  if (test_expect_fail) {
+    return;
+  }
+
   if ((fmt == NULL) || (typ_A && !A) || (typ_B && !B) || (B && !A)) {
     _test_error_fn(prefix);
     return;
   }
 
-  bool mem_test_temp = test_in_function;
-  test_in_function = FALSE;
+  int level = print_headers(CONCOL_Red, PRINTED, NULL);
+  output_pad(param_tabsize * level, ' ');
+  output_str(prefix->begin);
+  output_str(fmt->begin);
 
-  Array split = str_split(*fmt, R("$"));
+  if (A && typ_A) resolve_param(typ_A->begin, A);
+  if (B && typ_B) resolve_param(typ_B->begin, B);
 
-  array_insert(split, 0, prefix);
-
-  String first = NULL;
-  String second = NULL;
-
-  if (split->size == 4) {
-    second = resolve_param_(array_get_back(split), typ_B, B);
-    array_pop_back(split);
-  }
-
-  if (split->size == 3) {
-    first = resolve_param_(array_get_back(split), typ_A, A);
-    array_pop_back(split);
-  }
-
-  if (first) array_push_back(split, &first->range);
-  if (second) array_push_back(split, &second->range);
-
-  String result = str_join(str_empty->range, split);
-  str_delete(&first);
-  str_delete(&second);
-  _test_error_fn(&result->range);
-  str_delete(&result);
-
-  array_delete(&split);
-
-  test_in_function = mem_test_temp;
+  output_print();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -813,12 +1010,17 @@ bool _test_end() {
   ++test_count;
 
   if (!test_failed ^ test_expect_fail
+#ifdef _CSPEC_USE_MEMORY_TESTING_
   && !memory_error ^ memory_expect_error
+#endif
   ) {
     ++test_passed_count;
 
     if (param_verbose >= V_RUN || param_line) {
-      bool failed = test_expect_fail || memory_expect_error;
+      bool failed = test_expect_fail;
+#ifdef _CSPEC_USE_MEMORY_TESTING_
+      failed |= memory_expect_error;
+#endif
       StringRange* failnote = failed ? &R(" (failed successfully)") : NULL;
       print_headers(CONCOL_Green, LOGGED, failnote);
     }
@@ -827,9 +1029,11 @@ bool _test_end() {
       test_expect_fail = FALSE; // clear this so it prints the error
       _test_error_fn(&R("expected to fail, but succeeded instead"));
     }
+#ifdef _CSPEC_USE_MEMORY_TESTING_
     if (memory_expect_error) {
       _test_error_fn(&R("expected memory errors, but none were found"));
     }
+#endif
   }
 
   test_in_progress = FALSE;
@@ -851,6 +1055,7 @@ bool _test_expect_to_fail() {
   return TRUE;
 }
 
+#ifdef _CSPEC_USE_MEMORY_TESTING_
 static bool memory_directive_warning() {
   if (!param_memory_test) {
     _test_warn_fn(INT_MAX, &R(
@@ -861,39 +1066,61 @@ static bool memory_directive_warning() {
   }
   return FALSE;
 }
+#endif
 
 bool _test_memory_expect_to_fail() {
+#ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
     return !test_in_progress;
   } else unless(param_no_expect_fail)
     memory_expect_error = TRUE;
   return TRUE;
+#else
+  _test_error_fn(&R("Expected memory failure, but memory testing is disabled"));
+  return TRUE;
+#endif
 }
 
 bool _test_memory_malloc_null(bool only_once) {
+#ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
     return !test_in_progress;
   } else
     memory_malloc_fail = only_once ? M_FAIL_ONCE : M_FAIL_ALWAYS;
   return TRUE;
+#else
+  (void)only_once;
+  _test_error_fn(&R("Requesting failed malloc, but memory testing is disabled"));
+  return TRUE;
+#endif
 }
 
 int _test_memory_malloc_count() {
+#ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
     return -1;
   }
   return memory_count_mallocs;
+#else
+  _test_error_fn(&R("Reading malloc counts, but memory testing is disabled"));
+  return -1;
+#endif
 }
 
 int _test_memory_free_count() {
+#ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
     return -1;
   }
   return memory_count_frees;
+#else
+  _test_error_fn(&R("Reading free counts, but memory testing is disabled"));
+  return -1;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -949,9 +1176,9 @@ void test_run_suite(const TestSuite* suite) {
 
   if (!str_ends_with(suite->filename, param_file)) {
     if (param_verbose == V_VERY) {
-      String msg = str_concat(R("skipping file: %c"), suite->filename);
-      str_print_color(msg->range, CONCOL_Purple);
-      str_delete(&msg);
+      output_str("skipping file: %c");
+      output_str(suite->filename.begin);
+      output_print_color(CONCOL_Purple);
     }
     return;
   }
@@ -969,65 +1196,81 @@ void test_run_suite(const TestSuite* suite) {
 
 static bool process_args(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
-    StringRange param = str_range(argv[i]);
+    char* arg = argv[i];
 
-    if (str_starts_with(param, R("-"))) {
-      if (str_eq(param, R("-h")) || str_eq(param, R("--help"))) {
-        print(": Usage: tests [OPTIONS]");
-        print(":      : tests filename [OPTIONS]");
-        print(":      : tests filename:line [OPTIONS]");
-        print(":");
-        print(": If filename is given, limits tests to that file. Matches end of name.");
-        print(": If line is given, runs only that test, context, or group.");
-        print(":");
-        print(": - -- Options       Args");
-        print(": h help                            : prints this message");
-        print(": va                                : verbose output (maximum)");
-        print(": v                                 : verbose output (prints all tests run)");
-        print(": vn                                : verbose output (includes user notes)");
-        print(": t tab-size         n (default 2)  : spaces per indent in test output");
-        print(": f force-fails                     : disables 'expect(to_fail)', printing failure output");
-        print(": m ignore-memory                   : disables memory testing");
+    if (arg[0] == '-') {
+      if (cspec_strcmp(arg, "-h") || cspec_strcmp(arg, "--help")) {
+        output(
+            ": Usage: tests [OPTIONS]"
+          "\n:      : tests filename [OPTIONS]"
+          "\n:      : tests filename:line [OPTIONS]"
+          "\n:"
+          "\n: If filename is given, limits tests to that file. Matches end of name."
+          "\n: If line is given, runs only that test, context, or group."
+          "\n:"
+          "\n: - -- Options       Args"
+          "\n: h help                            : prints this message"
+          "\n: va                                : verbose output (maximum)"
+          "\n: v                                 : verbose output (prints all tests run)"
+          "\n: vn                                : verbose output (includes user notes)"
+          "\n: t tab-size         n (default 2)  : spaces per indent in test output"
+          "\n: f force-fails                     : disables 'expect(to_fail)', printing failure output"
+          "\n: m ignore-memory                   : disables memory testing"
+        );
         return TRUE;
 
-      } else if (str_eq(param, R("-va"))) {
+      } else if (cspec_strcmp(arg, "-va")) {
         param_verbose = V_VERY;
 
-      } else if (str_eq(param, R("-v"))) {
+      } else if (cspec_strcmp(arg, "-v")) {
         param_verbose = V_RUN;
 
-      } else if (str_eq(param, R("-vn"))) {
+      } else if (cspec_strcmp(arg, "-vn")) {
         param_verbose = V_NOTES;
-
-      } else if (str_eq(param, R("-f")) || str_eq(param, R("--force-fails"))) {
+      }
+      else if
+      (  cspec_strcmp(arg, "-f")
+      || cspec_strcmp(arg, "--force-fails")
+      ) {
         param_no_expect_fail = TRUE;
 
-      } else if (str_eq(param, R("-m")) || str_eq(param, R("--ignore-memory"))) {
+      } else if
+      (  cspec_strcmp(arg, "-m")
+      || cspec_strcmp(arg, "--ignore-memory")
+      ) {
         param_memory_test = FALSE;
 
-      } else if (str_eq(param, R("-t")) || str_eq(param, R("--tab-size"))) {
+      } else if
+      (  cspec_strcmp(arg, "-t")
+      || cspec_strcmp(arg, "--tab-size")
+      ) {
         if (i + 1 < argc) {
-          StringRange arg = str_range(argv[++i]);
-          int as_i = atoi(arg.begin);
+          char* param = argv[++i];
+          int as_i = atoi(param);
           param_tabsize = MAX(as_i, 0);
         } else {
-          print("--tab-size requires a number as an argument");
+          output("--tab-size requires a number as an argument");
           return TRUE;
         }
       }
     } else {
       // Can't use str_split or other functions that allocate here or it'll
       // pollute the test allocator! Use only in-place functions from str.h.
-      size_t sep = str_find(param, R(":"));
-      if (sep != param.size) {
-        param_line = atoi(str_substring(param, sep + 1).begin);
+      char* s = arg;
+      while (*s) {
+        if (*s == ':') {
+          *(s++) = '\0';
+          param_line = atoi(s);
+          break;
+        }
+        ++s;
       }
 
       // Zero-length, don't bother. In this case, the string was entered as ":3"
       // so we'll take the number, but not single it to a file. Maybe someone
       // meticulously puts a specific test on one line of every file, who knows.
-      if (sep != 0) {
-        param_file = str_substring(param, 0, sep);
+      if (arg[0] != '\0') {
+        param_file = str_range(arg);
       }
     }
   }
@@ -1047,21 +1290,14 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
   }
 
   if (test_count) {
-
-    int color = test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed;
-    int ratio = (int)(100.f * (float)test_passed_count / (float)test_count);
-    StringBuilder stb = stb_range(NULL, R("Tests passed: %c"));
-    stb_str(stb, str_from_int(test_passed_count));
-    stb_range(stb, R(" out of "));
-    stb_str(stb, str_from_int(test_count));
-    stb_range(stb, R(", or "));
-    stb_str(stb, str_from_int(ratio));
-    stb_range(stb, R("%"));
-    String result = stb_resolve(&stb);
-    str_print_color(result->range, color);
-    str_delete(&result);
+    output_str("Tests passed: %c{} out of {}, or {}%");
+    output_sint(test_passed_count);
+    output_sint(test_count);
+    output_sint((int)(100.f * (float)test_passed_count / (float)test_count));
+    output_print_color(test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed);
   } else {
-    str_print_color(R("Tests passed: %c0 out of 0"), CONCOL_bYellow);
+    output_str("Tests passed: %c0 out of 0");
+    output_print_color(CONCOL_bYellow);
   }
 
   // return the number of failed tests

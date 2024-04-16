@@ -141,6 +141,7 @@ describe(memory) {
       free(buffer);
     }
 
+#ifdef malloc
     it("passes a bad pointer to realloc") {
       char* buffer = realloc((void*)1, 5);
       free(buffer);
@@ -150,6 +151,7 @@ describe(memory) {
       int x = 0;
       free(&x);
     }
+#endif
 
     it("tries to free the wrong address within allocated memory") {
       char* buffer = malloc(5);

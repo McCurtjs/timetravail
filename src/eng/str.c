@@ -155,6 +155,13 @@ String str_concat(StringRange left, StringRange right) {
   return str_terminate(ret);
 }
 
+// TODO: ? (not so useful when requiring ranges. Maybe make something
+//          like this for string builder?)
+// String _str_format(StringRange fmt, const StringRange[] argv, uint argc);
+// #define _str_format_va(fmt, argv, argc, ...) _str_format(fmt, argv, argc)
+// #define str_format(...) _str_fmt2(__VA_ARGS__, NULL, 0)
+// TODO: verify that non-macro va args are actaully not a thing with wasi, lol
+
 String str_prepend(StringRange str, size_t length, char c) {
   String_Internal* ret = str_new_internal(str.size + length);
   memset(ret->begin, c, length);
