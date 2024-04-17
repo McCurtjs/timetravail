@@ -1,14 +1,9 @@
-#ifndef _TST_H_
-#define _TST_H_
+#ifndef _CSPEC_H_
+#define _CSPEC_H_
 
-#ifndef _TYPES_H_
-typedef _Bool bool;
-typedef unsigned int uint;
-
-# ifndef NULL
-#  define NULL ((void*)0)
-# endif
-#endif
+typedef char csBool;
+typedef unsigned int csUint;
+typedef unsigned char csByte;
 
 typedef void (*test_fn)(void);
 
@@ -93,8 +88,8 @@ typedef struct TestSuite {
 // \param NAME - NOT A STRING - The name of the test example group being
 //    described. This name will later need to be included in a test suite in
 //    order to be executed. (see `test_group` for info)
-#define describe(NAME)          _describe(NAME)
-#define test_func(NAME)         _describe(NAME)
+#define describe(NAME)            _describe(NAME)
+#define test_func(NAME)           _describe(NAME)
 
 // \brief An `it` block declares an example case for testing.
 //
@@ -103,11 +98,11 @@ typedef struct TestSuite {
 //
 // \param DESC - String Literal: a brief description of the test that will be
 //    printed with the test results.
-#define it(DESC)                _test("it "DESC)
-#define test(DESC)              _test(DESC)
+#define it(DESC)                  _test("it "DESC)
+#define test(DESC)                _test(DESC)
 
 // \brief
-#define after                   _after
+#define after                     _after
 
 ////////////////////////////////////////////////////////////////////////////////
 // Composing test suites
@@ -125,7 +120,7 @@ typedef struct TestSuite {
 //
 // \param NAME - NOT A STRING - The name of the test suite. This will later need
 //  to be given to the test_run functions to execute the tests.
-#define test_suite_begin(NAME) _test_suite_begin(NAME)
+#define test_suite_begin(NAME)    _test_suite_begin(NAME)
 
 // \brief Used within the block of test_suite_begin to add groups to the suite.
 //
@@ -137,14 +132,14 @@ typedef struct TestSuite {
 //
 // \param TEST_FN - NOT A STRING - The name of the test group to include in the
 //    suite. This should be the same value passed into `describe` above.
-#define test_group(TEST_FN) _test_group(TEST_FN)
+#define test_group(TEST_FN)       _test_group(TEST_FN)
 
 // \brief Must be included at the end of the test suite declaration list.
 //    (thinking of a way to avoid needing this)
-#define test_suite_end _test_suite_end
+#define test_suite_end            _test_suite_end
 
 void test_run_suite(const TestSuite* suite);
-#define test_run_all(suites) _test_run_all_suites(suites)
+#define test_run_all(suites)      _test_run_all_suites(suites)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Contexts
@@ -163,10 +158,10 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param DESC - String Literal: a brief description of the context that
 //    applies to all included tests and will be printed along with their output.
-#define context(DESC) _context(DESC)
+#define context(DESC)             _context(DESC)
 
 // \brief Closes a test context
-#define context_end _context_end
+#define context_end               _context_end
 
 ////////////////////////////////////////////////////////////////////////////////
 // Logging
@@ -182,10 +177,10 @@ void test_run_suite(const TestSuite* suite);
 //    currently in that it can only print compile-time c-string literals, but
 //    somewhat useful for debugging with conditional statements. Would like
 //    to replace with a version that can do dynamic strings.
-#define test_log(message) _test_log(message)
+#define test_log(message)         _test_log(message)
 
 // \brief An alias for `test_log`
-#define test_note(message) _test_log(message)
+#define test_note(message)        _test_log(message)
 
 // \brief Logs a warning message in the console output. The message is of higher
 //    importance than a basic log, and will appear even if the verbose level is
@@ -193,12 +188,12 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param warning - String Literal: The warning to be printed. Same
 //    restrictions as with test_log.
-#define test_warn(warning) _test_warn(warning)
+#define test_warn(warning)        _test_warn(warning)
 
 // \brief Automatically fails the test. Do not pass GO. Do not collect $200.
 //
 // \param issue - String Literal: The error to print.
-#define test_fail(issue) _test_fail(issue)
+#define test_fail(issue)          _test_fail(issue)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Value checking with "Expect"
@@ -232,7 +227,7 @@ void test_run_suite(const TestSuite* suite);
 // \param - `expect(A to <matcher>)` - ex: `expect(a to be_positive);` - Tests
 //    the value of A against the given matcher expression. Matchers can be made
 //    in a variety of forms, and are described individaully below.
-#define expect(...) _expect(#__VA_ARGS__, __VA_ARGS__)
+#define expect(...)               _expect(#__VA_ARGS__, __VA_ARGS__)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Directives
@@ -244,7 +239,7 @@ void test_run_suite(const TestSuite* suite);
 //    as a failure.
 //
 // \param expect(to_fail);
-#define to_fail _test_expect_to_fail()
+#define to_fail                   _test_expect_to_fail()
 
 // \brief Memory errors are treated differently from regular errors; a test
 //    expecting to fail will still actually fail if it encounters memory
@@ -253,7 +248,7 @@ void test_run_suite(const TestSuite* suite);
 //    other reason to use this.
 //
 // \param expect(memory_errors);
-#define memory_errors _test_memory_expect_to_fail()
+#define memory_errors             _test_memory_expect_to_fail()
 
 // \brief Force the next call to malloc to return NULL. Only the first call to
 //    malloc after this will fail. If malloc is not called, the test will fail.
@@ -262,7 +257,7 @@ void test_run_suite(const TestSuite* suite);
 //    including when realloc would normally just grow the memory space.
 //
 // \param expect(null_malloc)
-#define null_malloc _test_memory_malloc_null(TRUE)
+#define null_malloc               _test_memory_malloc_null(TRUE)
 
 // \brief Force all remaining attempts to allocate memory for this test to fail.
 //
@@ -270,7 +265,7 @@ void test_run_suite(const TestSuite* suite);
 //    including when realloc would normally just grow the memory space.
 //
 // \param expect(null_mallocs)
-#define null_mallocs _test_memory_malloc_null(FALSE)
+#define null_mallocs              _test_memory_malloc_null(FALSE)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Matchers
@@ -399,8 +394,8 @@ void test_run_suite(const TestSuite* suite);
 // Extras
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef uint (*resolve_user_types_fn)
-  (const char** ptyp_N, const void* N, char* out, uint out_size);
+typedef csUint (*resolve_user_types_fn)
+  (const char** ptyp_N, const void* N, char* out, csUint out_size);
 
 // \brief A function pointer that is initially null, but can be set by a user to
 //    describe how to print custom types without having to modify cspec.c.
@@ -429,21 +424,54 @@ extern resolve_user_types_fn resolve_user_types;
 // Implementation details, turn back now, here there be dragons.
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_begin(int line, const char* desc);
-bool _test_end();
-bool _test_active();
-bool _test_context_begin(int line, const char* desc);
-bool _test_context_end(int line);
-void _test_log_fn(int line, const char* messgae);
-void _test_warn_fn(int line, const char* message);
-void _test_error_fn(const char* message);
-bool _test_expect_to_fail();
-bool _test_memory_expect_to_fail();
-bool _test_memory_malloc_null(bool only_next);
-int  _test_memory_malloc_count();
-int  _test_memory_free_count();
-int  _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
-void _test_error_typed(
+#ifndef assert
+# if defined(__WASM__) && defined(__has_builtin)
+#  if __has_builtin(__builtin_trap)
+#   define define assert(CONDITION) (!(CONDITION) ? __builtin_trap() : 0);
+#  endif
+# endif
+#endif
+#ifndef assert
+# define assert(C)
+#endif
+
+#ifndef NULL
+# define NULL ((void*)0)
+#endif
+
+#ifndef TRUE
+# define TRUE 1
+#endif
+
+#ifndef FALSE
+# define FALSE 0
+#endif
+
+#ifndef MACRO_CONCAT
+# define MACRO_CONCAT_RECUR(X, Y) X ## Y
+# define MACRO_CONCAT(X, Y) MACRO_CONCAT_RECUR(X, Y)
+#endif
+
+#ifndef STR
+# define STR_RECUR(S) #S
+# define STR(S) STR_RECUR(S)
+#endif
+
+csBool  _test_begin(int line, const char* desc);
+csBool  _test_end();
+csBool  _test_active();
+csBool  _test_context_begin(int line, const char* desc);
+csBool  _test_context_end(int line);
+void    _test_log_fn(int line, const char* messgae);
+void    _test_warn_fn(int line, const char* message);
+void    _test_error_fn(const char* message);
+csBool  _test_expect_to_fail();
+csBool  _test_memory_expect_to_fail();
+csBool  _test_memory_malloc_null(csBool only_next);
+int     _test_memory_malloc_count();
+int     _test_memory_free_count();
+int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
+void    _test_error_typed(
   const char* prefix, const char* fmt,
   const void* A, const void* B,
   const char* type_A, const char* type_B
@@ -473,14 +501,14 @@ void _test_error_typed(
 #define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
 #define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
 #define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), fmt, A, C, #Ta, #Tc); return; } while(0)
-#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, Ta, Tc);
+#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, Ta, Tc)
 
-#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); unless(_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, T, uint); } while(0)
-#define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, E); } while(0)
-#define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); unless(_A B _C) _test_fail_t(A, B, C, D, D); } while(0)
+#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); if(!_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, T, uint); } while(0)
+#define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, D, E); } while(0)
+#define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, D, D); } while(0)
 #define _expect_true2(S, A, B, C, ...) _expect_type1(#A" "#B" "#C, A, B, C, int) // _expect_true(#A" "#B" "#C, (A) B (C))
-#define _expect_comp(S, A, B, ...) do { bool _test = B(A); unless(_test) _test_fail("expected "S); } while(0)
-#define _expect_true(S, A, ...) do { unless(A) _test_fail("expected "S); } while(0)
+#define _expect_comp(S, A, B, ...) do { bool _test = B(A); if(!(_test)) _test_fail("expected "S); } while(0)
+#define _expect_true(S, A, ...) do { if(!(A)) _test_fail("expected "S); } while(0)
 #define _expect_va(S, A, B, C, D, E, _, F, ...) _expect##F(S, A, B, C, D, E)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
@@ -502,7 +530,7 @@ void _test_error_typed(
 #define _all_comp(A, B, C) _all_comp_part(A, B, C(*_iter_all))
 #define _all_be_comp(A, B, C) _all_comp_part(A, B, ((*_iter_all) C))
 
-#define _all_setup FALSE; bool _tmp = _test; uint _index = 0; void* _pvalue = NULL;
+#define _all_setup FALSE; bool _tmp = _test; csUint _index = 0; void* _pvalue = NULL;
 #define _all(matcher, T_el, T_con) _all_setup T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
 #define _all_be(B, C, T_el, T_con) _all_setup T_el _C = (C); T_el* T_con##_foreach_index, B _C, _all_be_comp, T_el, 0
 

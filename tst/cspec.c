@@ -10,10 +10,9 @@
 #endif
 
 #include "cspec.h"
-#include "types.h"
 
 #ifdef __WASM__
-extern void js_log(const char* str, unsigned len, int color);
+extern void js_log(const char* str, unsigned int len, int color);
 
 typedef enum {
   CONCOL_Black   = 0x0000000,
@@ -75,14 +74,14 @@ typedef enum Verbosity {
 static const TestSuite* current_suite = NULL;
 static const TestGroup* test_function = NULL;
 static const char* test_description = NULL;
-static bool test_filename_printed = FALSE;
-static bool test_function_printed = FALSE;
 static PrintLevel test_desc_printed = NOT_PRINTED;
-static bool test_failed = FALSE;
-static bool test_in_function = FALSE;
-static bool test_in_progress = FALSE;
-static bool test_expect_fail = FALSE;
-static bool test_skip = FALSE;
+static csBool test_filename_printed = FALSE;
+static csBool test_function_printed = FALSE;
+static csBool test_failed = FALSE;
+static csBool test_in_function = FALSE;
+static csBool test_in_progress = FALSE;
+static csBool test_expect_fail = FALSE;
+static csBool test_skip = FALSE;
 static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
@@ -92,8 +91,8 @@ static Verbosity param_verbose = V_NONE;
 static int param_line = 0;
 static int param_tabsize = 2;
 static const char* param_file = NULL;
-static bool param_no_expect_fail = FALSE;
-static bool param_memory_test = TRUE;
+static csBool param_no_expect_fail = FALSE;
+static csBool param_memory_test = TRUE;
 
 ////////////////////////////////////////////////////////////////////////////////
 // String Handling
@@ -104,10 +103,10 @@ static bool param_memory_test = TRUE;
 #define output_size 500
 #define output_float_precision 5
 static char output_buffer[output_size + 1];
-static uint output_index = 0;
+static csUint output_index = 0;
 static const char* output_fmt = NULL;
 
-bool cspec_strcmp(const char* A, const char* B) {
+csBool cspec_strcmp(const char* A, const char* B) {
   if (!A || !B) return FALSE;
   while (*A && *B) {
     if (*A++ != *B++) return FALSE;
@@ -115,26 +114,26 @@ bool cspec_strcmp(const char* A, const char* B) {
   return *A == *B;
 }
 
-uint cspec_strlen(const char* s) {
-  uint ret = 0;
+csUint cspec_strlen(const char* s) {
+  csUint ret = 0;
   while (*(s++)) ++ret;
   return ret;
 }
 
-bool cspec_strrstr(const char* s, const char* ends_with) {
+csBool cspec_strrstr(const char* s, const char* ends_with) {
   if (!s) return FALSE;
   if (!ends_with) return TRUE;
-  uint len_s = cspec_strlen(s);
-  uint len_e = cspec_strlen(ends_with);
+  csUint len_s = cspec_strlen(s);
+  csUint len_e = cspec_strlen(ends_with);
   if (len_e > len_s) return FALSE;
   s += len_s - len_e;
-  for (uint i = 0; i < len_e; ++i) {
+  for (csUint i = 0; i < len_e; ++i) {
     if (s[i] != ends_with[i]) return FALSE;
   }
   return TRUE;
 }
 
-bool cspec_isdigit(char c) {
+csBool cspec_isdigit(char c) {
   return '0' <= c && c <= '9';
 }
 
@@ -180,7 +179,7 @@ static void output_str(const char* s) {
     if (*s == '%' && *(s + 1) == 'c'
     && output_index < output_size - sizeof(color_indicator)
     ) {
-      for (uint i = 0; i < sizeof(color_indicator) - 1; ++i) {
+      for (csUint i = 0; i < sizeof(color_indicator) - 1; ++i) {
         output_buffer[output_index++] = color_indicator[i];
       }
       s += 2;
@@ -222,7 +221,7 @@ static void output_hex(char c) {
   output_continue_format();
 }
 
-static void output_pad(uint until_pos, char c) {
+static void output_pad(csUint until_pos, char c) {
   if (until_pos > output_size) until_pos = output_size;
   while (output_index < until_pos) {
     output_buffer[output_index++] = c;
@@ -236,13 +235,13 @@ static void _output_uint_ignore_format(unsigned long int i) {
     output_buffer[output_index++] = '0';
     return;
   }
-  uint start = output_index;
+  csUint start = output_index;
   while (i && output_index < output_size) {
     output_buffer[output_index++] = '0' + (i % 10);
     i /= 10;
   }
   // the above prints it backwards, so flip it
-  uint end = output_index - 1;
+  csUint end = output_index - 1;
   while (start < end) {
     char temp = output_buffer[start];
     output_buffer[start++] = output_buffer[end];
@@ -303,7 +302,7 @@ static void output_float(double f) {
   output_float_p(f, output_float_precision);
 }
 
-static void output_bool(bool b) {
+static void output_bool(csBool b) {
   output_str(b ? "true" : "false");
 }
 
@@ -339,7 +338,7 @@ static void output_print_color(ConsoleColor color) {
 
 #ifndef __WASM__
   // find the color specifier if it was added into the string
-  for (uint i = 0; i < output_index; ++i) {
+  for (csUint i = 0; i < output_index; ++i) {
     if (output_buffer[i] == '\033') {
       // set boldness flag
       output_buffer[i + 2] = color >= 40 ? '1' : '0';
@@ -385,14 +384,14 @@ typedef enum MallocFailLevel {
 
 typedef struct MemoryRecord {
   size_t size;
-  byte* block;
-  bool is_free;
+  csByte* block;
+  csBool is_free;
 } MemoryRecord;
 
 static int _test_error_mem(const char* message, const MemoryRecord* record);
 
-static byte _memory[memory_size_full];
-static byte* memory = _memory + memory_size_barrier;
+static csByte _memory[memory_size_full];
+static csByte* memory = _memory + memory_size_barrier;
 static size_t memory_ptr;
 
 // Not using dynamic array here because, of course, it uses malloc!
@@ -401,23 +400,23 @@ static size_t memory_records_capacity;
 static size_t memory_records_size;
 static int memory_count_mallocs = 0;
 static int memory_count_frees = 0;
-static bool memory_expect_error = FALSE;
-static bool memory_error = FALSE;
+static csBool memory_expect_error = FALSE;
+static csBool memory_error = FALSE;
 static MallocFailLevel memory_malloc_fail = M_NORMAL;
 static int memory_malloc_forced_failures = 0;
 #define memory_records_grow_factor 1.5f
 
-void cspec_memset(void* s_, byte c, size_t n) {
-  byte* s = s_;
+void cspec_memset(void* s_, csByte c, size_t n) {
+  csByte* s = s_;
   while (n--) *(s++) = c;
 }
 
 void cspec_memcpy(void* s_, const void* t_, size_t n) {
-  byte* s = s_; const byte* t = t_;
+  csByte* s = s_; const csByte* t = t_;
   while (n--) *(s++) = *(t++);
 }
 
-static void memory_print_row(const byte* row, int level, bool target) {
+static void memory_print_row(const csByte* row, int level, csBool target) {
   output_pad(param_tabsize * level, ' ');
   output_ptr(row);
   if (target) output_str("-> "); else output_str(":  ");
@@ -452,7 +451,7 @@ static void memory_print_record(const MemoryRecord* record, int level) {
   }
 }
 
-static bool memory_check_fence(MemoryRecord* record) {
+static csBool memory_check_fence(MemoryRecord* record) {
   for (size_t i = 0; i < memory_size_fence; ++i) {
     if ('b' != *(record->block + i)
     ||  'e' != *(record->block + i + memory_size_fence + record->size)
@@ -465,15 +464,15 @@ static bool memory_check_fence(MemoryRecord* record) {
 
 static int memory_record_compare(const void* key_, const void* dat) {
   const MemoryRecord* record = dat;
-  const byte* key = key_;
-  const byte* record_block = record->block + memory_size_fence;
+  const csByte* key = key_;
+  const csByte* record_block = record->block + memory_size_fence;
 
   if (key > record_block) return 1;
   if (key < record_block) return -1;
   return 0;
 }
 
-static void memory_test_reset(bool enable) {
+static void memory_test_reset(csBool enable) {
   if (!enable) {
     free(memory_records);
     memory_records = NULL;
@@ -505,7 +504,6 @@ static void memory_test_reset(bool enable) {
 }
 
 static void memory_final_checks() {
-
   // Validate all memory records
   for (size_t i = 0; i < memory_records_size; ++i) {
     MemoryRecord* record = &memory_records[i];
@@ -517,7 +515,7 @@ static void memory_final_checks() {
 
     // Ensure memory hasn't been modified after free
     if (record->is_free) {
-      byte* block = record->block + memory_size_fence;
+      csByte* block = record->block + memory_size_fence;
       for (size_t j = 0; j < record->size; ++j) {
         if (block[j] != 'F') {
           _test_error_mem("after: memory modified after free", record);
@@ -596,8 +594,12 @@ void* cspec_malloc(size_t size) {
   ++memory_count_mallocs;
 
   if (memory_records_size >= memory_records_capacity) {
-    size_t new_cap = (size_t)((float)memory_records_capacity * memory_records_grow_factor);
-    MemoryRecord* new_mem_rec = realloc(memory_records, new_cap * sizeof(MemoryRecord));
+    size_t new_cap = (size_t)(
+      (float)memory_records_capacity * memory_records_grow_factor
+    );
+    MemoryRecord* new_mem_rec = realloc(
+      memory_records, new_cap * sizeof(MemoryRecord)
+    );
     if (!new_mem_rec) {
       memory_expect_error = FALSE;
       output("memory error: malloc: ran out of actual memory?");
@@ -632,7 +634,7 @@ void* cspec_malloc(size_t size) {
 }
 
 void cspec_free(void* mem_) {
-  byte* mem = mem_;
+  csByte* mem = mem_;
 
   if (!memory_records || !test_in_function) {
     //++memory_count_frees;
@@ -689,7 +691,7 @@ void* cspec_calloc(size_t ct, size_t sel) {
     return calloc(ct, sel);
   }
 
-  byte* ret = cspec_malloc(ct * sel);
+  csByte* ret = cspec_malloc(ct * sel);
   if (!ret) return NULL;
 
   cspec_memset(ret, 0, ct * sel);
@@ -725,7 +727,7 @@ void* cspec_realloc(void* mem, size_t nsize) {
         return NULL;
       }
 
-      byte* block_start = record->block + memory_size_fence;
+      csByte* block_start = record->block + memory_size_fence;
       cspec_memset(block_start + nsize, 'e', memory_size_fence);
       cspec_memset(block_start + record->size, 'N', nsize - record->size);
 
@@ -754,7 +756,7 @@ void* cspec_realloc(void* mem, size_t nsize) {
 #else
 
 static void memory_final_checks() { }
-static void memory_test_reset(bool enable) { (void)enable; }
+static void memory_test_reset(csBool enable) { (void)enable; }
 
 #endif
 
@@ -774,8 +776,8 @@ static void memory_test_reset(bool enable) { (void)enable; }
 // keep track of
 typedef struct Context {
   const char* desc;
-  bool printed;
-  bool requested_context;
+  csBool printed;
+  csBool requested_context;
 } Context;
 
 #ifndef cspec_ctx_stack_size_max
@@ -799,7 +801,7 @@ static int ctx_stack_index = 0;
 static int ctx_stack_top = 0; // rename to ctx_stack_top
 
 // Called whenever the test enters a "context()" block
-bool _test_context_begin(int line, const char* desc) {
+csBool _test_context_begin(int line, const char* desc) {
 
   // If we are currently executing a test, skip the context (allow previous
   // contexts to close out their post-test statements)
@@ -834,7 +836,7 @@ bool _test_context_begin(int line, const char* desc) {
 
   // If this context's line was specified in the input params, run all the
   // tests in this context, and end the tests as soon as it's popped.
-  bool is_requested = FALSE;
+  csBool is_requested = FALSE;
   if (line == param_line) {
     is_requested = TRUE;
     param_line = 0;
@@ -868,7 +870,7 @@ bool _test_context_begin(int line, const char* desc) {
 }
 
 // Called at the end of a context block in "context_end"
-bool _test_context_end(int line) {
+csBool _test_context_end(int line) {
 
   // If we're at the end of a context, we want to pop it off the stack if we
   // didn't actually run any tests in this pass. Otherwise, return false to
@@ -991,7 +993,7 @@ void _test_warn_fn(int line, const char* message) {
   ++test_warnings_count;
 }
 
-static int test_error_no_fail(const char* message, bool is_mem_err) {
+static int test_error_no_fail(const char* message, csBool is_mem_err) {
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
   output_pad(param_tabsize * level, ' ');
   if (is_mem_err) output_str("Memory error: ");
@@ -1036,7 +1038,7 @@ resolve_user_types_fn resolve_user_types = NULL;
 static void resolve_param(const char* typ_N, const void* N) {
 
   if (resolve_user_types) {
-    uint written = resolve_user_types(&typ_N, N,
+    csUint written = resolve_user_types(&typ_N, N,
       output_buffer + output_index, output_size - output_index
     );
 
@@ -1049,9 +1051,11 @@ static void resolve_param(const char* typ_N, const void* N) {
 
   if (cspec_strcmp(typ_N, "char*")
   ||  cspec_strcmp(typ_N, "byte*")
+  ||  cspec_strcmp(typ_N, "csByte*")
   ||  cspec_strcmp(typ_N, "unsigned char*")
   ||  cspec_strcmp(typ_N, "const char*")
   ||  cspec_strcmp(typ_N, "const byte*")
+  ||  cspec_strcmp(typ_N, "const csByte*")
   ||  cspec_strcmp(typ_N, "const unsigned char*")
   ) {
     output_str(*(const char**)N);
@@ -1078,6 +1082,7 @@ static void resolve_param(const char* typ_N, const void* N) {
   }
   else if
   (  cspec_strcmp(typ_N, "uint")
+  || cspec_strcmp(typ_N, "csUint")
   || cspec_strcmp(typ_N, "unsigned")
   || cspec_strcmp(typ_N, "unsigned int")
   ) {
@@ -1104,10 +1109,11 @@ static void resolve_param(const char* typ_N, const void* N) {
     output_float(*(const double*)N);
   }
   else if
-  (  cspec_strcmp(typ_N, "_Bool")
-  || cspec_strcmp(typ_N, "bool")
+  (  cspec_strcmp(typ_N, "bool")
+  || cspec_strcmp(typ_N, "_Bool")
+  || cspec_strcmp(typ_N, "csBool")
   ) {
-    output_bool(*(bool*)N);
+    output_bool(*(csBool*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "char")
@@ -1115,7 +1121,10 @@ static void resolve_param(const char* typ_N, const void* N) {
   ) {
     output_char(*(const char*)N);
   }
-  else if (cspec_strcmp(typ_N, "byte")) {
+  else if
+  (  cspec_strcmp(typ_N, "byte")
+  || cspec_strcmp(typ_N, "csByte")
+  ) {
     output_hex(*(const char*)N);
   }
 }
@@ -1156,7 +1165,7 @@ void _test_error_typed(
 // Test Begin/End
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_begin(int line, const char* desc) {
+csBool _test_begin(int line, const char* desc) {
 
   // A test is currently in progress, just ignore this test for now
   if (test_in_progress) {
@@ -1191,7 +1200,7 @@ bool _test_begin(int line, const char* desc) {
   return test_in_progress;
 }
 
-bool _test_end() {
+csBool _test_end() {
   if (!test_in_progress) {
     return FALSE;
   }
@@ -1210,7 +1219,7 @@ bool _test_end() {
     ++test_passed_count;
 
     if (param_verbose >= V_RUN || param_line) {
-      bool failed = test_expect_fail;
+      csBool failed = test_expect_fail;
 #ifdef _CSPEC_USE_MEMORY_TESTING_
       failed |= memory_expect_error;
 #endif
@@ -1234,7 +1243,7 @@ bool _test_end() {
   return TRUE;
 }
 
-bool _test_active() {
+csBool _test_active() {
   return test_in_progress;
 }
 
@@ -1242,14 +1251,14 @@ bool _test_active() {
 // Directives
 ////////////////////////////////////////////////////////////////////////////////
 
-bool _test_expect_to_fail() {
-  unless(param_no_expect_fail)
+csBool _test_expect_to_fail() {
+  if(!(param_no_expect_fail))
     test_expect_fail = TRUE;
   return TRUE;
 }
 
 #ifdef _CSPEC_USE_MEMORY_TESTING_
-static bool memory_directive_warning() {
+static csBool memory_directive_warning() {
   if (!param_memory_test) {
     _test_warn_fn(0xFFFFFFFF,
       "warning: expecting memory errors, but memory testing is disabled"
@@ -1261,12 +1270,12 @@ static bool memory_directive_warning() {
 }
 #endif
 
-bool _test_memory_expect_to_fail() {
+csBool _test_memory_expect_to_fail() {
 #ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
     return !test_in_progress;
-  } else unless(param_no_expect_fail)
+  } else if(!(param_no_expect_fail))
     memory_expect_error = TRUE;
   return TRUE;
 #else
@@ -1275,7 +1284,7 @@ bool _test_memory_expect_to_fail() {
 #endif
 }
 
-bool _test_memory_malloc_null(bool only_once) {
+csBool _test_memory_malloc_null(csBool only_once) {
 #ifdef _CSPEC_USE_MEMORY_TESTING_
   if (memory_directive_warning()) {
     test_skip = TRUE;
@@ -1350,7 +1359,7 @@ static void process_function(const TestGroup* t) {
   before_fn(t);
   int prev_line;
 
-  loop {
+  while (TRUE) {
     before_pass();
     prev_line = test_current_line;
 
@@ -1358,7 +1367,7 @@ static void process_function(const TestGroup* t) {
     t->group_fn();
     test_in_function = FALSE;
 
-    until (!test_in_progress && prev_line == test_current_line);
+    if (!test_in_progress && prev_line == test_current_line) break;
 
     _test_end();
   }
@@ -1389,7 +1398,7 @@ void test_run_suite(const TestSuite* suite) {
   current_suite = NULL;
 }
 
-static bool process_args(int argc, char* argv[]) {
+static csBool process_args(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
     char* arg = argv[i];
 
@@ -1442,7 +1451,7 @@ static bool process_args(int argc, char* argv[]) {
         if (i + 1 < argc) {
           char* param = argv[++i];
           int as_i = cspec_atoi(param);
-          param_tabsize = MAX(as_i, 0);
+          param_tabsize = as_i > 0 ? as_i : 0;
         } else {
           output("--tab-size requires a number as an argument");
           return TRUE;

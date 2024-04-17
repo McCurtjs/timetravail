@@ -69,15 +69,25 @@ typedef size_t jshandle;
 //      until (condition);
 //      // do stuff each iteration after the conditional check
 //    }
-#define loop while (TRUE)
-#define until(condition) if (condition) break;
-#define unless(condition) if (!(condition))
 
-#define MACRO_CONCAT_RECUR(X, Y) X ## Y
-#define MACRO_CONCAT(X, Y) MACRO_CONCAT_RECUR(X, Y)
+#ifndef loop
+# define loop while (TRUE)
+# define until(condition) if (condition) break;
+#endif
 
-#define STR_RECUR(S) #S
-#define STR(S) STR_RECUR(S)
+#ifndef unless
+# define unless(condition) if (!(condition))
+#endif
+
+#ifndef MACRO_CONCAT
+# define MACRO_CONCAT_RECUR(X, Y) X ## Y
+# define MACRO_CONCAT(X, Y) MACRO_CONCAT_RECUR(X, Y)
+#endif
+
+#ifndef STR
+# define STR_RECUR(S) #S
+# define STR(S) STR_RECUR(S)
+#endif
 
 // Squelches warnings about unused parameters.
 // Ideally, for GCC and Clang this should be __attribute__((unused)) in the
