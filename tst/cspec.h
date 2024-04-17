@@ -1,7 +1,6 @@
 #ifndef _TST_H_
 #define _TST_H_
 
-//#include "types.h"
 #ifndef _TYPES_H_
 typedef _Bool bool;
 typedef unsigned int uint;
@@ -462,7 +461,7 @@ void _test_error_typed(
 #define _loop_all MACRO_CONCAT(_loop_all_, __LINE__)
 
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
-#define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, "context: %c["LINESTR"] "DESC);) if (_loop_ctx == 2) do { if (_test_context_end(__LINE__)) return; } while(0); else
+#define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, "context: %c["LINESTR"] "DESC);) if (_loop_ctx == 2) { if (_test_context_end(__LINE__)) return; } else
 #define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, "test %c["LINESTR"] "DESC);)
 #define _after for (int _loop_ctx = 0; _loop_ctx++ < 1 && _test_active();)
 

@@ -185,7 +185,7 @@ extern TestSuite tests_string;
 // Main
 
 #ifdef __WASM__
-static char* argv[] = {"WASM", "-v", "-f"};
+static char* argv[] = {"WASM", "-v"};
 static int argc = sizeof(argv) / sizeof(char*);
 int export(wasm_tests) ()
 #else

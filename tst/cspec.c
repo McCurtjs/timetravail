@@ -16,14 +16,14 @@
 extern void js_log(const char* str, unsigned len, int color);
 
 typedef enum {
-  CONCOL_Black   = 0x000000,
-  CONCOL_Red     = 0xff0000,
-  CONCOL_Green   = 0x00ff00,
-  CONCOL_Yellow  = 0xffff00,
-  CONCOL_Blue    = 0x0000ff,
-  CONCOL_Purple  = 0xff00ff,
-  CONCOL_Cyan    = 0x00ffff,
-  CONCOL_White   = 0xffffff,
+  CONCOL_Black   = 0x0000000,
+  CONCOL_Red     = 0x0ff0000,
+  CONCOL_Green   = 0x000ff00,
+  CONCOL_Yellow  = 0x0ffff00,
+  CONCOL_Blue    = 0x00000ff,
+  CONCOL_Purple  = 0x0ff00ff,
+  CONCOL_Cyan    = 0x000ffff,
+  CONCOL_White   = 0x0ffffff,
   CONCOL_bBlack  = 0x1000000,
   CONCOL_bRed    = 0x1ff0000,
   CONCOL_bGreen  = 0x100ff00,
@@ -86,6 +86,7 @@ static bool test_skip = FALSE;
 static int test_current_line = 0;
 static int test_count = 0;
 static int test_passed_count = 0;
+static int test_warnings_count = 0;
 
 static Verbosity param_verbose = V_NONE;
 static int param_line = 0;
@@ -497,7 +498,7 @@ static void memory_test_reset(bool enable) {
     cspec_memset(_memory, 0xFF, memory_size_barrier);
     cspec_memset(memory, 'X', memory_size_max);
     cspec_memset(
-      _memory + memory_size_barrier + memory_size_max, 
+      _memory + memory_size_barrier + memory_size_max,
       0xFF, memory_size_barrier
     );
   }
@@ -775,25 +776,27 @@ typedef struct Context {
   const char* desc;
   bool printed;
   bool requested_context;
-  struct Context* prev;
-  struct Context* next;
 } Context;
 
-Context ctx_stack_root = {
-  .desc = "<root context>",
-  .printed = FALSE,
-  .requested_context = FALSE,
-  .prev = NULL,
-  .next = NULL,
-};
+#ifndef cspec_ctx_stack_size_max
+# define cspec_ctx_stack_size_max 20
+#endif
 
-// Pointer to the top of the stack.
-// The stack is cleared between each test group. Root node cannot be popped.
-static Context* ctx_stack_top = &ctx_stack_root;
+static Context ctx_stack[cspec_ctx_stack_size_max] = {
+  {
+    .desc = "<root context>",
+    .printed = FALSE,
+    .requested_context = FALSE,
+  }
+};
 
 // Iterator through the stack.
 // This is reset to the root between each each call to the test function.
-static Context* ctx_stack_ptr = NULL;
+static int ctx_stack_index = 0;
+
+// Index of the top of the stack.
+// The stack is cleared between each test group. Root node cannot be popped.
+static int ctx_stack_top = 0; // rename to ctx_stack_top
 
 // Called whenever the test enters a "context()" block
 bool _test_context_begin(int line, const char* desc) {
@@ -806,14 +809,16 @@ bool _test_context_begin(int line, const char* desc) {
 
   // On each pass of the test function, we have to walk up the stack. If our
   // context is already there, don't create a duplicate of it.
-  if (ctx_stack_ptr->next && ctx_stack_ptr->next->desc == desc) {
-    ctx_stack_ptr = ctx_stack_ptr->next;
+  if (ctx_stack_index < ctx_stack_top
+  && ctx_stack[ctx_stack_index + 1].desc == desc
+  ) {
+    ++ctx_stack_index;
     return TRUE;
   }
 
   // If we're completing execution of the context, we expect it to be at the
   // top of the stack
-  if (ctx_stack_ptr->desc == desc) {
+  if (ctx_stack[ctx_stack_index].desc == desc) {
     return TRUE;
   }
 
@@ -825,7 +830,7 @@ bool _test_context_begin(int line, const char* desc) {
 
   // Any other context on the stack should still be open (and thus already
   // passed by the stack ptr), or have already closed out and be gone.
-  assert(ctx_stack_ptr == ctx_stack_top);
+  assert(ctx_stack_index == ctx_stack_top);
 
   // If this context's line was specified in the input params, run all the
   // tests in this context, and end the tests as soon as it's popped.
@@ -839,19 +844,25 @@ bool _test_context_begin(int line, const char* desc) {
   // (not strictly necessary, but good for bookkeeping?)
   test_current_line = line;
 
+  // Make sure we won't overflow the stack if we add another context
+  if (ctx_stack_top + 1 >= cspec_ctx_stack_size_max) {
+    _test_warn_fn(line,
+      "context error:%c Too many nested contexts - maximum depth allowed: "
+      STR(cspec_ctx_stack_size_max)
+    );
+    _test_warn_fn(line,
+      "%cStack limit can be increased by defining cspec_ctx_stack_size_max"
+    );
+    return FALSE;
+  }
+
   // If we get here, we are entering a context for the first time.
-  ctx_stack_top = malloc(sizeof(Context));
-  ctx_stack_ptr->next = ctx_stack_top;
-
-  *ctx_stack_top = (Context) {
+  ctx_stack_index = ++ctx_stack_top;
+  ctx_stack[ctx_stack_index] = (Context) {
     .desc = desc,
-    .printed = false,
-    .requested_context = is_requested,
-    .prev = ctx_stack_ptr,
-    .next = NULL,
+    .printed = FALSE,
+    .requested_context = is_requested
   };
-
-  ctx_stack_ptr = ctx_stack_top;
 
   return TRUE;
 }
@@ -883,35 +894,23 @@ bool _test_context_end(int line) {
   // Once we pop a specifically requested context, end the tests.
   // If we're in verbose mode, we want to still go thorugh them all to print
   // the descriptions of un-run tests.
-  if (ctx_stack_top->requested_context) {
+  if (ctx_stack[ctx_stack_top].requested_context) {
     param_line = -1;
   }
 
   // Make sure we're not trying to pop the stack root
-  assert(ctx_stack_top->prev != NULL);
+  assert(ctx_stack_top != 0);
 
   // Pop the context from the stack
-  Context* tmp = ctx_stack_top;
-  ctx_stack_top = tmp->prev;
-  ctx_stack_top->next = NULL;
-  free(tmp);
+  ctx_stack_index = --ctx_stack_top;
 
   return TRUE;
 }
 
 // Called between each test group, after all passes on a function are completed
 static void context_clear_stack() {
-  Context* ctx = ctx_stack_root.next;
-  ctx_stack_root.next = NULL;
-
-  while (ctx) {
-    Context* tmp = ctx->next;
-    free(ctx);
-    ctx = tmp;
-  }
-
-  ctx_stack_ptr = &ctx_stack_root;
-  ctx_stack_top = &ctx_stack_root;
+  ctx_stack_top = 0;
+  ctx_stack_index = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -937,17 +936,17 @@ static int print_headers(
     test_function_printed = TRUE;
   }
 
-  Context* ctx = &ctx_stack_root;
+  Context* ctx;
   int level = 2;
-  while (ctx->next) {
-    ctx = ctx->next;
+  for (int i = 1; i <= ctx_stack_top; ++i) {
+    ctx = &ctx_stack[i];
     if (!ctx->printed) {
       output_pad(param_tabsize * level, ' ');
       output_str(ctx->desc);
       output_print_color(CONCOL_Cyan);
       ctx->printed = TRUE;
     }
-    level += 1;
+    ++level;
   }
 
   if (test_desc_printed < desc_level) {
@@ -982,13 +981,14 @@ void _test_log_fn(int line, const char* message) {
 }
 
 void _test_warn_fn(int line, const char* message) {
-  if (test_current_line && test_current_line >= line) {
+  if (test_current_line && test_current_line > line) {
     return;
   }
   int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
   output_pad(param_tabsize * level, ' ');
   output_str(message);
   output_print_color(CONCOL_Yellow);
+  ++test_warnings_count;
 }
 
 static int test_error_no_fail(const char* message, bool is_mem_err) {
@@ -1112,9 +1112,11 @@ static void resolve_param(const char* typ_N, const void* N) {
   else if
   (  cspec_strcmp(typ_N, "char")
   || cspec_strcmp(typ_N, "unsigned char")
-  || cspec_strcmp(typ_N, "byte")
   ) {
-    output_char(*(char*)N);
+    output_char(*(const char*)N);
+  }
+  else if (cspec_strcmp(typ_N, "byte")) {
+    output_hex(*(const char*)N);
   }
 }
 
@@ -1194,7 +1196,6 @@ bool _test_end() {
     return FALSE;
   }
 
-  // TODO: I don't think we need to check test_blank anymore (thanks to in_prog)
   if (!test_failed) {
     memory_final_checks();
   }
@@ -1322,6 +1323,7 @@ int _test_memory_free_count() {
 static void before_run() {
   test_count = 0;
   test_passed_count = 0;
+  test_warnings_count = 0;
 }
 
 static void before_suite(const TestSuite* suite) {
@@ -1333,10 +1335,12 @@ static void before_suite(const TestSuite* suite) {
 static void before_fn(const TestGroup* t) {
   test_function_printed = FALSE;
   test_function = t;
+  test_current_line = 0;
+  assert(ctx_stack_top == 0);
 }
 
 static void before_pass() {
-  ctx_stack_ptr = &ctx_stack_root;
+  ctx_stack_index = 0;
   test_expect_fail = FALSE;
   test_skip = FALSE;
   memory_test_reset(param_memory_test);
@@ -1344,7 +1348,6 @@ static void before_pass() {
 
 static void process_function(const TestGroup* t) {
   before_fn(t);
-  test_current_line = 0;
   int prev_line;
 
   loop {
@@ -1481,11 +1484,17 @@ int _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]) {
   }
 
   if (test_count) {
+    ConsoleColor color = (test_count == test_passed_count) ? CONCOL_bGreen : CONCOL_bRed;
     output_str("Tests passed:%c {} out of {}, or {}%");
     output_sint(test_passed_count);
     output_sint(test_count);
     output_sint((int)(100.f * (float)test_passed_count / (float)test_count));
-    output_print_color(test_count == test_passed_count ? CONCOL_bGreen : CONCOL_bRed);
+    if (test_warnings_count) {
+      output_str(" - warnings: ");
+      output_sint(test_warnings_count);
+      if (color == CONCOL_bGreen) color = CONCOL_bYellow;
+    }
+    output_print_color(color);
   } else {
     output_str("Tests passed:%c 0 out of 0");
     output_print_color(CONCOL_bYellow);

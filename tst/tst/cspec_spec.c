@@ -126,6 +126,19 @@ describe(memory) {
       str_new("This allocates a string without deleting");
     }
 
+#ifdef malloc
+    it("passes a bad pointer to realloc") {
+      char* buffer = realloc((void*)1, 5);
+      free(buffer);
+    }
+
+    it("tries to free memory outside of the sandbox") {
+      int x = 0;
+      free(&x);
+    }
+#endif
+
+#if defined(malloc) || !defined(_MSC_VER)
     it("causes a buffer overrun") {
       char* buffer = malloc(5);
       assert(buffer);
@@ -141,18 +154,6 @@ describe(memory) {
       free(buffer);
     }
 
-#ifdef malloc
-    it("passes a bad pointer to realloc") {
-      char* buffer = realloc((void*)1, 5);
-      free(buffer);
-    }
-
-    it("tries to free memory outside of the sandbox") {
-      int x = 0;
-      free(&x);
-    }
-#endif
-
     it("tries to free the wrong address within allocated memory") {
       char* buffer = malloc(5);
       free(buffer + 1);
@@ -165,6 +166,7 @@ describe(memory) {
       free(buffer);
       buffer[2] = '!';
     }
+#endif
 
     //it("tries to allocate too much memory (can't be ignored with directive)") {
     //  char* buffer = malloc(999999);
