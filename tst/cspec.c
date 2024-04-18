@@ -229,7 +229,7 @@ static void output_pad(csUint until_pos, char c) {
   output_continue_format();
 }
 
-static void _output_uint_ignore_format(unsigned long int i) {
+static void _output_uint_ignore_format(unsigned long long int i) {
   if (output_index >= output_size) return;
   if (i == 0) {
     output_buffer[output_index++] = '0';
@@ -266,17 +266,17 @@ static void output_ptr(const void* ptr) {
   output_continue_format();
 }
 
-static void output_uint(unsigned long int i) {
+static void output_uint(unsigned long long int i) {
   _output_uint_ignore_format(i);
   output_continue_format();
 }
 
-static void output_sint(long int i) {
+static void output_sint(long long int i) {
   if (i < 0) {
     output_buffer[output_index++] = '-';
     i *= -1;
   }
-  output_uint((unsigned long int)i);
+  output_uint((unsigned long long int)i);
 }
 
 static void output_float_p(double f, int precision) {
@@ -284,14 +284,14 @@ static void output_float_p(double f, int precision) {
     output_buffer[output_index++] = '-';
     f *= -1.0;
   }
-  unsigned long int integer_part = (unsigned long int)f;
+  unsigned long long int integer_part = (unsigned long long int)f;
   _output_uint_ignore_format(integer_part);
   f -= integer_part;
   if (f == 0.0) return;
   output_buffer[output_index++] = '.';
   for (int i = precision; i && f >= 0.00000000001; --i) {
     f *= 10.0;
-    integer_part = (unsigned long int)f;
+    integer_part = (unsigned long long int)f;
     output_buffer[output_index++] = '0' + (char)integer_part;
     f -= integer_part;
   }
@@ -978,6 +978,8 @@ void _test_log_fn(int line, const char* message) {
   }
   int level = print_headers(CONCOL_bWhite, LOGGED, NULL);
   output_pad(param_tabsize * level, ' ');
+  output_str("line {}: ");
+  output_sint(line);
   output_str(message);
   output_print();
 }
@@ -988,6 +990,8 @@ void _test_warn_fn(int line, const char* message) {
   }
   int level = print_headers(CONCOL_Yellow, LOGGED, NULL);
   output_pad(param_tabsize * level, ' ');
+  output_str("line {}:%c ");
+  output_sint(line);
   output_str(message);
   output_print_color(CONCOL_Yellow);
   ++test_warnings_count;
@@ -1035,7 +1039,7 @@ static int _test_error_mem(const char* message, const MemoryRecord* record) {
 
 resolve_user_types_fn resolve_user_types = NULL;
 
-static void resolve_param(const char* typ_N, const void* N) {
+static csBool resolve_param(const char* typ_N, const void* N) {
 
   if (resolve_user_types) {
     csUint written = resolve_user_types(&typ_N, N,
@@ -1045,7 +1049,7 @@ static void resolve_param(const char* typ_N, const void* N) {
     if (written) {
       output_index += written;
       output_continue_format();
-      return;
+      return TRUE;
     }
   }
 
@@ -1058,15 +1062,30 @@ static void resolve_param(const char* typ_N, const void* N) {
   ||  cspec_strcmp(typ_N, "const csByte*")
   ||  cspec_strcmp(typ_N, "const unsigned char*")
   ) {
+    const char* tmp = output_fmt;
+    output_fmt = NULL;
+    output_char('"');
     output_str(*(const char**)N);
+    output_char('"');
+    output_fmt = tmp;
+    output_continue_format();
   }
   else if (cspec_strrstr(typ_N, "*")
   ||  cspec_strrstr(typ_N, "_ptr")
   ) {
     output_ptr(*(const void**)N);
   }
-  else if (cspec_strcmp(typ_N, "int")) {
-    output_sint(*(const int*)N);
+  else if
+  (  cspec_strcmp(typ_N, "char")
+  || cspec_strcmp(typ_N, "unsigned char")
+  ) {
+    output_char(*(const char*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "byte")
+  || cspec_strcmp(typ_N, "csByte")
+  ) {
+    output_hex(*(const char*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "short")
@@ -1074,11 +1093,34 @@ static void resolve_param(const char* typ_N, const void* N) {
   ) {
     output_sint(*(const short int*)N);
   }
+  else if (cspec_strcmp(typ_N, "int")) {
+    output_sint(*(const int*)N);
+  }
   else if
   (  cspec_strcmp(typ_N, "long")
   || cspec_strcmp(typ_N, "long int")
+#ifdef __WASM__
+  || cspec_strcmp(typ_N, "size_t")
+#endif
   ) {
     output_sint(*(const long int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "llong")
+  || cspec_strcmp(typ_N, "long long")
+  || cspec_strcmp(typ_N, "long long int")
+#ifndef __WASM__
+    || cspec_strcmp(typ_N, "size_t")
+#endif
+  ) {
+    output_sint(*(const long long int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "ushort")
+  || cspec_strcmp(typ_N, "unsigned short")
+  || cspec_strcmp(typ_N, "unsigned short int")
+  ) {
+    output_uint(*(const unsigned short*)N);
   }
   else if
   (  cspec_strcmp(typ_N, "uint")
@@ -1089,18 +1131,18 @@ static void resolve_param(const char* typ_N, const void* N) {
     output_uint(*(const unsigned int*)N);
   }
   else if
-  (  cspec_strcmp(typ_N, "ushort")
-  || cspec_strcmp(typ_N, "unsigned short")
-  || cspec_strcmp(typ_N, "unsigned short int")
-  ) {
-    output_uint(*(const unsigned short*)N);
-  }
-  else if
-  (  cspec_strcmp(typ_N, "unsigned long")
+  (  cspec_strcmp(typ_N, "ulong")
+  || cspec_strcmp(typ_N, "unsigned long")
   || cspec_strcmp(typ_N, "unsigned long int")
-  || cspec_strcmp(typ_N, "size_t")
   ) {
     output_uint(*(const unsigned long int*)N);
+  }
+  else if
+  (  cspec_strcmp(typ_N, "ullong")
+  || cspec_strcmp(typ_N, "unsigned long long")
+  || cspec_strcmp(typ_N, "unsigned long long int")
+  ) {
+    output_uint(*(const unsigned long long int*)N);
   }
   else if (cspec_strcmp(typ_N, "float")) {
     output_float(*(const float*)N);
@@ -1115,21 +1157,16 @@ static void resolve_param(const char* typ_N, const void* N) {
   ) {
     output_bool(*(csBool*)N);
   }
-  else if
-  (  cspec_strcmp(typ_N, "char")
-  || cspec_strcmp(typ_N, "unsigned char")
-  ) {
-    output_char(*(const char*)N);
+  else {
+    output_str("<unknown_type>");
+    return FALSE;
   }
-  else if
-  (  cspec_strcmp(typ_N, "byte")
-  || cspec_strcmp(typ_N, "csByte")
-  ) {
-    output_hex(*(const char*)N);
-  }
+
+  return TRUE;
 }
 
 void _test_error_typed(
+  int line,
   const char* prefix, const char* fmt,
   const void* A, const void* B,
   const char* typ_A, const char* typ_B
@@ -1152,13 +1189,41 @@ void _test_error_typed(
 
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
   output_pad(param_tabsize * level, ' ');
+  output_str("line {}: ");
+  output_sint(line);
   output_str(prefix);
   output_str(fmt);
 
-  if (A && typ_A) resolve_param(typ_A, A);
-  if (B && typ_B) resolve_param(typ_B, B);
+  csBool resolved_A = TRUE;
+  csBool resolved_B = TRUE;
 
+  if (A && typ_A) resolved_A = resolve_param(typ_A, A);
+  if (B && typ_B) resolved_B = resolve_param(typ_B, B);
+
+  if (A) {
+    output_str(" : ( ");
+    output_str(typ_A);
+
+    if (B) {
+      output_str(", ");
+      output_str(typ_B);
+    }
+
+    output_str(" )");
+  }
   output_print();
+
+  if (!resolved_A || !resolved_B) {
+    _test_warn_fn(line, "Failed to resolve type:");
+    output_pad(param_tabsize * level, ' ');
+    output_str("line {}:%c consider adding {} handler to resolve_user_types");
+    output_sint(line);
+    if (resolved_A)
+      output_str(typ_B);
+    else
+      output_str(typ_A);
+    output_print_color(CONCOL_Yellow);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1359,7 +1424,7 @@ static void process_function(const TestGroup* t) {
   before_fn(t);
   int prev_line;
 
-  while (TRUE) {
+  for ( ; ; ) {
     before_pass();
     prev_line = test_current_line;
 

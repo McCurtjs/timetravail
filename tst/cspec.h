@@ -1,7 +1,7 @@
 #ifndef _CSPEC_H_
 #define _CSPEC_H_
 
-typedef char csBool;
+typedef _Bool csBool;
 typedef unsigned int csUint;
 typedef unsigned char csByte;
 
@@ -160,9 +160,6 @@ void test_run_suite(const TestSuite* suite);
 //    applies to all included tests and will be printed along with their output.
 #define context(DESC)             _context(DESC)
 
-// \brief Closes a test context
-#define context_end               _context_end
-
 ////////////////////////////////////////////////////////////////////////////////
 // Logging
 ////////////////////////////////////////////////////////////////////////////////
@@ -211,12 +208,14 @@ void test_run_suite(const TestSuite* suite);
 //    the string equivalent of `condition`. The benefit of course is that this
 //    can be used for just about anything.
 //
-// \param - `expect(A, operator, B);` - ex: `expect(a, == , b);` - Same as
-//    above, but with options separated by commas.
+// \param - `expect(A, operator, B);` - ex: `expect(a, == , b);` - Similar to
+//    the above, but with options separated by commas. The values passed in this
+//    form will be assumed to be _and converted to_ ints, and will be written to
+//    the output in the case of a failed expectation.
 //
 // \param - `expect(A, operator, B, TYPE);` - ex: `expect(a, < , b, float);`
-//    Same as above, but A and B must be convertable to type TYPE, and will have
-//    their values printed in addition to the expression.
+//    Same as above, but A and B will be converted to TYPE, and will have their
+//    values printed in addition to the expression.
 //
 // \param - `expect(A, operator, B, type_A, type_B)` - Same as above, but
 //    A and B are treated as separate types for output.
@@ -227,6 +226,15 @@ void test_run_suite(const TestSuite* suite);
 // \param - `expect(A to <matcher>)` - ex: `expect(a to be_positive);` - Tests
 //    the value of A against the given matcher expression. Matchers can be made
 //    in a variety of forms, and are described individaully below.
+//
+// \param - `expect(cont to all(<matcher>, TYPE, TYPE_CON));` - Tests all values
+//    of the given container `cont` against the given matcher. See description
+//    of `all` for details.
+//
+// \param - `expect(cont to all_be(operator, B, TYPE, TYPE_CON));` - Tests all
+//    values of the given container `cont` against the expression described by
+//    `<element> operator B` (ex: `arr[n] > 5`). See description of `all_be`
+//    for details.
 #define expect(...)               _expect(#__VA_ARGS__, __VA_ARGS__)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -334,36 +342,36 @@ void test_run_suite(const TestSuite* suite);
 // \param - `expect(value to be_about(5.0f));` - expects the value to be
 //    approximately 5.0f.
 #define be_about(N) be_within(be_about_epsilon, N, float, inclusive)
-#define be_about_epsilon 0.0001f
+
+#ifndef be_about_epsilon
+# define be_about_epsilon 0.0001f
+#endif
 
 // \brief The `all` parameter is a composite matcher that applies the condition
 //    of the given matcher to all elements in a container. All values in the
 //    container must satisfy the condition in order to pass.
 //
 // \brief In order to function, the container must support a "foreach_index"
-//    macro that takes the form (using array for example),
-//    `int* array_foreach_index(iter_name, index_tracker_name, arr) {...}`.
+//    macro that functions in the same way as c_array_foreach_index.
 //
-// \brief Given that definition for iterating an `array` class, the expect all
-//    check would look like: `expect(arr to all(be_positive, int, array));`.
+// \brief Example: `expect(arr to all(be_positive, int, c_array));`
 //
 // \param matcher - A regular matcher, such as be_positive, or be_within(A, B).
 //
-// \param T_elem - The type of the elements in the container. Note: this
-//    should be the actual type of the elements in the container, not the
-//    pointer type expected to be returned from TYPE_get().
+// \param T_elem - The type of the elements in the container. Note: this should
+//    be the actual type of the elements in the container, not the pointer type
+//    expected to be returned from, say, TYPE_get() (ie, void).
 //
-// \param T_cont - The type of container. This value is not the actual
-//    type name of the container's struct, but an associated prefix expected to
-//    be used by functions associated with that type. For example, the
-//    aforementioned "array_get" function is associated with the struct `Array`.
+// \param T_cont - The type of container. This value is not the actual type name
+//    of the container's struct, but the associated prefix before a
+//    _foreach_index macro (ex: c_array)
 #define all(matcher, T_elem, T_cont) _all(matcher, T_elem, T_cont)
 
 // \brief The `all_be` matcher is similar to the `all` matcher, but rather than
 //    composing other matchers, it applies a basic expression to every element
 //    in the container, as if calling `expect(<expression>)` on them.
 //
-// \brief Example: expect(arr to all_be( > , 7, int, array));
+// \brief Example: `expect(arr to all_be( > , 7, int, c_array));`
 //
 // \param op - A basic C comparison operator (==, !=, >, <, >=, <=)
 //
@@ -372,9 +380,58 @@ void test_run_suite(const TestSuite* suite);
 // \T_elem - The type of the elements of the container
 //
 // \T_cont - The type of the container. Like with the `all` matcher, this is not
-//    an actual type name of an object/struct, but a standard prefix used by
-//    functions associated with the type (ie: array_get(...))
+//    an actual type name of an object/struct, but a prefix used by associated
+//    functions, in particular the foreach_index macro.
 #define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
+
+#ifndef c_array_foreach_index
+// \brief A macro to provide an indexed foreach that can be used to iterate over
+//    a standard C-style array (ex: `int test_array[] = { ... }`).
+//
+// \brief This style macro is used by the `all` matchers to enumerate containers
+//    and should be replicated for any other containers you want to support with
+//    expect(all).
+//
+// \brief The basic usage (outside the context of testing) is:
+//    `int* c_array_foreach_index(it, i, test_array) { *it = i; }`
+//    (sets array values to ascending order: [0, 1, 2, 3, 4, 5, ...])
+//
+// \param it - The name of the iterating pointer into the container, accessible
+//    within the body of the loop. The type of the iterator is set before the
+//    macro (as a pointer).
+//
+// \param i - The name of a variable that will hold a sequential index. This
+//    may not be necessary to access elements in other containers, but can be
+//    nice to have to know what iteration a loop is on (used for test output).
+//
+// \param arr - The container to iterate over, in this case, a C-style array
+//    delcared with the form `type arr[n]`.
+#define c_array_foreach_index(it, i, arr)                                     \
+  it = NULL;                                                                  \
+  for (csUint i = 0; i < ARRAY_COUNT(arr) ? (it = &arr[i]), 1 : 0; ++i)       //
+#endif
+
+#ifndef c_array_ptr_foreach_index
+// \brief A macro to provide an indexed foreach that can be used to iterate over
+//    a C-style array referenced by a pointer type (ex: `char* test = "..."`);
+//
+// \brief This is similar to the c_array_foreach_index macro, but expects a size
+//    value to be set alongside the given array. The size is expected to be an
+//    integer value with the same name as the input array with the suffix _size
+//    (ex: test_size). The size denotes the number of elements, not the size of
+//    the whole array in bytes.
+//
+// \param it - The name of the iterating pointer into the container, accessible
+//    within the body of the loop.
+//
+// \param i - The name of an index variable that will increase by one each loop.
+//
+// \param arr - A pointer to a C-style array whose quantity of elements is
+//    denoted in a variable named `arr_size`.
+#define c_array_ptr_foreach_index(it, i, arr)                                 \
+  it = NULL;                                                                  \
+  for (csUint i = 0; i < MACRO_CONCAT(arr, _size) ? (it = &arr[i]), 1 : 0; ++i)
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Other
@@ -440,11 +497,11 @@ extern resolve_user_types_fn resolve_user_types;
 #endif
 
 #ifndef TRUE
-# define TRUE 1
+# define TRUE ((csBool)1)
 #endif
 
 #ifndef FALSE
-# define FALSE 0
+# define FALSE ((csBool)0)
 #endif
 
 #ifndef MACRO_CONCAT
@@ -456,6 +513,14 @@ extern resolve_user_types_fn resolve_user_types;
 # define STR_RECUR(S) #S
 # define STR(S) STR_RECUR(S)
 #endif
+
+#ifndef ARRAY_COUNT
+# define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(*arr))
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+// I warned you, turn back now, it gets ugly.
+////////////////////////////////////////////////////////////////////////////////
 
 csBool  _test_begin(int line, const char* desc);
 csBool  _test_end();
@@ -471,17 +536,35 @@ csBool  _test_memory_malloc_null(csBool only_next);
 int     _test_memory_malloc_count();
 int     _test_memory_free_count();
 int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
-void    _test_error_typed(
+void    _test_error_typed(int line,
   const char* prefix, const char* fmt,
   const void* A, const void* B,
   const char* type_A, const char* type_B
 );
 
+////////////////////////////////////////////////////////////////////////////////
+// I warned you about MACROS bro!!! I told you dog!
+////////////////////////////////////////////////////////////////////////////////
+
 #define _test_run_all_suites(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
 #define LINESTR STR(__LINE__)
-#define _test_msg(msg, c) "line "LINESTR": "c msg
-#define _test_msg2(msg, fmt, c) "line "LINESTR": "c msg, fmt
+
+#define _type_s(X) _Generic((X),  void*:                "void*",    const void*:                "const void*",  \
+  _Bool:              "bool",     _Bool*:               "bool*",    const _Bool*:               "const bool*",  \
+  char:               "char",     char*:                "char*",    const char*:                "const char*",  \
+  short:              "short",    short*:               "short*",   const short*:               "const short*", \
+  int:                "int",      int*:                 "int*",     const int*:                 "const int*",   \
+  long:               "long",     long*:                "long*",    const long*:                "const long*",  \
+  long long:          "llong",    long long*:           "llong*",   const long long*:           "const llong*", \
+  float:              "float",    float*:               "float*",   const float*:               "const float*", \
+  double:             "double",   double*:              "double*",  const double*:              "const double*",\
+  unsigned char:      "byte",     unsigned char*:       "byte*",    const unsigned char*:       "const byte*",  \
+  unsigned short:     "ushort",   unsigned short*:      "ushort*",  const unsigned short*:      "const ushort*",\
+  unsigned int:       "uint",     unsigned int*:        "uint*",    const unsigned int*:        "const uint*",  \
+  unsigned long:      "ulong",    unsigned long*:       "ulong*",   const unsigned long*:       "const ulong*", \
+  unsigned long long: "ullong",   unsigned long long*:  "ullong*",  const unsigned long long*:  "const ullong*" \
+)                                                                                                               //
 
 #define _loop_tst MACRO_CONCAT(_loop_tst_, __LINE__)
 #define _loop_ctx MACRO_CONCAT(_loop_ctx_, __LINE__)
@@ -497,19 +580,19 @@ void    _test_error_typed(
 #define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=#TEST_FN, .group_fn = test_##TEST_FN }
 #define _test_suite_end { .line = NULL, .group_fn = NULL } })
 
-#define _test_log(message) _test_log_fn(__LINE__, _test_msg(message, ""))
-#define _test_warn(message) _test_warn_fn(__LINE__, _test_msg(message, "%c"))
-#define _test_fail(issue) do { _test_error_fn(_test_msg(issue, "")); return; } while(0)
-#define _test_fail_args(E, fmt, A, C, Ta, Tc) do { _test_error_typed(_test_msg(E, ""), fmt, A, C, #Ta, #Tc); return; } while(0)
-#define _test_fail_t(A, B, C, Ta, Tc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, Ta, Tc)
+#define _test_log(message) _test_log_fn(__LINE__, message)
+#define _test_warn(message) _test_warn_fn(__LINE__, message)
+#define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
+#define _test_fail_args(E, fmt, A, C, sTa, sTc) do { _test_error_typed(__LINE__, E, fmt, A, C, sTa, sTc); return; } while(0)
+#define _test_fail_t(A, B, C, sTa, sTc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, sTa, sTc)
 
-#define _expect_comp_all(S, A, B, C, F, T, ...) do { bool _test = F(A, B, C); if(!_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, T, uint); } while(0)
-#define _expect_type2(S, A, B, C, D, E, ...) do { D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, D, E); } while(0)
-#define _expect_type1(S, A, B, C, D, ...) do { D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, D, D); } while(0)
-#define _expect_true2(S, A, B, C, ...) _expect_type1(#A" "#B" "#C, A, B, C, int) // _expect_true(#A" "#B" "#C, (A) B (C))
-#define _expect_comp(S, A, B, ...) do { bool _test = B(A); if(!(_test)) _test_fail("expected "S); } while(0)
-#define _expect_true(S, A, ...) do { if(!(A)) _test_fail("expected "S); } while(0)
-#define _expect_va(S, A, B, C, D, E, _, F, ...) _expect##F(S, A, B, C, D, E)
+#define _expect_comp_all(S, A, B, C, F, T, ...) csBool _test = F(A, B, C); if(!_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, #T, "uint")
+#define _expect_type2(S, A, B, C, D, E, ...) D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #E)
+#define _expect_type1(S, A, B, C, D, ...) D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #D)
+#define _expect_true2(S, A, B, C, ...) typeof(A) _A=(A); typeof(C) _C=(C); if (!(_A B _C)) _test_fail_t(A, B, C, _type_s(A), _type_s(C))
+#define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("expected "S)
+#define _expect_true(S, A, ...) if(!(A)) _test_fail("expected "S)
+#define _expect_va(S, A, B, C, D, E, _, F, ...) do { _expect##F(S, A, B, C, D, E); } while(0)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
 #define _matcher_setup(B, C, D) FALSE; D _B = (B); D _C = (C); D _A =
@@ -530,7 +613,7 @@ void    _test_error_typed(
 #define _all_comp(A, B, C) _all_comp_part(A, B, C(*_iter_all))
 #define _all_be_comp(A, B, C) _all_comp_part(A, B, ((*_iter_all) C))
 
-#define _all_setup FALSE; bool _tmp = _test; csUint _index = 0; void* _pvalue = NULL;
+#define _all_setup FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL;
 #define _all(matcher, T_el, T_con) _all_setup T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
 #define _all_be(B, C, T_el, T_con) _all_setup T_el _C = (C); T_el* T_con##_foreach_index, B _C, _all_be_comp, T_el, 0
 

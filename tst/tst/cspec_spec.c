@@ -1,8 +1,11 @@
 
-
-#include "str.h"
 #include "cspec.h"
-#include <stdlib.h>
+
+#ifdef malloc
+# include <stdlib.h>
+#endif
+
+
 
 #ifdef _MSC_VER
 #pragma warning ( push )
@@ -15,17 +18,19 @@
 #endif
 describe(tests) {
 
-  test("an empty test that succeeds") { }
+  test("an empty test that succeeds");
+
+  it("can be described using either 'test' or 'it'");
 
   test("doesn't fail because a break; saves us from the fail statement") {
     break;
     test_fail("Can't reach this");
   }
 
-  // Blocking this one out because it's annoying
-  //it("prints a warning but doesn't fail") {
-  //  test_warn("The warning has been given. Their fate is now their own.");
-  //}
+  /* Blocking this one out because it's annoying
+  it("prints a warning but doesn't fail") {
+    test_warn("The warning has been given. Their fate is now their own.");
+  } //*/
 
   context("tests fail") {
 
@@ -44,15 +49,15 @@ describe(tests) {
       test_fail("Yep, it fails");
     }
 
-    //test("is expected to fail but succeeds, so it fails");
+    /* Blocking this one because of course it actually makes the test run fail
+    test("is expected to fail but succeeds, so it fails");
+    //*/
   }
 
 }
 #ifdef _MSC_VER
 #pragma warning ( pop )
-#endif
 
-#ifdef _MSC_VER
 #pragma warning ( push )
 // Disable MSVC warning about reading from unallocatd memory
 // Note: Why does it warn for _reading_ but not for _writing_, like wut.
@@ -60,11 +65,21 @@ describe(tests) {
 #endif
 describe(memory) {
 
-  context("tests succeed") {
+#ifndef malloc
 
+  test_log("Not doing any memory tests because malloc has not been defined");
+  test_log("In order to use memory testing/ASAN, use -Dmalloc=cspec_malloc");
+  test_log("or the equivalent to your compiler, and the same for free,");
+  test_log("realloc, and calloc.");
+
+#else
+
+  context("tests succeed") {
+    
     it("properly frees the memory after allocating") {
-      String s = str_new("This is a string being allocated");
-      str_delete(&s);
+      char* c = malloc(1);
+      c[0] = 0;
+      free(c);
     }
 
     it("fills memory without overrunning") {
@@ -123,7 +138,9 @@ describe(memory) {
     expect(memory_errors);
 
     it("allocates memory and never frees") {
-      str_new("This allocates a string without deleting");
+      char* test_mem = malloc(42);
+      const char copystr[] = "This allocates a string without deleting.";
+      const char* c_array_foreach_index(pc, i, copystr) test_mem[i] = *pc;
     }
 
 #ifdef malloc
@@ -168,10 +185,13 @@ describe(memory) {
     }
 #endif
 
-    //it("tries to allocate too much memory (can't be ignored with directive)") {
-    //  char* buffer = malloc(999999);
-    //  if (buffer) free(buffer);
-    //}
+    /* Blocking because it's an actual fail case (don't want tests succeeding
+    // while expecting them to fail in other ways, when they're actaully just
+    // failing because your memory space is too small.
+    it("tries to allocate too much memory (can't be ignored with memory_errors)") {
+      char* buffer = malloc(999999);
+      if (buffer) free(buffer);
+    } //*/
 
   }
 
@@ -189,6 +209,8 @@ describe(memory) {
 
   }
 
+#endif
+
 }
 #ifdef _MSC_VER
 #pragma warning ( pop )
@@ -198,9 +220,16 @@ describe(contexts) {
 
 }
 
+#ifndef PI
+#define PI 3.1415926535897932384626f
+#endif
+
+extern csBool cspec_strcmp(const char* A, const char* B);
+extern csBool cspec_strrstr(const char* s, const char* ends_with);
+
 describe(expect_basic) {
 
-  StringRange str1 = R("Test string");
+  const char* str = "Test string";
 
   context("using the basic format without commas") {
 
@@ -223,11 +252,11 @@ describe(expect_basic) {
       }
 
       test("string compare") {
-        expect(str_eq(str1, R("Test string")));
+        expect(cspec_strcmp(str, "Test string"));
       }
 
       test("more string funcs") {
-        expect(str_contains(str1, R("Test")));
+        expect(cspec_strrstr(str, "string"));
       }
 
     }
@@ -253,11 +282,11 @@ describe(expect_basic) {
       }
 
       test("string compare") {
-        expect(str_eq(str1, R("Something")));
+        expect(cspec_strcmp(str, "Something"));
       }
 
       test("more string funcs") {
-        expect(str_contains(str1, R("xyz")));
+        expect(cspec_strrstr(str, "strin"));
       }
 
     }
@@ -268,7 +297,7 @@ describe(expect_basic) {
 
 describe(expect_basic_triplet) {
 
-  //float pi = PI;
+  float pi = PI;
 
   context("using the basic format but with commas") {
 
@@ -282,18 +311,22 @@ describe(expect_basic_triplet) {
         expect(TRUE, != , FALSE);
       }
 
-      // Deafulting to int for output now
-      //test("float macro value") {
-      //  expect(PI, > , 1);
-      //}
+      test("float macro value") {
+        expect(PI, > , 1);
+      }
 
-      // Defaulting to int for output now
-      //test("float variable value") {
-      //  expect(pi, > , 1);
-      //}
+      test("float variable value") {
+        expect(pi, > , 1);
+      }
 
       test("using other operator") {
         expect(2, < , 3);
+      }
+
+      test("cmparing strings by address") {
+        const char* a = "indeterminate";
+        const char* b = "indeterminate";
+        expect(a, == , b);
       }
 
     }
@@ -307,14 +340,14 @@ describe(expect_basic_triplet) {
       }
 
       // Defaulting to int for output now
-      //test("float macro value (compare with output in expect_basic)") {
-      //  expect(PI, < , 1);
-      //}
+      test("float macro value (compare with output in expect_basic)") {
+        expect(PI, < , 1);
+      }
 
       // Defaulting to int for output now
-      //test("float variable value (compare with output in expect_basic)") {
-      //  expect(pi, < , 1);
-      //}
+      test("float variable value (compare with output in expect_basic)") {
+        expect(pi, < , 1);
+      }
 
       test("boolean (aka, macroed) values (compare with output in expect_basic)") {
         expect(TRUE, == , FALSE);
@@ -322,6 +355,12 @@ describe(expect_basic_triplet) {
 
       test("using other operator") {
         expect(2, > , 3);
+      }
+
+      test("comparing strings by address") {
+        const char* a = "this is";
+        const char* b = "not this";
+        expect(a, == , b);
       }
 
     }
@@ -349,16 +388,12 @@ describe(expect_basic_var_output) {
         expect(++incrementor, == , 2, int);
       }
 
-      test("using global value") {
-        expect(str_empty->size, == , 0, size_t);
-      }
-
       test("using floating point values") {
-        expect(PI, > , 1.0f, float);
+        expect(PI, > , 3.0f, float);
       }
 
       test("floating point variable output") {
-        expect(pi, > , 1.0f, float);
+        expect(pi, > , 3.0f, float);
       }
 
       test("two floating point variables - x has context specific value") {
@@ -366,7 +401,11 @@ describe(expect_basic_var_output) {
       }
 
       test("using boolean values") {
-        expect(TRUE, != , FALSE, bool);
+        expect(TRUE, != , FALSE, csBool);
+      }
+
+      test("changing context variables only applies to the current context") {
+        expect(x, > , 5.0f, float);
       }
 
       test("using different type specifiers") {
@@ -387,9 +426,11 @@ describe(expect_basic_var_output) {
         expect(++incrementor, == , 3, int);
       }
 
-      test("using global value") {
-        expect(str_empty->size, == , 1, size_t);
+#ifndef _MSC_VER
+      test("it converts the value explicitly") {
+        expect(pi, > , 3, int);
       }
+#endif
 
       test("using floating point values") {
         expect(PI, == , 1.0f, float);
@@ -404,7 +445,11 @@ describe(expect_basic_var_output) {
       }
 
       test("using boolean values") {
-        expect(TRUE, == , FALSE, bool);
+        expect(TRUE, == , FALSE, csBool);
+      }
+
+      test("changing context variables only applies to the current context") {
+        expect(x, > , 5.0f, float);
       }
 
       test("using different type specifiers") {
@@ -470,62 +515,62 @@ describe(matchers) {
 
 }
 
-#include "array.h"
+#define blah(v) _Generic((v), char: "char", String: "String", default: "other")
 
+#ifdef _MSC_VER
+#pragma warning ( push )
+#pragma warning ( disable : 4456 )
+#endif
 describe(container_matchers) {
 
   context("compositions on an int array [3, 5, 7]") {
 
-    Array arr = array_new(int);
-
-    array_push_back(arr, &(int){3});
-    array_push_back(arr, &(int){5});
-    array_push_back(arr, &(int){7});
+    int arr[] = { 3, 5, 7 };
 
     context("tests succeed") {
 
       it("contains only positive values") {
-        expect(arr to all(be_positive, int, array));
+        expect(arr to all(be_positive, int, c_array));
       }
 
       context("a negative number is added to the array [..., -1]") {
-        array_push_back(arr, &(int){-1});
+        int arr[] = { 3, 5, 7, -1 };
 
         it("does not contain only positive values") {
-          expect(arr to not all(be_positive, int, array));
+          expect(arr to not all(be_positive, int, c_array));
         }
       }
 
       it("contains values within 2 of 5") {
-        expect(arr to all(be_within(2 of 5), int, array));
+        expect(arr to all(be_within(2 of 5), int, c_array));
       }
 
       it("contains values that are not all within 2 of 6") {
-        expect(arr to not all(be_within(2 of 6), int, array));
+        expect(arr to not all(be_within(2 of 6), int, c_array));
       }
 
       it("contains all values which are not within 2 of 10") {
-        expect(arr to all(not be_within(2 of 10), int, array));
+        expect(arr to all(not be_within(2 of 10), int, c_array));
       }
 
       it("contains at least one value within 2 of 8") {
-        expect(arr to not all(not be_within(2 of 8), int, array));
+        expect(arr to not all(not be_within(2 of 8), int, c_array));
       }
 
       it("compares the values using the 'be' matcher") {
-        expect(arr to all_be( < , 10, int, array));
+        expect(arr to all_be( < , 10, int, c_array));
       }
 
       it("contains values not all equal to 3") {
-        expect(arr to not all_be( == , 3, int, array));
+        expect(arr to not all_be( == , 3, int, c_array));
       }
 
       it("contains values all not equal to 4") {
-        expect(arr to all_be( != , 4, int, array));
+        expect(arr to all_be( != , 4, int, c_array));
       }
 
       it("contains only non-even values") {
-        expect(arr to all_be( %2 != , 0, int, array));
+        expect(arr to all_be( %2 != , 0, int, c_array));
       }
 
     }
@@ -535,54 +580,57 @@ describe(container_matchers) {
       expect(to_fail);
 
       context("a negative number is added to the array [..., -1]") {
-        array_push_back(arr, &(int){-1});
+        int arr[] = { 3, 5, 7, -1 };
 
         it("contains only positive values") {
-          expect(arr to all(be_positive, int, array));
+          expect(arr to all(be_positive, int, c_array));
         }
 
         it("wants ONLY values that are not positive") {
-          expect(arr to all(not be_positive, int, array));
+          expect(arr to all(not be_positive, int, c_array));
         }
       }
 
       it("wants values only within 2 of 4") {
-        expect(arr to all(be_within(2 of 4), int, array));
+        expect(arr to all(be_within(2 of 4), int, c_array));
       }
 
       it("wants values that are not all within 2 of 5") {
-        expect(arr to not all(be_within(2 of 5), int, array));
+        expect(arr to not all(be_within(2 of 5), int, c_array));
       }
 
       it("wants only values which are not within 2 of 9") {
-        expect(arr to all(not be_within(2 of 9), int, array));
+        expect(arr to all(not be_within(2 of 9), int, c_array));
       }
 
       it("wants at least one value within 2 of 10") {
-        expect(arr to not all(not be_within(2 of 10), int, array));
+        expect(arr to not all(not be_within(2 of 10), int, c_array));
       }
 
       it("checks that all numbers are over 12") {
-        expect(arr to all_be( > , 12, int, array));
+        expect(arr to all_be( > , 12, int, c_array));
       }
 
       it("asks for not all numbers to be less than 10") {
-        expect(arr to not all_be( < , 10, int, array));
+        expect(arr to not all_be( < , 10, int, c_array));
       }
 
       it("contains at least one value equal to 4") {
-        expect(arr to not all_be( != , 4, int, array));
+        expect(arr to not all_be( != , 4, int, c_array));
       }
 
       it("wants at least one even value") {
-        expect(arr to not all_be(% 2 != , 0, int, array));
+        expect(arr to not all_be(% 2 != , 0, int, c_array));
       }
 
     }
 
-    array_delete(&arr);
   }
+
 }
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif
 
 describe(matcher_be_positive) {
 

@@ -361,18 +361,20 @@ describe(str_index_of) {
 
 describe(str_find) {
 	StringRange range = R("This is a string");
-	StringRange is = R("is");
 
 	it("finds an index") {
+		StringRange is = R("is");
 		expect((int)str_find(range, is), == , 2);
 	}
 
 	it("fails to find a substring that isn't present") {
-		expect((int)str_find(range, R("Not present")), == , 16);
+		StringRange np = R("not present");
+		expect((int)str_find(range, np), == , 16);
 	}
 
 	it("can find the first word in the string") {
-		expect((int)str_find(range, R("This")), == , 0);
+		StringRange This = R("This");
+		expect((int)str_find(range, This), == , 0);
 	}
 
 	expect(malloc_count == 0);

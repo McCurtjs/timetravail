@@ -14,7 +14,7 @@ if (WIN32)
 endif()
 
 if (MSVC)
-  target_compile_options(${PROJECT_NAME}_tests PRIVATE /W4 /WX)
+  target_compile_options(${PROJECT_NAME}_tests PRIVATE /W4 /WX /std:clatest)
 
   # These link warnings get thrown because of cspec_malloc and friends defined
   # in cspec.c as they get referenced by other objs.

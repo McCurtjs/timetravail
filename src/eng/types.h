@@ -13,10 +13,12 @@ typedef unsigned long size_t;
 # endif
 
 // Provide assert that works with wasm...
-# if __has_builtin(__builtin_trap)
-#  define assert(CONDITION) (!(CONDITION) ? __builtin_trap() : 0);
-# else
-#  define assert(CONDITION)
+# ifndef assert
+#	 if __has_builtin(__builtin_trap)
+#   define assert(CONDITION) (!(CONDITION) ? __builtin_trap() : 0);
+#  else
+#   define assert(CONDITION)
+#  endif
 # endif
 #else
 # include <corecrt.h>
