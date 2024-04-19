@@ -72,8 +72,8 @@ void string_tests() {
   array_delete(&ranges);
 
   str_print(str_substring(str_test_1, 1, 6));
-  str_print(str_substring(R("xHELLOyz"), 1, 6));
-  str_print(str_substring(R("xNO"), 1, 6));
+  str_print(str_substring("xHELLOyz", 1, 6));
+  str_print(str_substring("xNO", 1, 6));
 
   str_static(str_test_sub, "Static string for substr tests");
   str_print(str_substring(str_test_sub, 7));
@@ -148,8 +148,8 @@ void string_tests() {
   array_delete(&ranges);
   str_print(str_trim(R("     This string needs trimmed!   ")));
 
-  str_print(str_substring(R("Overload?"), 2));
-  str_print(str_substring(R("Overload?"), 2, 0));
+  str_print(str_substring("Overload?", 2));
+  str_print(str_substring("Overload?", 2, 0));
 
   tmp = str_from_bool(1);
   str_print(tmp->range);

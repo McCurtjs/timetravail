@@ -67,11 +67,13 @@ typedef struct TestSuite {
 //        }
 //
 
+#ifndef memory_size_max
 // \brief Test scratch-size for memory testing with malloc.
 //
 // \brief Note: This does not account for space for fences between allocations,
 //    the actual available space you can allocate will be lower.
 #define memory_size_max 4096
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Test setup

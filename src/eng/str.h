@@ -89,12 +89,21 @@ typedef struct _Str_Base {
   };
 }*String;
 
+#define _str_as_range(S) _Generic((S),  \
+  StringRange:  _str_range_r,           \
+  String:       _str_range_st,          \
+  char*:        str_range,              \
+  const char*:  str_range               \
+)(S)                                    //
+
 extern const String str_empty;
 extern const String str_true;
 extern const String str_false;
 
 StringRange str_range(const char* c_str);
 StringRange str_range_s(const char* c_str, size_t length);
+static inline StringRange _str_range_st(const String str) { return str->range; }
+static inline StringRange _str_range_r(StringRange range) { return range; }
 
 String str_new(const char* c_str);
 String str_new_s(const char* c_str, size_t length);
@@ -139,8 +148,8 @@ size_t str_find(StringRange str, StringRange to_find);
 //
 // \returns a StringRange as a substring of the input range.
 //
-#define     str_substring(str, ...) _STR_SUBSTR_(str, __VA_ARGS__, (str).size)
-#define     str_slice(str, ...)     _STR_SUBSTR_(str, __VA_ARGS__, (str).size)
+#define     str_substring(str, ...) _STR_SUBSTR(str, __VA_ARGS__)
+#define     str_slice(str, ...)     _STR_SUBSTR(str, __VA_ARGS__)
 StringRange str_trim(StringRange str);
 StringRange str_trim_start(StringRange str);
 StringRange str_trim_end(StringRange str);
@@ -179,7 +188,10 @@ String str_append(StringRange str, size_t length, char c);
 //String str_pad_right(StringRange str, size_t length, char c);
 
 StringRange _str_substring(StringRange str, int start, int end);
-#define _STR_SUBSTR_(STR, START, END, ...) _str_substring(STR, (int)START, (int)END)
+#define _STR_SUBSTR_VA(STR, START, END, ...) \
+  _str_substring(STR, (int)START, (int)END)
+#define _STR_SUBSTR(STR, ...) \
+  _STR_SUBSTR_VA(_str_as_range(STR), __VA_ARGS__, _str_as_range(STR).size)
 
 
 ////////////////////////////////////////////////////////////////////////////////

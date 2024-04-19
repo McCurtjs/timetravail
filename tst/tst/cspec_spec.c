@@ -323,11 +323,12 @@ describe(expect_basic_triplet) {
         expect(2, < , 3);
       }
 
-      test("cmparing strings by address") {
+      /* Might fail, might not, depends on how your compiler feels that day :P
+      test("comparing strings by address") {
         const char* a = "indeterminate";
         const char* b = "indeterminate";
         expect(a, == , b);
-      }
+      } //*/
 
     }
 
