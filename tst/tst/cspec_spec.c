@@ -1,11 +1,10 @@
 
+
 #include "cspec.h"
 
 #ifdef malloc
 # include <stdlib.h>
 #endif
-
-
 
 #ifdef _MSC_VER
 #pragma warning ( push )
@@ -117,6 +116,7 @@ describe(memory) {
 
     it("makes sure malloc sets non-zero memory") {
       int* buffer = malloc(sizeof(int) * 5);
+      test_log_memory(buffer);
       for (int i = 0; i < 5; ++i) {
         expect(buffer[i] != 0);
       }
@@ -295,7 +295,7 @@ describe(expect_basic) {
 
 }
 
-describe(expect_basic_triplet) {
+describe(expect_deduced_triplet) {
 
   float pi = PI;
 
@@ -340,12 +340,10 @@ describe(expect_basic_triplet) {
         expect(2, == , 3);
       }
 
-      // Defaulting to int for output now
       test("float macro value (compare with output in expect_basic)") {
         expect(PI, < , 1);
       }
 
-      // Defaulting to int for output now
       test("float variable value (compare with output in expect_basic)") {
         expect(pi, < , 1);
       }
@@ -516,8 +514,6 @@ describe(matchers) {
 
 }
 
-#define blah(v) _Generic((v), char: "char", String: "String", default: "other")
-
 #ifdef _MSC_VER
 #pragma warning ( push )
 #pragma warning ( disable : 4456 )
@@ -645,12 +641,12 @@ describe(matcher_be_within) {
 
 }
 
-test_suite_begin(tests_cspec) {
+test_suite(tests_cspec) {
   test_group(tests),
   test_group(memory),
   test_group(contexts),
   test_group(expect_basic),
-  test_group(expect_basic_triplet),
+  test_group(expect_deduced_triplet),
   test_group(expect_basic_var_output),
   test_group(matchers),
   test_group(container_matchers),

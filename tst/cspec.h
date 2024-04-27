@@ -121,8 +121,8 @@ typedef struct TestSuite {
 //    block should contain only `test_group` calls and end with `test_suite_end`
 //
 // \param NAME - NOT A STRING - The name of the test suite. This will later need
-//  to be given to the test_run functions to execute the tests.
-#define test_suite_begin(NAME)    _test_suite_begin(NAME)
+//    to be given to the test_run functions to execute the tests.
+#define test_suite(NAME)          _test_suite(NAME)
 
 // \brief Used within the block of test_suite_begin to add groups to the suite.
 //
@@ -193,6 +193,14 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param issue - String Literal: The error to print.
 #define test_fail(issue)          _test_fail(issue)
+
+// \brief Prints a block of test memory for debugging purposes.
+//
+// \param ptr - Any pointer within the walled garden test memory when testing
+//    is enabled. If given the exact return value from a malloc (cspec_malloc)
+//    call, will print the whole allocated segment. Any other pointer will print
+//    just three rows of 16 bytes (starting 16 before the requested pointer).
+#define test_log_memory(ptr)      _test_memory_log_block(__LINE__, ptr);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Value checking with "Expect"
@@ -316,7 +324,7 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param - `expect(value to be_between(A, B, TYPE, inclusive));` - same as
 //    previous, but can be explicitly specified as inclusive or exclusive.
-#define be_between(...) _be_between(__VA_ARGS__)
+#define be_between(...)           _be_between(__VA_ARGS__)
 
 // \brief This matcher will check if the test value is within a certain range
 //    of the target value. By default, the check is inclusive and assumes
@@ -331,7 +339,7 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param - `expect(value to be_within(A of B, TYPE, inclusive)); - same as
 //    above, but can be explicitly specified as inclusive or exclusive.
-#define be_within(...) _be_within(__VA_ARGS__)
+#define be_within(...)            _be_within(__VA_ARGS__)
 
 // \brief A little syntactic sugar for `be_within`, as a treat.
 //
@@ -377,14 +385,43 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param op - A basic C comparison operator (==, !=, >, <, >=, <=)
 //
-// \param value - The value to compare container elements with
+// \param value - The value to compare container elements with. If passed as an
+//    array with subscript [n], will function as a piecewise comparison - bounds
+//    will not be checked, so perform an expect(result.size == x) first.
+//    Note: this parameter is NOT side-effect safe; it will be evaluated in 
+//    every iteration of the loop.
 //
-// \T_elem - The type of the elements of the container
+// \param T_elem - The type of the elements of the container
 //
-// \T_cont - The type of the container. Like with the `all` matcher, this is not
-//    an actual type name of an object/struct, but a prefix used by associated
-//    functions, in particular the foreach_index macro.
+// \param T_cont - The type of the container. Like with the `all` matcher, this
+//    is not  an actual type  name of an object/struct,  but a prefix  used by
+//    associated functions, in particular the foreach_index macro.
 #define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
+
+// \brief The `all_match` matcher is similar to regular `all`, but composes the
+//    individual elements of the container with `value` using fn
+//
+// \brief Example: `expect(arr to all_match(str_eq, "string", int, c_array);`
+//
+// \brief in the example, `arr` contains strings, which will all be individually
+//    compared similarly to `expect(str_eq(arr[i], "string"))`
+//
+// \param fn - A function or macro that takes two parameters
+//
+// \param value - the RHS/second parameter that will be passed to the function.
+//    If passed as an array using subscript [n], will function as a piecewise
+//    comparison (ie, fn(arr[i], value[i]), fn(arr[i+1], value[i+1]), etc.).
+//    Note that bounds will not be checked on this array, so use 
+//    `expect(arr.size == x)` or similar first.
+//
+// \param T_el - The type of the container's elements.
+//
+// \param T_cont - The type of the container. Like with the `all` matcher, this
+//    is not the actual type name of an object/struct, but a prefix used by
+//    associated functions, in particular a foreach_index macro.
+#define all_match(fn, value, T_el, T_cont) _all_match(fn, value, T_el, T_cont)
+
+#define with ,
 
 #ifndef c_array_foreach_index
 // \brief A macro to provide an indexed foreach that can be used to iterate over
@@ -454,7 +491,7 @@ void test_run_suite(const TestSuite* suite);
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef csUint (*resolve_user_types_fn)
-  (const char** ptyp_N, const void* N, char* out, csUint out_size);
+  (const char** p_type, const void* value, char* out_buffer, csUint out_size);
 
 // \brief A function pointer that is initially null, but can be set by a user to
 //    describe how to print custom types without having to modify cspec.c.
@@ -524,25 +561,24 @@ extern resolve_user_types_fn resolve_user_types;
 // I warned you, turn back now, it gets ugly.
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <stdarg.h>
+
 csBool  _test_begin(int line, const char* desc);
-csBool  _test_end();
-csBool  _test_active();
+csBool  _test_end(void);
+csBool  _test_active(void);
 csBool  _test_context_begin(int line, const char* desc);
 csBool  _test_context_end(int line);
 void    _test_log_fn(int line, const char* messgae);
 void    _test_warn_fn(int line, const char* message);
 void    _test_error_fn(const char* message);
-csBool  _test_expect_to_fail();
-csBool  _test_memory_expect_to_fail();
+void    _test_error_typed(int line, const char* pfix, const char* fmt, ...);
+csBool  _test_expect_to_fail(void);
+csBool  _test_memory_expect_to_fail(void);
 csBool  _test_memory_malloc_null(csBool only_next);
-int     _test_memory_malloc_count();
-int     _test_memory_free_count();
+int     _test_memory_malloc_count(void);
+int     _test_memory_free_count(void);
+void    _test_memory_log_block(int line, const void* ptr);
 int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
-void    _test_error_typed(int line,
-  const char* prefix, const char* fmt,
-  const void* A, const void* B,
-  const char* type_A, const char* type_B
-);
 
 ////////////////////////////////////////////////////////////////////////////////
 // I warned you about MACROS bro!!! I told you dog!
@@ -550,9 +586,14 @@ void    _test_error_typed(int line,
 
 #define _test_run_all_suites(Suites) _test_run_all(sizeof(Suites) / sizeof(TestSuite*), Suites, argc, argv)
 
+#if __STDC_VERSION__ >= 201112
+# define _USE_DEDUCTION
+#endif
+
 #define LINESTR STR(__LINE__)
 
-#define _type_s(X) _Generic((X),  void*:                "void*",    const void*:                "const void*",  \
+#ifdef _USE_DEDUCTION
+# define _type_s(X) _Generic((X), void*:                "void*",    const void*:                "const void*",  \
   _Bool:              "bool",     _Bool*:               "bool*",    const _Bool*:               "const bool*",  \
   char:               "char",     char*:                "char*",    const char*:                "const char*",  \
   short:              "short",    short*:               "short*",   const short*:               "const short*", \
@@ -567,34 +608,41 @@ void    _test_error_typed(int line,
   unsigned long:      "ulong",    unsigned long*:       "ulong*",   const unsigned long*:       "const ulong*", \
   unsigned long long: "ullong",   unsigned long long*:  "ullong*",  const unsigned long long*:  "const ullong*" \
 )                                                                                                               //
+#endif
 
 #define _loop_tst MACRO_CONCAT(_loop_tst_, __LINE__)
 #define _loop_ctx MACRO_CONCAT(_loop_ctx_, __LINE__)
 #define _iter_all MACRO_CONCAT(_iter_all_, __LINE__)
-#define _loop_all MACRO_CONCAT(_loop_all_, __LINE__)
+#define _loop_all n //MACRO_CONCAT(_loop_all_, __LINE__)
 
 #define _describe(NAME) static const int _fn_line_##NAME = __LINE__; void test_##NAME(void)
 #define _context(DESC) for (int _loop_ctx = 0; (_loop_ctx++ < 2) && _test_context_begin(__LINE__, "context: %c["LINESTR"] "DESC);) if (_loop_ctx == 2) { if (_test_context_end(__LINE__)) return; } else
 #define _test(DESC) for (int _loop_tst = 0; _loop_tst++ < 1 && _test_begin(__LINE__, "test %c["LINESTR"] "DESC);)
 #define _after for (int _loop_ctx = 0; _loop_ctx++ < 1 && _test_active();)
 
-#define _test_suite_begin(NAME) TestSuite NAME = { .header="in file: %c"__FILE__, .filename=__FILE__, .test_groups = (TestGroup(*)[])(&(TestGroup[])
+#define _test_suite(NAME) TestSuite NAME = { .header="in file: %c"__FILE__, .filename=__FILE__, .test_groups = (TestGroup(*)[])(&(TestGroup[])
 #define _test_group(TEST_FN) { .line = &_fn_line_##TEST_FN, .header=#TEST_FN, .group_fn = test_##TEST_FN }
 #define _test_suite_end { .line = NULL, .group_fn = NULL } })
 
 #define _test_log(message) _test_log_fn(__LINE__, message)
 #define _test_warn(message) _test_warn_fn(__LINE__, message)
 #define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
-#define _test_fail_args(E, fmt, A, C, sTa, sTc) do { _test_error_typed(__LINE__, E, fmt, A, C, sTa, sTc); return; } while(0)
-#define _test_fail_t(A, B, C, sTa, sTc) _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", &_A, &_C, sTa, sTc)
+#define _test_fail_args(E, /* fmt, */ ...) _test_error_typed(__LINE__, E, __VA_ARGS__, NULL, NULL);
+#define _test_fail_t(A, B, C, sTa, sTc) do { _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", sTa, &_A, sTc, &_C); return; } while(0);
+#define _test_fail_all(S, T)                                                            \
+  _test_fail_args("expected "S, NULL); if (_pvalue) {                                   \
+    _test_fail_args("", "but found {} on iteration {}", #T, _pvalue, "uint", &_index);  \
+    if (_print_expected_value) _test_fail_args("", "expecting {}", #T, &_expected);     \
+  } return                                                                              //
 
-#define _expect_comp_all(S, A, B, C, F, T, ...) csBool _test = F(A, B, C); if(!_test) _test_fail_args("expected "S, ", but found {} on iteration {}", _pvalue, &_index, #T, "uint")
+#define _expect_comp_all(S, A, B, C, F, T, _, ...) csBool _test = F(A, _, B, C); if(!_test) { _test_fail_all(S, T); }
 #define _expect_type2(S, A, B, C, D, E, ...) D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #E)
 #define _expect_type1(S, A, B, C, D, ...) D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #D)
 #define _expect_true2(S, A, B, C, ...) typeof(A) _A=(A); typeof(C) _C=(C); if (!(_A B _C)) _test_fail_t(A, B, C, _type_s(A), _type_s(C))
-#define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("expected "S)
-#define _expect_true(S, A, ...) if(!(A)) _test_fail("expected "S)
-#define _expect_va(S, A, B, C, D, E, _, F, ...) do { _expect##F(S, A, B, C, D, E); } while(0)
+#define _expect_comp(S, A, B, ...) typeof(A) _Aout = (A); csBool _test = B(_Aout); if(!(_test)) { _test_fail_args("expected "S, ""); _test_fail_args("received ", "", _type_s(A), &_Aout); return; }
+//#define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("line "STR(__LINE__)": expected "S)
+#define _expect_true(S, A, ...) if(!(A)) _test_fail("line "STR(__LINE__)": expected "S)
+#define _expect_va(S, A, B, C, D, E, _, F, ...) do { _expect##F(S, A, B, C, D, E, _); } while(0)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
 #define _matcher_setup(B, C, D) FALSE; D _B = (B); D _C = (C); D _A =
@@ -611,17 +659,27 @@ void    _test_error_typed(int line,
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
 #define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
 
-#define _all_comp_part(A, FOREACH, MATCHER) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; break; } } _test ^= _tmp
-#define _all_comp(A, B, C) _all_comp_part(A, B, C(*_iter_all))
-#define _all_be_comp(A, B, C) _all_comp_part(A, B, ((*_iter_all) C))
+#define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; _expected = EXPECTED; break; } } _test ^= _tmp
+#define _all_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all), _)
+#define _all_be_comp(A, _, B, C) _all_comp_part(A, B, ((*_iter_all) C _), _)
+#define _all_match_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all, _), _)
 
-#define _all_setup FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL;
-#define _all(matcher, T_el, T_con) _all_setup T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
-#define _all_be(B, C, T_el, T_con) _all_setup T_el _C = (C); T_el* T_con##_foreach_index, B _C, _all_be_comp, T_el, 0
+#define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE;
+#define _all(matcher, T_el, T_con) _all_setup(T_el) T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
+#define _all_be(B, C, T_el, T_con) _all_setup(T_el) T_el* T_con##_foreach_index, B, _all_be_comp, T_el, C
+#define _all_match(B, C, T_el, T_con) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_match_comp, T_el, C
 
 //#define be(opr, value) opr (value),
 //#define _all_va(T_el, T_con, matcher, _, F, ...) _all_setup T_el* T_con##_foreach_index, matcher, F, T_el, 0
 //#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
 //#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
+
+#ifndef _USE_DEDUCTION
+# undef _expect_true2
+# define _expect_true2(S, A, B, C, ...)                                       \
+  _test_warn("output type deduction is disabled pre C11");                    \
+  _test_warn("use `expect("#A", "#B" , "#C", type)` for value display");      \
+  if(!(A B C)) _test_fail("line "STR(__LINE__)": expected "#A" "#B" "#C)      //
+#endif
 
 #endif

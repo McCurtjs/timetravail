@@ -177,6 +177,27 @@ void string_tests() {
   str_delete(&num);
 }
 
+csUint resolve_types (
+  const char** p_type, const void* value, char* out_buffer, csUint out_size
+) {
+  (void)value;
+  (void)out_buffer;
+  (void)out_size;
+
+  if (str_eq(str_range(*p_type), R("StringRange"))) {
+    const StringRange* range = value;
+    csUint w = 0;
+    out_buffer[w++] = '"';
+    for (csUint i = 0; w < out_size && i < range->size; ++i) {
+      out_buffer[w++] = range->begin[i];
+    }
+    if (w < out_size) out_buffer[w++] = '"';
+    return w;
+  }
+
+  return 0;
+}
+
 // Test suites
 
 extern TestSuite tests_cspec;
@@ -185,13 +206,15 @@ extern TestSuite tests_string;
 // Main
 
 #ifdef __WASM__
-static char* argv[] = {"WASM", "-v"};
+static char* argv[] = {"WASM", "-vf"};
 static int argc = sizeof(argv) / sizeof(char*);
 int export(wasm_tests) ()
 #else
 int main(int argc, char* argv[])
 #endif
 {
+  resolve_user_types = resolve_types;
+
   TestSuite* test_suites[] = {
     &tests_cspec,
     &tests_string

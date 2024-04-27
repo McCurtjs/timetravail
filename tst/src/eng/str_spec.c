@@ -4,11 +4,24 @@
 
 describe(str_range) {
 
-  it("creates a range off a literal") {
+  it("creates a range from a literal") {
     StringRange range = R("literal string range");
 
     expect(range.length, == , 20, size_t);
   }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
+#endif
+  it("validates that length and size are union aliases") {
+    StringRange range = R("literal string range");
+
+    expect(&range.length, == , &range.size, csBool);
+  }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
   it("creates a range in a local fixed-size char array") {
     char c_str[] = "This is a stack string";
@@ -485,7 +498,26 @@ describe(str_trim) {
 
 }
 
-test_suite_begin(tests_string) {
+describe(str_split) {
+
+  StringRange range = R("This is, a collection, of strings");
+  Array arr = NULL;
+
+  it("performs a basic split on commas") {
+    arr = str_split(range, R(","));
+    expect(arr->size, == , 3u);
+
+    StringRange expected[3] = { R("This is"), R(" a c0llection"), R(" of strings") };
+    expect(arr to all_match(str_eq, expected[n], StringRange, array));
+  }
+
+  if (arr) {
+    array_delete(&arr);
+  }
+
+}
+
+test_suite(tests_string) {
   test_group(str_range),
   test_group(str_new),
   test_group(str_copy),
@@ -501,5 +533,6 @@ test_suite_begin(tests_string) {
   test_group(str_find),
   test_group(str_substring),
   test_group(str_trim),
+  test_group(str_split),
   test_suite_end
 };

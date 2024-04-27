@@ -181,7 +181,6 @@ Array str_split(StringRange str, StringRange del);
 //
 String str_join(StringRange deliminter, const Array strings);
 String str_concat(StringRange left, StringRange right);
-
 String str_prepend(StringRange str, size_t length, char c);
 String str_append(StringRange str, size_t length, char c);
 //String str_pad_left(StringRange str, size_t length, char c);

@@ -255,10 +255,6 @@ bool str_contains(StringRange str, StringRange check) {
   return str_find(str, check) != str.size;
 }
 
-size_t str_find(StringRange str, StringRange to_find) {
-  return str_index_of(str, to_find, 0);
-}
-
 size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   if (str.size < to_find.size) return str.size;
   if (to_find.size == 0) return from_pos;
@@ -271,6 +267,10 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
     }
   }
   return str.size;
+}
+
+size_t str_find(StringRange str, StringRange to_find) {
+  return str_index_of(str, to_find, 0);
 }
 
 /*
