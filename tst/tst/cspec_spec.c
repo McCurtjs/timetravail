@@ -68,7 +68,7 @@ describe(memory) {
 
   test_log("Not doing any memory tests because malloc has not been defined");
   test_log("In order to use memory testing/ASAN, use -Dmalloc=cspec_malloc");
-  test_log("or the equivalent to your compiler, and the same for free,");
+  test_log("or the  equivalent to  your compiler,  and the same  for free,");
   test_log("realloc, and calloc.");
 
 #else
@@ -79,6 +79,15 @@ describe(memory) {
       char* c = malloc(1);
       c[0] = 0;
       free(c);
+    }
+
+    it("allocates a block and logs the memory") {
+      int* i = malloc(sizeof(int) * 3);
+      i[0] = 1819043144;
+      i[1] = 1752440943;
+      i[2] = 560296549;
+      test_log_memory(i);
+      free(i);
     }
 
     it("fills memory without overrunning") {
@@ -116,7 +125,6 @@ describe(memory) {
 
     it("makes sure malloc sets non-zero memory") {
       int* buffer = malloc(sizeof(int) * 5);
-      test_log_memory(buffer);
       for (int i = 0; i < 5; ++i) {
         expect(buffer[i] != 0);
       }
@@ -340,6 +348,11 @@ describe(expect_deduced_triplet) {
         expect(2, == , 3);
       }
 
+      test("most basic equality check (with vars)") {
+        int A = 2, B = 3;
+        expect(A, == , B);
+      }
+
       test("float macro value (compare with output in expect_basic)") {
         expect(PI, < , 1);
       }
@@ -354,6 +367,11 @@ describe(expect_deduced_triplet) {
 
       test("using other operator") {
         expect(2, > , 3);
+      }
+
+      test("using other operator (with var)") {
+        double first = 2.0, second = 3.0;
+        expect(first, > , second);
       }
 
       test("comparing strings by address") {
@@ -465,6 +483,8 @@ describe(matchers) {
 
   context("compositions on singular values") {
 
+    const char* str = "Test string";
+
     context("tests succeed") {
 
       it("has a positive value") {
@@ -483,6 +503,14 @@ describe(matchers) {
 
       it("uses to_not on a matcher that generates temporary") {
         expect(4 to not be_between(2, 3));
+      }
+
+      test("uses the 'match' matcher to compose a string comparison") {
+        expect(str to match(cspec_strcmp, "Test string"));
+      }
+
+      test("uses the 'to_pass' matcher to compose a string comparison") {
+        expect(to_pass(cspec_strrstr, str, "string"));
       }
 
     }
@@ -506,6 +534,14 @@ describe(matchers) {
 
       it("uses to_not on a matcher that generates temporary") {
         expect(4 to not be_between(3, 5));
+      }
+
+      test("uses 'match' to compose a string comparison and print the error") {
+        expect(str to match(cspec_strcmp, "Toast string"));
+      }
+
+      test("uses 'to_pass' to compose a string compare and prints the error") {
+        expect(to_pass(cspec_strrstr, str, "sTring"));
       }
 
     }
@@ -554,6 +590,12 @@ describe(container_matchers) {
         expect(arr to not all(not be_within(2 of 8), int, c_array));
       }
 
+#define be_less_than(A, B) (A < B)
+      it("does a piecewise composition against another array") {
+        int exp[] = { 6, 10, 14 };
+        expect(arr to all(be_less_than, exp[n], int, c_array));
+      }
+
       it("compares the values using the 'be' matcher") {
         expect(arr to all_be( < , 10, int, c_array));
       }
@@ -568,6 +610,11 @@ describe(container_matchers) {
 
       it("contains only non-even values") {
         expect(arr to all_be( %2 != , 0, int, c_array));
+      }
+
+      it("does a piecewise comparison with an array 2 larger") {
+        int exp[] = { 5, 7, 9 };
+        expect(arr to all_be(+2 == , exp[n], int, c_array));
       }
 
     }
@@ -604,6 +651,11 @@ describe(container_matchers) {
         expect(arr to not all(not be_within(2 of 10), int, c_array));
       }
 
+      it("does a piecewise composition against another array") {
+        int exp[] = { 6, 10, 6 };
+        expect(arr to all(be_less_than, exp[n], int, c_array));
+      }
+
       it("checks that all numbers are over 12") {
         expect(arr to all_be( > , 12, int, c_array));
       }
@@ -618,6 +670,11 @@ describe(container_matchers) {
 
       it("wants at least one even value") {
         expect(arr to not all_be(% 2 != , 0, int, c_array));
+      }
+
+      it("does a piecewise comparison with an array 2 larger") {
+        int exp[] = { 5, 7, 8 };
+        expect(arr to all_be(+2 == , exp[n], int, c_array));
       }
 
     }

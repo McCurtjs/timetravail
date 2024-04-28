@@ -179,6 +179,16 @@ String str_append(StringRange str, size_t length, char c) {
 Array str_split(StringRange str, StringRange del) {
   Array ret = array_new(StringRange);
 
+  // specialization for empty string, return a range for each char
+  if (del.size == 0) {
+    array_reserve(ret, (uint)str.size);
+    for (size_t i = 0; i < str.size; ++i) {
+      StringRange c = str_range_s(&str.begin[i], 1);
+      array_push_back(ret, &c);
+    }
+    return ret;
+  }
+
   int i = 0;
   do {
     int prev = i;

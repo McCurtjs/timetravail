@@ -207,8 +207,8 @@ void test_run_suite(const TestSuite* suite);
 ////////////////////////////////////////////////////////////////////////////////
 
 // \brief An `expect` clause within a test is used to check the validity of
-//    output for the operations being tested. The value passed is expected to
-//    evaluate to TRUE, and if it doesn't, the test aborts as a failure
+//    output for the operations being tested. The value or expression passed is
+//    expected to evaluate to TRUE, otherwise, the test aborts as a failure.
 //
 // \brief The expect statement can be given in many formats. The basic forms are
 //    described below:
@@ -219,13 +219,17 @@ void test_run_suite(const TestSuite* suite);
 //    can be used for just about anything.
 //
 // \param - `expect(A, operator, B);` - ex: `expect(a, == , b);` - Similar to
-//    the above, but with options separated by commas. The values passed in this
-//    form will be assumed to be _and converted to_ ints, and will be written to
-//    the output in the case of a failed expectation.
+//    the above, but with options separated by commas. The difference is that it
+//    will determine the types and print the values of A and B on a failed test.
+//    Note: determining types won't work in versions older than C11.
+//
+// \param - `expect(to_pass(<comparator_fn>, A, B));` - ex `expect(to_pass(
+//    str_eq, lhs, rhs));`. Calls the given function with two arguments. Same as
+//    passing a function result directly, but on fail can print the value of A.
 //
 // \param - `expect(A, operator, B, TYPE);` - ex: `expect(a, < , b, float);`
-//    Same as above, but A and B will be converted to TYPE, and will have their
-//    values printed in addition to the expression.
+//    Same as above, but A and B will be explicitly converted to TYPE, and will
+//    have their values printed in addition to the expression.
 //
 // \param - `expect(A, operator, B, type_A, type_B)` - Same as above, but
 //    A and B are treated as separate types for output.
@@ -301,6 +305,32 @@ void test_run_suite(const TestSuite* suite);
 # define not !
 #endif
 
+// \brief Evaluates the result of a function given two arguments. This is
+//    functionally the same as `expect(function(subject, param_2))` except in
+//    that it is able to deduce the type and print the value of the subject on
+//    test failure.
+//
+// \brief Example: `expect(subject to match(function, param_2));`
+//
+// \param fn - The function to be called
+//
+// \param C - The value to test the subject against, second parameter to fn
+#define match(fn, C) _comp_fn(fn, C)
+
+// \brief Evaluates the result of a function given two arguments. This is
+//    functionally the same as `expect(function(subject, param_2))` except in
+//    that it is able to deduce the type and print the value of the subject on
+//    test failure.
+//
+// \brief Example: `expect(to_pass(function, subject, param_2));`
+//
+// \param fn - The function to be called
+//
+// \param A - The subject variable of the test, first parameter to fn
+//
+// \param B - The value to test the subject against, second parameter to fn
+#define to_pass(fn, A, C) A, _comp_fn(fn, C)
+
 // \brief This is an example of a matcher which checks if a value is positive.
 //    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
 //    concept for matchers in general.
@@ -312,8 +342,10 @@ void test_run_suite(const TestSuite* suite);
 
 // \brief This is a matcher that takes params and uses them to compose a more
 //    complex expectation for the test. It checks if the value is between a
-//    minimum and maximum bound. By default, the check is inclusive and assumes
-//    integer values.
+//    minimum and maximum bound.
+//
+// \brief By default, the check is inclusive. It will infer the type based on
+//    the first parameter, unless pre-C11 where it assumes integer values.
 //
 // \param - `expect(value to be_between(A, B));` - succeeds if the given value
 //    is between A and B inclusive. In this case, the value is expected to be
@@ -327,8 +359,10 @@ void test_run_suite(const TestSuite* suite);
 #define be_between(...)           _be_between(__VA_ARGS__)
 
 // \brief This matcher will check if the test value is within a certain range
-//    of the target value. By default, the check is inclusive and assumes
-//    integer values.
+//    of the target value.
+//
+// \brief By default, the check is inclusive. It will infer the type based on
+//    the first parameter, unless pre-C11 where it assumes integer values.
 //
 // \param - `expect(value to be_within(A of B));` - expects the value to be
 //    within A of B in either direction. All three params are expected to be
@@ -366,7 +400,16 @@ void test_run_suite(const TestSuite* suite);
 //
 // \brief Example: `expect(arr to all(be_positive, int, c_array));`
 //
-// \param matcher - A regular matcher, such as be_positive, or be_within(A, B).
+// \param matcher - A regular matcher, such as be_positive, or be_within(A, B),
+//    or a function that takes the container element as its first of up to two
+//    arguments.
+//
+// \param value [opt] - A value to pass to the matcher as a second parameter if
+//    needed. The value to compare against can either be a single value to use
+//    across the whole array, or it can be passed as a piecewise comparison by
+//    using `value[n]`. Notes: bounds are not checked, so first ensure the input
+//    container is of the correct size. This value is not side-effect safe; it
+//    will be evaluated for every iteration of the loop.
 //
 // \param T_elem - The type of the elements in the container. Note: this should
 //    be the actual type of the elements in the container, not the pointer type
@@ -375,7 +418,7 @@ void test_run_suite(const TestSuite* suite);
 // \param T_cont - The type of container. This value is not the actual type name
 //    of the container's struct, but the associated prefix before a
 //    _foreach_index macro (ex: c_array)
-#define all(matcher, T_elem, T_cont) _all(matcher, T_elem, T_cont)
+#define all(matcher, ...) _all_va(matcher, __VA_ARGS__, _all_match, _all)
 
 // \brief The `all_be` matcher is similar to the `all` matcher, but rather than
 //    composing other matchers, it applies a basic expression to every element
@@ -388,7 +431,7 @@ void test_run_suite(const TestSuite* suite);
 // \param value - The value to compare container elements with. If passed as an
 //    array with subscript [n], will function as a piecewise comparison - bounds
 //    will not be checked, so perform an expect(result.size == x) first.
-//    Note: this parameter is NOT side-effect safe; it will be evaluated in 
+//    Note: this parameter is NOT side-effect safe; it will be evaluated in
 //    every iteration of the loop.
 //
 // \param T_elem - The type of the elements of the container
@@ -397,29 +440,6 @@ void test_run_suite(const TestSuite* suite);
 //    is not  an actual type  name of an object/struct,  but a prefix  used by
 //    associated functions, in particular the foreach_index macro.
 #define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
-
-// \brief The `all_match` matcher is similar to regular `all`, but composes the
-//    individual elements of the container with `value` using fn
-//
-// \brief Example: `expect(arr to all_match(str_eq, "string", int, c_array);`
-//
-// \brief in the example, `arr` contains strings, which will all be individually
-//    compared similarly to `expect(str_eq(arr[i], "string"))`
-//
-// \param fn - A function or macro that takes two parameters
-//
-// \param value - the RHS/second parameter that will be passed to the function.
-//    If passed as an array using subscript [n], will function as a piecewise
-//    comparison (ie, fn(arr[i], value[i]), fn(arr[i+1], value[i+1]), etc.).
-//    Note that bounds will not be checked on this array, so use 
-//    `expect(arr.size == x)` or similar first.
-//
-// \param T_el - The type of the container's elements.
-//
-// \param T_cont - The type of the container. Like with the `all` matcher, this
-//    is not the actual type name of an object/struct, but a prefix used by
-//    associated functions, in particular a foreach_index macro.
-#define all_match(fn, value, T_el, T_cont) _all_match(fn, value, T_el, T_cont)
 
 #define with ,
 
@@ -592,8 +612,12 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
 #define LINESTR STR(__LINE__)
 
-#ifdef _USE_DEDUCTION
-# define _type_s(X) _Generic((X), void*:                "void*",    const void*:                "const void*",  \
+#if defined(_USE_DEDUCTION)
+# ifndef CSPEC_CUSTOM_TYPES
+#  define CSPEC_CUSTOM_TYPES
+# endif
+# define _type_s(X) _Generic((X),                                                                               \
+  CSPEC_CUSTOM_TYPES              void*:                "void*",    const void*:                "const void*",  \
   _Bool:              "bool",     _Bool*:               "bool*",    const _Bool*:               "const bool*",  \
   char:               "char",     char*:                "char*",    const char*:                "const char*",  \
   short:              "short",    short*:               "short*",   const short*:               "const short*", \
@@ -627,8 +651,8 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _test_log(message) _test_log_fn(__LINE__, message)
 #define _test_warn(message) _test_warn_fn(__LINE__, message)
 #define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
-#define _test_fail_args(E, /* fmt, */ ...) _test_error_typed(__LINE__, E, __VA_ARGS__, NULL, NULL);
-#define _test_fail_t(A, B, C, sTa, sTc) do { _test_fail_args("expected "#A" "#B" "#C, " but got values: {} "#B" {}", sTa, &_A, sTc, &_C); return; } while(0);
+#define _test_fail_args(E, /* fmt, */ ...) _test_error_typed(__LINE__, E, __VA_ARGS__, NULL, NULL)
+#define _test_fail_t(A, B, C, sTa, sTc) do { _test_fail_args("expected "#A" "#B" "#C, "\nreceived {} "#B" {}", sTa, &_A, sTc, &_C); return; } while(0)
 #define _test_fail_all(S, T)                                                            \
   _test_fail_args("expected "S, NULL); if (_pvalue) {                                   \
     _test_fail_args("", "but found {} on iteration {}", #T, _pvalue, "uint", &_index);  \
@@ -639,11 +663,13 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _expect_type2(S, A, B, C, D, E, ...) D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #E)
 #define _expect_type1(S, A, B, C, D, ...) D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #D)
 #define _expect_true2(S, A, B, C, ...) typeof(A) _A=(A); typeof(C) _C=(C); if (!(_A B _C)) _test_fail_t(A, B, C, _type_s(A), _type_s(C))
-#define _expect_comp(S, A, B, ...) typeof(A) _Aout = (A); csBool _test = B(_Aout); if(!(_test)) { _test_fail_args("expected "S, ""); _test_fail_args("received ", "", _type_s(A), &_Aout); return; }
-//#define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("line "STR(__LINE__)": expected "S)
+#define _expect_comp(S, A, B, ...) typeof(A) _Aout = (A); csBool _test = B(_Aout); if(!(_test)) { _test_fail_args("expected "S, "\nreceived ", _type_s(A), &_Aout); return; }
 #define _expect_true(S, A, ...) if(!(A)) _test_fail("line "STR(__LINE__)": expected "S)
 #define _expect_va(S, A, B, C, D, E, _, F, ...) do { _expect##F(S, A, B, C, D, E, _); } while(0)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
+
+#define _comp_fn_args(A) (A, _C)
+#define _comp_fn(fn, C) FALSE; typeof(C) _C = C; _test ^= fn _comp_fn_args
 
 #define _matcher_setup(B, C, D) FALSE; D _B = (B); D _C = (C); D _A =
 
@@ -651,23 +677,25 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _be_between_inclusive(A) (A); _test ^= (_B <= _A && _A <= _C)
 #define _be_between_int(A) _be_between_inclusive(A)
 #define _be_between_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_between_##F
-#define _be_between(...) _be_between_va(__VA_ARGS__, int, inclusive, exclusive)
+#define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, typeof(B), inclusive, exclusive)
 
 #define _be_within_exclusive(A) (A); _test ^= (_C - _B < _A && _A < _C + _B)
 #define _be_within_inclusive(A) (A); _test ^= (_C - _B <= _A && _A <= _C + _B)
 #define _be_within_int(A) _be_within_inclusive(A)
 #define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
-#define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
+#define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, typeof(B), inclusive, exclusive)
 
-#define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; _expected = EXPECTED; break; } } _test ^= _tmp
-#define _all_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all), _)
-#define _all_be_comp(A, _, B, C) _all_comp_part(A, B, ((*_iter_all) C _), _)
-#define _all_match_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all, _), _)
+#define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; EXPECTED; break; } } _test ^= _tmp
+#define _all_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all), )
+#define _all_be_comp(A, _, B, C) _all_comp_part(A, B, ((*_iter_all) C _), _expected = _)
+#define _all_match_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all, _), _expected = _)
 
 #define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE;
-#define _all(matcher, T_el, T_con) _all_setup(T_el) T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
-#define _all_be(B, C, T_el, T_con) _all_setup(T_el) T_el* T_con##_foreach_index, B, _all_be_comp, T_el, C
-#define _all_match(B, C, T_el, T_con) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_match_comp, T_el, C
+#define _all(matcher, T_el, T_con, ...) _all_setup(T_el) T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
+#define _all_be(B, C, T_el, T_con) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_be_comp, T_el, C
+#define _all_match(B, C, T_el, T_con, ...) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_match_comp, T_el, C
+
+#define _all_va(matcher, B, C, D, F, ...) F(matcher, B, C, D)
 
 //#define be(opr, value) opr (value),
 //#define _all_va(T_el, T_con, matcher, _, F, ...) _all_setup T_el* T_con##_foreach_index, matcher, F, T_el, 0
@@ -680,6 +708,20 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
   _test_warn("output type deduction is disabled pre C11");                    \
   _test_warn("use `expect("#A", "#B" , "#C", type)` for value display");      \
   if(!(A B C)) _test_fail("line "STR(__LINE__)": expected "#A" "#B" "#C)      //
+
+# undef _expect_comp
+# define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("line "STR(__LINE__)": expected "S)
+
+# undef _eval
+# undef _eval_comp
+# undef to_pass
+# define to_pass(fn, A, C) fn(A, C)
+
+# undef _be_between
+# undef _be_within
+# define _be_between(...) _be_between_va(__VA_ARGS__, int, inclusive, exclusive)
+# define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
+
 #endif
 
 #endif

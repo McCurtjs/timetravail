@@ -184,9 +184,12 @@ csUint resolve_types (
   (void)out_buffer;
   (void)out_size;
 
-  if (str_eq(str_range(*p_type), R("StringRange"))) {
-    const StringRange* range = value;
+  StringRange type = str_range(*p_type);
+
+  if (str_eq(type, R("StringRange")) || str_eq(type, R("StringRange*"))) {
+    const StringRange* range = str_ends_with(type, R("*")) ? *((StringRange**)value) : value;
     csUint w = 0;
+    if (str_ends_with(type, R("*"))) out_buffer[w++] = '&';
     out_buffer[w++] = '"';
     for (csUint i = 0; w < out_size && i < range->size; ++i) {
       out_buffer[w++] = range->begin[i];

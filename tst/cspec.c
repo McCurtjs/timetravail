@@ -106,6 +106,7 @@ static csBool param_show_types = FALSE;     // -s
 #define output_float_precision 5
 static char output_buffer[output_size + 1];
 static csUint output_index = 0;
+static csUint output_indent = 0;
 static const char* output_fmt = NULL;
 
 csBool cspec_strcmp(const char* A, const char* B) {
@@ -173,6 +174,15 @@ static void output_str(const char* s) {
         output_buffer[output_index] = '\0';
         return;
       }
+    }
+
+    if (*s == '\n') {
+      output_buffer[output_index++] = *(s++);
+      for (csUint i = 0; i < output_indent && output_index < output_size; ++i) {
+        output_buffer[output_index++] = ' ';
+      }
+      prev = ' ';
+      continue;
     }
 
     // insert Unix-style color indicators for %c if we're not in WASM
@@ -289,13 +299,14 @@ static void output_float_p(double f, int precision) {
   unsigned long long int integer_part = (unsigned long long int)f;
   _output_uint_ignore_format(integer_part);
   f -= integer_part;
-  if (f == 0.0) return;
-  output_buffer[output_index++] = '.';
-  for (int i = precision; i && f >= 0.00000000001; --i) {
-    f *= 10.0;
-    integer_part = (unsigned long long int)f;
-    output_buffer[output_index++] = '0' + (char)integer_part;
-    f -= integer_part;
+  if (f != 0.0) {
+    output_buffer[output_index++] = '.';
+    for (int i = precision; i && f >= 0.00000000001; --i) {
+      f *= 10.0;
+      integer_part = (unsigned long long int)f;
+      output_buffer[output_index++] = '0' + (char)integer_part;
+      f -= integer_part;
+    }
   }
   output_continue_format();
 }
@@ -1223,9 +1234,14 @@ void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
   if (test_expect_fail) return;
 
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
-  output_pad(param_tabsize * level, ' ');
-  output_str("line {}: ");
-  output_sint(line);
+  if (output_indent) {
+    output_pad(output_indent, ' ');
+  } else {
+    output_pad(param_tabsize * level, ' ');
+    output_str("line {}: ");
+    output_sint(line);
+    output_indent = output_index;
+  }
   output_str(pre);
 
   if (!fmt) goto finish;
@@ -1467,6 +1483,7 @@ static void before_pass(void) {
   memory_test_reset(param_memory_test);
   test_failed = FALSE;
   test_warned = FALSE;
+  output_indent = 0;
 }
 
 static void process_function(const TestGroup* t) {

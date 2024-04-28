@@ -119,6 +119,11 @@ bool str_starts_with(StringRange str, StringRange starts);
 bool str_ends_with(StringRange str, StringRange ends);
 bool str_contains(StringRange str, StringRange check);
 
+// \brief prefer s.size, but can be useful in cases where a function is needed.
+//
+// \returns s.size
+static inline size_t str_size(StringRange s) { return s.size; }
+
 // \brief Gets the start of the next instance of to_find in str, starting
 //    at from_pos.
 //

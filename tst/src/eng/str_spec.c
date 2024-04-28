@@ -1,5 +1,8 @@
 #include "str.h"
 
+#define CSPEC_CUSTOM_TYPES      \
+  StringRange: "StringRange", StringRange*: "StringRange*", //
+
 #include "cspec.h"
 
 describe(str_range) {
@@ -412,8 +415,7 @@ describe(str_substring) {
 
     it("gets a partial substring from the beginning") {
       StringRange subject = str_substring(range, 0, 4);
-      StringRange _This = R("This");
-      expect(str_eq(subject, _This));
+      expect(str_eq(subject, R("This")));
     }
 
     it("gets a substring starting partway in the string") {
@@ -501,19 +503,145 @@ describe(str_trim) {
 describe(str_split) {
 
   StringRange range = R("This is, a collection, of strings");
-  Array arr = NULL;
+  Array result = NULL;
 
   it("performs a basic split on commas") {
-    arr = str_split(range, R(","));
-    expect(arr->size, == , 3u);
+    result = str_split(range, R(","));
+    expect(result->size, == , 3u);
 
-    StringRange expected[3] = { R("This is"), R(" a c0llection"), R(" of strings") };
-    expect(arr to all_match(str_eq, expected[n], StringRange, array));
+    StringRange expected[3] = { R("This is"), R(" a collection"), R(" of strings") };
+    expect(result to all(str_eq, expected[n], StringRange, array));
   }
 
-  if (arr) {
-    array_delete(&arr);
+  it("performs a multi-char split") {
+    result = str_split(range, R(", "));
+    expect(result->size, == , 3u);
+
+    StringRange expected[3] = { R("This is"), R("a collection"), R("of strings") };
+    expect(result to all(str_eq, expected[n], StringRange, array));
   }
+
+  it("splits on an empty string") {
+    result = str_split(range, str_empty->range);
+    expect(result->size, == , range.size);
+
+    expect(result to all(1 == str_size, StringRange, array));
+    expect(result to all(str_eq, str_substring(range, n, n+1), StringRange, array));
+  }
+
+  it("tries to split on a delimiter that isn't present") {
+    result = str_split(range, R("NOT_INCLUDED"));
+    expect(result->size, == , 1u);
+    expect(result to all(str_eq, range, StringRange, array));
+  }
+
+  it("tries to split with a delimiter that is too big") {
+    result = str_split(range, R("This is, a collection, of strings, but more"));
+    expect(result->size, == , 1u);
+    expect(result to all(str_eq, range, StringRange, array));
+  }
+
+  it("splits using the same string as the delimiter") {
+    result = str_split(range, range);
+    expect(result->size, == , 2u);
+    expect(result to all(str_eq, str_empty->range, StringRange, array));
+  }
+
+  if (result) {
+    array_delete(&result);
+  }
+
+}
+
+describe(str_join) {
+
+  Array tokens = NULL; 
+  String result = NULL;
+
+  context("basic set of StringRange tokens to form a sentence") {
+
+    StringRange range = R("These are the test tokens");
+    tokens = str_split(range, R(" "));
+
+    it("recreates the original string") {
+      result = str_join(R(" "), tokens);
+      expect(to_pass(str_eq, result->range, range));
+    }
+
+    it("puts together the string without spaces ") {
+      result = str_join(R(""), tokens);
+      expect(to_pass(str_eq, result->range, R("Thesearethetesttokens")));
+    }
+
+    it("gives a multi-char deliminiter between the tokens") {
+      result = str_join(R(" - "), tokens);
+      expect(to_pass(str_eq, result->range, R("These - are - the - test - tokens")));
+    }
+
+  }
+
+  context("given an empty array of String") {
+
+    tokens = array_new_reserve(String, 0);
+
+    it("produces an empty string") {
+      result = str_join(R("!"), tokens);
+      expect(result->size, == , 0u);
+    }
+
+  }
+
+  context("can join an array of dynamic String objects") {
+
+    String str1 = str_new("Str 1");
+    String str2 = str_new("Str 2");
+    String str3 = str_new("Str 3");
+    tokens = array_new_reserve(String, 3);
+    array_push_back(tokens, &str1);
+    array_push_back(tokens, &str2);
+    array_push_back(tokens, &str3);
+
+    it("properly joins the strings") {
+      result = str_join(R(", "), tokens);
+      expect(result->range to match(str_eq, R("Str 1, Str 2, Str 3")));
+    }
+
+    it("can mix String and StringRange* in the same array") {
+      StringRange range = R("Range 4");
+      StringRange* rp = &range;
+      array_push_back(tokens, &rp);
+
+      result = str_join(R("|"), tokens);
+      expect(result->range to match(str_eq, R("Str 1|Str 2|Str 3|Range 4")));
+    }
+
+    str_delete(&str1);
+    str_delete(&str2);
+    str_delete(&str3);
+  }
+
+  if (result) str_delete(&result);
+  if (tokens) array_delete(&tokens);
+
+}
+
+describe(str_concat) {
+
+  String result = NULL;
+
+  it("joins two strings together") {
+    result = str_concat(R("LHS "), R("RHS"));
+    expect(to_pass(str_eq, result->range, R("LHS RHS")));
+  }
+
+  it("still copies the string if joining with an empty") {
+    StringRange lhs = R("LHS");
+    result = str_concat(lhs, str_empty->range);
+    expect(to_pass(str_eq, result->range, R("LHS")));
+    expect(result->begin, != , lhs.begin);
+  }
+
+  if (result) str_delete(&result);
 
 }
 
@@ -534,5 +662,7 @@ test_suite(tests_string) {
   test_group(str_substring),
   test_group(str_trim),
   test_group(str_split),
+  test_group(str_join),
+  test_group(str_concat),
   test_suite_end
 };
