@@ -60,10 +60,10 @@ typedef struct TestSuite {
 //        int main(int argc, char* argv[])
 //        {
 //            TestSuite* suites[] = {
-//                widget_tests
+//                &widget_tests
 //            };
 //
-//            return test_run_all_suites(argc, argv, suites);
+//            return test_run_all(suites);
 //        }
 //
 
@@ -305,6 +305,23 @@ void test_run_suite(const TestSuite* suite);
 # define not !
 #endif
 
+// \brief This is an example of a matcher which checks if a value is positive.
+//    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
+//    concept for matchers in general.
+//
+// \param - `expect(value to be_positive);` - The value given on the left is
+//    evaluated by the macro given on the right. A simple matcher can be any
+//    basic test that takes a single value and does a statically defined test.
+#define be_positive(A) ((A) > 0)
+
+#define be_negative(A) ((A) < 0)
+
+#define be_non_negative(A) ((A) >= 0)
+
+#define be_even(A) ((A) % 2 == 0)
+
+#define be_odd(A) ((A) % 2 != 0)
+
 // \brief Evaluates the result of a function given two arguments. This is
 //    functionally the same as `expect(function(subject, param_2))` except in
 //    that it is able to deduce the type and print the value of the subject on
@@ -331,15 +348,6 @@ void test_run_suite(const TestSuite* suite);
 // \param B - The value to test the subject against, second parameter to fn
 #define to_pass(fn, A, C) A, _fn_comp(fn, C)
 
-// \brief This is an example of a matcher which checks if a value is positive.
-//    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
-//    concept for matchers in general.
-//
-// \param - `expect(value to be_positive);` - The value given on the left is
-//    evaluated by the macro given on the right. A simple matcher can be any
-//    basic test that takes a single value and does a statically defined test.
-#define be_positive(A) ((A) >= 0)
-
 // \brief This is a matcher that takes params and uses them to compose a more
 //    complex expectation for the test. It checks if the value is between a
 //    minimum and maximum bound.
@@ -348,14 +356,15 @@ void test_run_suite(const TestSuite* suite);
 //    the first parameter, unless pre-C11 where it assumes integer values.
 //
 // \param - `expect(value to be_between(A, B));` - succeeds if the given value
-//    is between A and B inclusive. In this case, the value is expected to be
-//    an int.
+//    is between A and B, inclusive.
 //
-// \param - `expect(value to be_between(A, B, TYPE));` - inclusive check
-//    between A and B, but interprets all three as values of type TYPE.
+// \param - `expect(value to be_between(A, B, <mode>));` - sets the function
+//    mode. Default value is `inclusive`, also accepts `exclusive`,
+//    `exclusive_start`, and `exclusive_end`.
 //
-// \param - `expect(value to be_between(A, B, TYPE, inclusive));` - same as
-//    previous, but can be explicitly specified as inclusive or exclusive.
+// \param - `expect(value to be_between(A, B, inclusive, <type>));` - sets an
+//    explicit type to use for the comparison. By defualt, the type is inferred
+//    using typeof. If pre-C11, the type defaults to int.
 #define be_between(...)           _be_between(__VA_ARGS__)
 
 // \brief This matcher will check if the test value is within a certain range
@@ -364,15 +373,15 @@ void test_run_suite(const TestSuite* suite);
 // \brief By default, the check is inclusive. It will infer the type based on
 //    the first parameter, unless pre-C11 where it assumes integer values.
 //
-// \param - `expect(value to be_within(A of B));` - expects the value to be
-//    within A of B in either direction. All three params are expected to be
-//    ints, and the check is inclusive.
+// \param - `expect(value to be_within(A of B));` - succeeds if the value is
+//    within A units of B in either direction, inclusive.
 //
-// \param - `expect(value to be_within(A of B, TYPE));` - same as above but
-//    specifies a type for the comparison.
+// \param - `expect(value to be_within(A of B, <mode>));` - sets the function
+//    mode. Default value is `inclusive`, also accepts `exclusive`.
 //
-// \param - `expect(value to be_within(A of B, TYPE, inclusive)); - same as
-//    above, but can be explicitly specified as inclusive or exclusive.
+// \param - `expect(value to be_within(A of B, inclusive, <type>)); - sets an
+//    explicit type to use for the comparison. By defualt, the type is inferred
+//    using typeof. If pre-C11, the type defaults to int.
 #define be_within(...)            _be_within(__VA_ARGS__)
 
 // \brief A little syntactic sugar for `be_within`, as a treat.
@@ -380,15 +389,15 @@ void test_run_suite(const TestSuite* suite);
 // \param - `expect(value to be_within(A of B));`
 #define of ,
 
-// \brief This matcher will check if a floating point number is about equal
-//    to the given value, within the margin set by `be_about_epsilon`.
+// \brief This matcher will check if a floating point number is about equal to
+//    the given value, within the (inclusive) margin set by `about_epsilon`.
 //
 // \param - `expect(value to be_about(5.0f));` - expects the value to be
 //    approximately 5.0f.
-#define be_about(N) be_within(be_about_epsilon, N, float, inclusive)
+#define be_about(N)               _be_within(about_epsilon, N, inclusive, float)
 
-#ifndef be_about_epsilon
-# define be_about_epsilon 0.0001f
+#ifndef about_epsilon
+# define about_epsilon 0.0001f
 #endif
 
 // \brief The `all` parameter is a composite matcher that applies the condition
@@ -399,6 +408,8 @@ void test_run_suite(const TestSuite* suite);
 //    macro that functions in the same way as c_array_foreach_index.
 //
 // \brief Example: `expect(arr to all(be_positive, int, c_array));`
+//
+// \brief Example: `expect(arr to all(be_about(samples[n]), float, c_array));`
 //
 // \param matcher - A regular matcher, such as be_positive, or be_within(A, B),
 //    or a function that takes the container element as its first of up to two
@@ -426,11 +437,13 @@ void test_run_suite(const TestSuite* suite);
 //
 // \brief Example: `expect(arr to all_be( > , 7, int, c_array));`
 //
+// \brief Example: `expect(arr to all_be( == , data[n], int, c_array));`
+//
 // \param op - A basic C comparison operator (==, !=, >, <, >=, <=)
 //
-// \param value - The value to compare container elements with. If passed as an
-//    array with subscript [n], will function as a piecewise comparison - bounds
-//    will not be checked, so perform an expect(result.size == x) first.
+// \param value [opt] - The value to compare container elements with. If passed
+//    as an array with subscript [n], will function as a piecewise comparison -
+//    bounds will not be checked, so perform an expect(result.size == x) first.
 //    Note: this parameter is NOT side-effect safe; it will be evaluated in
 //    every iteration of the loop.
 //
@@ -679,6 +692,8 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
 #define _be_between_exclusive(A) (A); _test ^= (_B < _A && _A < _C)
 #define _be_between_inclusive(A) (A); _test ^= (_B <= _A && _A <= _C)
+#define _be_between_exclusive_end(A) (A); _test ^= (_B <= _A && _A < C)
+#define _be_between_exclusive_start(A) (A); _test ^= (_B < _A && _A <= C)
 #define _be_between_va(B_LO, C_HI, MODE, T, T_RES, ...) _matcher_setup(B_LO, C_HI, _be_type_##T_RES(T, T_RES)) _be_between_##MODE
 #define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
 

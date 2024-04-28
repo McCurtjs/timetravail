@@ -74,7 +74,7 @@ describe(memory) {
 #else
 
   context("tests succeed") {
-    
+
     it("properly frees the memory after allocating") {
       char* c = malloc(1);
       c[0] = 0;
@@ -610,11 +610,12 @@ describe(container_matchers) {
 
       it("contains only non-even values") {
         expect(arr to all_be( %2 != , 0, int, c_array));
+        expect(arr to all(be_odd, int, c_array));
       }
 
       it("does a piecewise comparison with an array 2 larger") {
         int exp[] = { 5, 7, 9 };
-        expect(arr to all_be(+2 == , exp[n], int, c_array));
+        expect(arr to all_be( +2 == , exp[n], int, c_array));
       }
 
     }
@@ -686,7 +687,97 @@ describe(container_matchers) {
 #pragma warning ( pop )
 #endif
 
-describe(matcher_be_positive) {
+describe(matcher_basics) {
+
+  int x = 0;
+
+  context("tests succeed") {
+
+    context("be_positive and be_negative") {
+
+      it("is positive") {
+        x = 5;
+        expect(x to be_positive);
+        expect(x to not be_negative);
+        expect(x to be_non_negative);
+      }
+
+      it("is zero") {
+        expect(x to not be_positive);
+        expect(x to not be_negative);
+        expect(x to be_non_negative);
+      }
+
+      it("is negative") {
+        x = -5;
+        expect(x to not be_positive);
+        expect(x to be_negative);
+        expect(x to not be_non_negative);
+      }
+
+    }
+
+    context("be_even and be_odd") {
+
+      it("is even") {
+        x = 42;
+        expect(x to be_even);
+        expect(x to not be_odd);
+      }
+
+      it("is odd") {
+        x = 33;
+        expect(x to not be_even);
+        expect(x to be_odd);
+      }
+
+    }
+
+  }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    context("be_positive and be_negative") {
+
+      test("negative expecting positive") {
+        x = -18;
+        expect(x to be_positive);
+      }
+
+      test("zero expecting positive") {
+        x = 0;
+        expect(x to be_positive);
+      }
+
+      test("positive expecting negative") {
+        x = 140;
+        expect(x to be_negative);
+      }
+
+      test("negative expecting non-negative") {
+        x = -1;
+        expect(x to be_non_negative);
+      }
+
+    }
+
+    context("be_even and be_odd") {
+
+      test("even expecting odd") {
+        x = 42;
+        expect(x to be_odd);
+      }
+
+      test("odd expecting even") {
+        x = 37;
+        expect(x to be_even);
+      }
+
+    }
+
+  }
 
 }
 
@@ -699,27 +790,170 @@ describe(matcher_be_between) {
     }
 
     it("defaults to inclusive mode") {
-      expect(4 to be_between(4, 4));
+      expect(4 to be_between(4, 5));
+      expect(5 to be_between(4, 5));
     }
 
     it("can have the mode set to exclusive") {
-      expect(4 to not be_between(4, 4, exclusive, double));
+      expect(4 to not be_between(4, 5, exclusive));
+      expect(5 to not be_between(4, 5, exclusive));
     }
 
     it("can have a type explicitly specified") {
-      expect(4.0 to be_between(4.0, 4.0, inclusive));
+      expect(4 to be_between(4, 4, inclusive, double));
     }
 
-    /*
-    be_between(1, 4, <inclusive>, <typeof(1)> , <typeof(1)>);
-    be_between(1, 4, inclusive  , <inclusive> , <typeof(1)>, <typeof(1)>);
-    be_between(1, 4, inclusive  , double      , <inclusive>, <typeof(1)>, <typeof(1)>);
-    */
+    it("can have a type explicitly specified") {
+      expect(4 to not be_between(4, 4, exclusive, double));
+    }
+
+    it("works with chars") {
+      expect('B' to be_between('A', 'C'));
+    }
 
   }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    it("does a basic check") {
+      expect(7 to be_between(2, 6));
+    }
+
+    it("defaults to inclusive mode") {
+      expect(4 to not be_between(4, 5));
+      expect(5 to not be_between(4, 5));
+    }
+
+    it("can have the mode set to exclusive") {
+      expect(4 to be_between(4, 5, exclusive));
+      expect(5 to be_between(4, 5, exclusive));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4 to not be_between(4, 4, inclusive, double));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4 to be_between(4, 4, exclusive, double));
+    }
+
+    it("works with chars") {
+      // type deduction is kind of annoying actually, because ''s are ints
+      char D = 'D';
+      expect(D to be_between('A', 'C'));
+    }
+
+  }
+
 }
 
 describe(matcher_be_within) {
+
+  context("tests succeed") {
+
+    it("does a basic check") {
+      expect(4 to be_within(2 of 6));
+    }
+
+    it("defaults to inclusive mode") {
+      expect(4 to be_within(1 of 5));
+      expect(6 to be_within(1 of 5));
+    }
+
+    it("can have the mode set to exclusive") {
+      expect(4 to not be_within(1 of 5, exclusive));
+      expect(6 to not be_within(1 of 5, exclusive));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4 to be_within(0.5f, 4.2f, inclusive, double));
+    }
+
+    it("can have a type explicitly specified and exclusive") {
+      expect(4 to not be_within(2 of 6, exclusive, double));
+    }
+
+    it("works with chars") {
+      expect('B' to be_within(1 of 'C'));
+    }
+
+  }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    it("does a basic check") {
+      expect(7 to be_within(2 of 4));
+    }
+
+    it("defaults to inclusive mode") {
+      expect(4 to not be_within(1 of 5));
+      expect(6 to not be_within(1 of 5));
+    }
+
+    it("can have the mode set to exclusive") {
+      expect(4 to be_within(1 of 5, exclusive));
+      expect(6 to be_within(1 of 5, exclusive));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4 to not be_within(0.5 of 3.5, inclusive, double));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4 to be_within(2 of 6, exclusive, double));
+    }
+
+    it("works with chars") {
+      // type deduction is kind of annoying actually, because ''s are ints
+      char D = 'D';
+      expect(D to be_within(1 of 'N'));
+    }
+
+  }
+
+}
+
+describe(matcher_be_about) {
+
+  context("tests succeed") {
+
+    it("checks the estinction of a large floating point value") {
+      float a_third = 1.f / 3.f;
+      expect(a_third, != , 0.3333f);
+      expect(a_third to be_about(0.3333f));
+    }
+
+    it("checks for near-equality") {
+      float subject = 0.33;
+      subject += 0.10;
+      expect(subject, != , 0.43);
+      expect(subject to be_about(0.43f));
+    }
+
+  }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    it("checks the estinction of a large floating point value") {
+      float a_third = 1.f / 3.f;
+      expect(a_third, != , 0.3333f);
+      expect(a_third to not be_about(0.3333f));
+    }
+
+    it("checks for near-equality") {
+      float subject = 0.33;
+      subject += 0.10;
+      expect(subject, != , 0.43);
+      expect(subject to not be_about(0.43f));
+    }
+
+  }
 
 }
 
@@ -732,9 +966,10 @@ test_suite(tests_cspec) {
   test_group(expect_basic_var_output),
   test_group(matchers),
   test_group(container_matchers),
-  test_group(matcher_be_positive),
+  test_group(matcher_basics),
   test_group(matcher_be_between),
   test_group(matcher_be_within),
+  test_group(matcher_be_about),
   test_suite_end
 };
 

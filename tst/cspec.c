@@ -103,7 +103,7 @@ static csBool param_show_types = FALSE;     // -s
 // works on WASM varianets with no libc, all our string handling for output
 // should be done in a static space to avoid the need for malloc/free.
 #define output_size 500
-#define output_float_precision 5
+#define output_float_precision 10
 static char output_buffer[output_size + 1];
 static csUint output_index = 0;
 static csUint output_indent = 0;
@@ -1140,7 +1140,13 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   (  cspec_strcmp(typ_N, "char")
   || cspec_strcmp(typ_N, "unsigned char")
   ) {
+    const char* tmp = output_fmt;
+    output_fmt = NULL;
+    output_char('\'');
     output_char(*(const char*)N);
+    output_char('\'');
+    output_fmt = tmp;
+    output_continue_format();
   }
   else if
   (  cspec_strcmp(typ_N, "byte")
