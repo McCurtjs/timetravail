@@ -692,6 +692,31 @@ describe(matcher_be_positive) {
 
 describe(matcher_be_between) {
 
+  context("tests succeed") {
+
+    it("does a basic check") {
+      expect(4 to be_between(2, 6));
+    }
+
+    it("defaults to inclusive mode") {
+      expect(4 to be_between(4, 4));
+    }
+
+    it("can have the mode set to exclusive") {
+      expect(4 to not be_between(4, 4, exclusive, double));
+    }
+
+    it("can have a type explicitly specified") {
+      expect(4.0 to be_between(4.0, 4.0, inclusive));
+    }
+
+    /*
+    be_between(1, 4, <inclusive>, <typeof(1)> , <typeof(1)>);
+    be_between(1, 4, inclusive  , <inclusive> , <typeof(1)>, <typeof(1)>);
+    be_between(1, 4, inclusive  , double      , <inclusive>, <typeof(1)>, <typeof(1)>);
+    */
+
+  }
 }
 
 describe(matcher_be_within) {

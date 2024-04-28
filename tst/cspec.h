@@ -315,7 +315,7 @@ void test_run_suite(const TestSuite* suite);
 // \param fn - The function to be called
 //
 // \param C - The value to test the subject against, second parameter to fn
-#define match(fn, C) _comp_fn(fn, C)
+#define match(fn, C) _fn_comp(fn, C)
 
 // \brief Evaluates the result of a function given two arguments. This is
 //    functionally the same as `expect(function(subject, param_2))` except in
@@ -329,7 +329,7 @@ void test_run_suite(const TestSuite* suite);
 // \param A - The subject variable of the test, first parameter to fn
 //
 // \param B - The value to test the subject against, second parameter to fn
-#define to_pass(fn, A, C) A, _comp_fn(fn, C)
+#define to_pass(fn, A, C) A, _fn_comp(fn, C)
 
 // \brief This is an example of a matcher which checks if a value is positive.
 //    it's functionally equivalent to `expect(A >= 0)`, but serves as a proof of
@@ -651,49 +651,51 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _test_log(message) _test_log_fn(__LINE__, message)
 #define _test_warn(message) _test_warn_fn(__LINE__, message)
 #define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
-#define _test_fail_args(E, /* fmt, */ ...) _test_error_typed(__LINE__, E, __VA_ARGS__, NULL, NULL)
-#define _test_fail_t(A, B, C, sTa, sTc) do { _test_fail_args("expected "#A" "#B" "#C, "\nreceived {} "#B" {}", sTa, &_A, sTc, &_C); return; } while(0)
+#define _test_fail_args(S, /* fmt, */ ...) _test_error_typed(__LINE__, S, __VA_ARGS__, NULL, NULL)
+#define _test_fail_t(A, x, B, sTa, sTb) do { _test_fail_args("expected "#A" "#x" "#B, "\nreceived {} "#x" {}", sTa, &_A, sTb, &_B); return; } while(0)
 #define _test_fail_all(S, T)                                                            \
   _test_fail_args("expected "S, NULL); if (_pvalue) {                                   \
     _test_fail_args("", "but found {} on iteration {}", #T, _pvalue, "uint", &_index);  \
     if (_print_expected_value) _test_fail_args("", "expecting {}", #T, &_expected);     \
   } return                                                                              //
 
-#define _expect_comp_all(S, A, B, C, F, T, _, ...) csBool _test = F(A, _, B, C); if(!_test) { _test_fail_all(S, T); }
-#define _expect_type2(S, A, B, C, D, E, ...) D _A=(A); E _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #E)
-#define _expect_type1(S, A, B, C, D, ...) D _A=(A); D _C=(C); if(!(_A B _C)) _test_fail_t(A, B, C, #D, #D)
-#define _expect_true2(S, A, B, C, ...) typeof(A) _A=(A); typeof(C) _C=(C); if (!(_A B _C)) _test_fail_t(A, B, C, _type_s(A), _type_s(C))
-#define _expect_comp(S, A, B, ...) typeof(A) _Aout = (A); csBool _test = B(_Aout); if(!(_test)) { _test_fail_args("expected "S, "\nreceived ", _type_s(A), &_Aout); return; }
+#define _expect_comp_all(S, A, E, B, x, T, F, ...) csBool _test = F(A, B, E, x); if(!_test) { _test_fail_all(S, T); }
+#define _expect_type2(S, A, x, B, T, t, ...) T _A=(A); t _B=(B); if(!(_A x _B)) _test_fail_t(A, x, B, #T, #t)
+#define _expect_type1(S, A, x, B, T, ...) T _A=(A); T _B=(B); if(!(_A x _B)) _test_fail_t(A, x, B, #T, #T)
+#define _expect_true2(S, A, x, B, ...) typeof(A) _A=(A); typeof(B) _B=(B); if (!(_A x _B)) _test_fail_t(A, x, B, _type_s(A), _type_s(B))
+#define _expect_comp(S, A, F, ...) typeof(A) _Aout = (A); csBool _test = F(_Aout); if(!(_test)) { _test_fail_args("expected "S, "\nreceived ", _type_s(A), &_Aout); return; }
 #define _expect_true(S, A, ...) if(!(A)) _test_fail("line "STR(__LINE__)": expected "S)
-#define _expect_va(S, A, B, C, D, E, _, F, ...) do { _expect##F(S, A, B, C, D, E, _); } while(0)
+#define _expect_va(S, U, V, W, X, Y, Z, F, ...) do { _expect##F(S, U, V, W, X, Y, Z); } while(0)
 #define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp_all, _type2, _type1, _true2, _comp, _true)
 
-#define _comp_fn_args(A) (A, _C)
-#define _comp_fn(fn, C) FALSE; typeof(C) _C = C; _test ^= fn _comp_fn_args
+#define _fn_comp_args(A) (A, _B)
+#define _fn_comp(fn, B) FALSE; typeof(B) _B = B; _test ^= fn _fn_comp_args
 
-#define _matcher_setup(B, C, D) FALSE; D _B = (B); D _C = (C); D _A =
+#define _matcher_setup(B, C, T) FALSE; T _B = (B); T _C = (C); T _A =
+
+#define _be_type_inclusive(T, R) T
+#define _be_type_default(T, R) R
+#define _be_type_typeof(_) _be_type_default
 
 #define _be_between_exclusive(A) (A); _test ^= (_B < _A && _A < _C)
 #define _be_between_inclusive(A) (A); _test ^= (_B <= _A && _A <= _C)
-#define _be_between_int(A) _be_between_inclusive(A)
-#define _be_between_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_between_##F
-#define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, typeof(B), inclusive, exclusive)
+#define _be_between_va(B_LO, C_HI, MODE, T, T_RES, ...) _matcher_setup(B_LO, C_HI, _be_type_##T_RES(T, T_RES)) _be_between_##MODE
+#define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
 
 #define _be_within_exclusive(A) (A); _test ^= (_C - _B < _A && _A < _C + _B)
 #define _be_within_inclusive(A) (A); _test ^= (_C - _B <= _A && _A <= _C + _B)
-#define _be_within_int(A) _be_within_inclusive(A)
-#define _be_within_va(B, C, D, F, ...) _matcher_setup(B, C, D) _be_within_##F
-#define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, typeof(B), inclusive, exclusive)
+#define _be_within_va(B_EXT, C_MID, MODE, T, T_RES, ...) _matcher_setup(B_EXT, C_MID, _be_type_##T_RES(T, T_RES)) _be_within_##MODE
+#define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
 
-#define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; EXPECTED; break; } } _test ^= _tmp
-#define _all_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all), )
-#define _all_be_comp(A, _, B, C) _all_comp_part(A, B, ((*_iter_all) C _), _expected = _)
-#define _all_match_comp(A, _, B, C) _all_comp_part(A, B, C(*_iter_all, _), _expected = _)
+#define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; EXPECTED break; } } _test ^= _tmp
+#define _all_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all), )
+#define _all_be_comp(A, B, FOREACH, x) _all_comp_part(A, FOREACH, ((*_iter_all) x B), _expected = B;)
+#define _all_match_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all, B), _expected = B;)
 
 #define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE;
-#define _all(matcher, T_el, T_con, ...) _all_setup(T_el) T_el* T_con##_foreach_index, matcher, _all_comp, T_el, 0
-#define _all_be(B, C, T_el, T_con) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_be_comp, T_el, C
-#define _all_match(B, C, T_el, T_con, ...) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, _all_match_comp, T_el, C
+#define _all(matcher, T_el, T_con, ...) _all_setup(T_el) T_el* T_con##_foreach_index, 0, matcher, T_el, _all_comp
+#define _all_be(x, B, T_el, T_con) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
+#define _all_match(x, B, T_el, T_con, ...) _all_setup(T_el) _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_match_comp
 
 #define _all_va(matcher, B, C, D, F, ...) F(matcher, B, C, D)
 
@@ -715,12 +717,16 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 # undef _eval
 # undef _eval_comp
 # undef to_pass
+
+// \brief `to_pass` and `match` don't work in C11 without typeof, but at least
+//    to_pass can functionally operate even though it can't print variables.
 # define to_pass(fn, A, C) fn(A, C)
 
 # undef _be_between
 # undef _be_within
-# define _be_between(...) _be_between_va(__VA_ARGS__, int, inclusive, exclusive)
-# define _be_within(...) _be_within_va(__VA_ARGS__, int, inclusive, exclusive)
+# define _be_type_int _be_type_default
+# define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, inclusive, int, int)
+# define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, inclusive, int, int)
 
 #endif
 
