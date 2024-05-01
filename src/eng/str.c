@@ -22,14 +22,16 @@ typedef struct {
 static char const str_chr_literal_empty = '\0';
 static struct _Str_Base str_constants[] = {
   { .begin = &str_chr_literal_empty, .size = 0 },
+  { .begin = &str_chr_literal_empty, .size = 0 },
   { .begin = "true", .size = 4 },
   { .begin = "false", .size = 5 },
 };
-static String const str_constants_end = &str_constants[0] + sizeof(str_constants);
+static String const str_constants_end = &str_constants[0] + ARRAY_COUNT(str_constants);
 
-const String str_empty = &str_constants[0];
-const String str_true  = &str_constants[1];
-const String str_false = &str_constants[2];
+const String str_empty  = &str_constants[0];
+const String str_va_end = &str_constants[1];
+const String str_true   = &str_constants[2];
+const String str_false  = &str_constants[3];
 
 static String_Internal* str_new_internal(size_t length) {
   if (length == 0) return NULL; // prompt callers to return empty string
@@ -67,7 +69,7 @@ String str_new_s(const char* c_str, size_t length) {
   return str_terminate(ret);
 }
 
-String str_copy(StringRange str) {
+String istr_copy(StringRange str) {
   String_Internal* ret = str_new_internal(str.size);
   if (!ret) return str_empty;
   memcpy(ret->begin, str.begin, str.size);
@@ -110,7 +112,7 @@ static const StringRange* str_to_range(const void* element, bool is_ptr) {
   return is_ptr ? *(StringRange**)element : element;
 }
 
-String str_join(StringRange del, const Array strings) {
+String istr_join(StringRange del, const Array strings) {
   const size_t range_count = strings->size;
   if (range_count == 0) return str_empty;
 
@@ -146,7 +148,7 @@ String str_join(StringRange del, const Array strings) {
   return (String)ret;
 }
 
-String str_concat(StringRange left, StringRange right) {
+String istr_concat(StringRange left, StringRange right) {
   size_t length = left.size + right.size;
   String_Internal* ret = str_new_internal(length);
   if (!ret) return str_empty;
@@ -162,21 +164,21 @@ String str_concat(StringRange left, StringRange right) {
 // #define str_format(...) _str_fmt2(__VA_ARGS__, NULL, 0)
 // TODO: verify that non-macro va args are actaully not a thing with wasi, lol
 
-String str_prepend(StringRange str, size_t length, char c) {
+String istr_prepend(StringRange str, size_t length, char c) {
   String_Internal* ret = str_new_internal(str.size + length);
   memset(ret->begin, c, length);
   memcpy(ret->begin + length, str.begin, str.size);
   return str_terminate(ret);
 }
 
-String str_append(StringRange str, size_t length, char c) {
+String istr_append(StringRange str, size_t length, char c) {
   String_Internal* ret = str_new_internal(str.size + length);
   memcpy(ret->begin, str.begin, str.size);
   memset(ret->begin + str.size, c, length);
   return str_terminate(ret);
 }
 
-Array str_split(StringRange str, StringRange del) {
+Array istr_split(StringRange str, StringRange del) {
   Array ret = array_new(StringRange);
 
   // specialization for empty string, return a range for each char
@@ -193,7 +195,7 @@ Array str_split(StringRange str, StringRange del) {
   do {
     int prev = i;
     i = (int)str_index_of(str, del, i);
-    StringRange range = str_substring(str, prev, i);
+    StringRange range = istr_substring(str, prev, i);
     array_push_back(ret, &range);
     i += (int)del.size;
     if (i == (int)str.size) array_push_back(ret, &str_empty->range);
@@ -202,7 +204,7 @@ Array str_split(StringRange str, StringRange del) {
   return ret;
 }
 
-StringRange _str_substring(StringRange str, int start, int end) {
+StringRange istr_substring(StringRange str, int start, int end) {
   if (start == end) return str_empty->range;
   if (start >= (int)str.size) return str_empty->range;
   if (start < 0) start = (int)str.size + start;
@@ -216,12 +218,12 @@ StringRange _str_substring(StringRange str, int start, int end) {
   };
 }
 
-StringRange str_trim(StringRange str) {
-  StringRange ret = str_trim_start(str);
-  return str_trim_end(ret);
+StringRange istr_trim(StringRange str) {
+  StringRange ret = istr_trim_start(str);
+  return istr_trim_end(ret);
 }
 
-StringRange str_trim_start(StringRange str) {
+StringRange istr_trim_start(StringRange str) {
   int start, end = (int)str.size;
   for (start = 0; start < (int)str.size; ++start) {
     if (!isspace(str.begin[start])) break;
@@ -233,7 +235,7 @@ StringRange str_trim_start(StringRange str) {
   };
 }
 
-StringRange str_trim_end(StringRange str) {
+StringRange istr_trim_end(StringRange str) {
   int end = (int)str.size;
   while (end > 0) {
     if (isspace(str.begin[end - 1])) --end;
@@ -246,26 +248,26 @@ StringRange str_trim_end(StringRange str) {
   };
 }
 
-bool str_eq(StringRange lhs, StringRange rhs) {
+bool istr_eq(StringRange lhs, StringRange rhs) {
   if (lhs.size != rhs.size) return FALSE;
   return memcmp(lhs.begin, rhs.begin, lhs.size) == 0;
 }
 
-bool str_starts_with(StringRange str, StringRange starts) {
+bool istr_starts_with(StringRange str, StringRange starts) {
   if (starts.size > str.size) return FALSE;
   return memcmp(str.begin, starts.begin, starts.size) == 0;
 }
 
-bool str_ends_with(StringRange str, StringRange ends) {
+bool istr_ends_with(StringRange str, StringRange ends) {
   if (ends.size > str.size) return FALSE;
   return memcmp(str.begin + str.size - ends.size, ends.begin, ends.size) == 0;
 }
 
-bool str_contains(StringRange str, StringRange check) {
-  return str_find(str, check) != str.size;
+bool istr_contains(StringRange str, StringRange check) {
+  return istr_find(str, check) != str.size;
 }
 
-size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
+size_t istr_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   if (str.size < to_find.size) return str.size;
   if (to_find.size == 0) return from_pos;
   size_t j;
@@ -279,8 +281,8 @@ size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   return str.size;
 }
 
-size_t str_find(StringRange str, StringRange to_find) {
-  return str_index_of(str, to_find, 0);
+size_t istr_find(StringRange str, StringRange to_find) {
+  return istr_index_of(str, to_find, 0);
 }
 
 /*

@@ -89,50 +89,55 @@ typedef struct _Str_Base {
   };
 }*String;
 
-#define _str_as_range(S) _Generic((S),  \
-  StringRange:  _str_range_r,           \
-  String:       _str_range_st,          \
-  char*:        str_range,              \
-  const char*:  str_range               \
-)(S)                                    //
+#ifdef _MSC_VER
+// Annoyingly, MSVC for some reason detects the _Generic specifier as "unused".
+#pragma warning ( disable : 4189 ) // local initialized but not referenced
+#endif
+// \brief Macro to coalesce a String, StringRange, or char* into a StringRange.
+#define _s2r(S) _Generic((S), \
+  StringRange:  _str_range_r,   \
+  String:       _str_range_st,  \
+  char*:        str_range,      \
+  const char*:  str_range       \
+)(S)                            //
 
 extern const String str_empty;
+extern const String str_va_end;
 extern const String str_true;
 extern const String str_false;
 
 StringRange str_range(const char* c_str);
 StringRange str_range_s(const char* c_str, size_t length);
-static inline StringRange _str_range_st(const String str) { return str->range; }
-static inline StringRange _str_range_r(StringRange range) { return range; }
 
-String str_new(const char* c_str);
-String str_new_s(const char* c_str, size_t length);
-String str_copy(StringRange str);
-String str_from_bool(bool b);
-String str_from_int(int i);
-String str_from_float(float f);
+String  str_new(const char* c_str);
+String  str_new_s(const char* c_str, size_t length);
+#define str_copy(str) istr_copy(_s2r(str))
+String  str_from_bool(bool b);
+String  str_from_int(int i);
+String  str_from_float(float f);
 
-void str_delete(String* str);
+void    str_delete(String* str);
 
-bool str_eq(StringRange lhs, StringRange rhs);
-bool str_starts_with(StringRange str, StringRange starts);
-bool str_ends_with(StringRange str, StringRange ends);
-bool str_contains(StringRange str, StringRange check);
+#define str_eq(lhs, rhs)            istr_eq(_s2r(lhs), _s2r(rhs))
+#define str_starts_with(str, start) istr_starts_with(_s2r(str), _s2r(start))
+#define str_ends_with(str, end)     istr_ends_with(_s2r(str), _s2r(end))
+#define str_contains(str, check)    istr_contains(_s2r(str), _s2r(check))
 
 // \brief prefer s.size, but can be useful in cases where a function is needed.
 //
 // \returns s.size
-static inline size_t str_size(StringRange s) { return s.size; }
+#define str_size(str)               _str_size(_s2r(str))
 
 // \brief Gets the start of the next instance of to_find in str, starting
 //    at from_pos.
 //
 // \returns
 //    The index in str of the match, or if none is present, returns str.size.
-size_t str_index_of(StringRange str, StringRange to_find, size_t from_pos);
+#define str_index_of(str, to_find, from_pos) \
+                     istr_index_of(_s2r(str), _s2r(to_find), from_pos)
 
 // \brief Alias for str_index_of(str, to_find, 0)
-size_t str_find(StringRange str, StringRange to_find);
+#define str_find(str, to_find) istr_find(_s2r(str), _s2r(to_find))
 
 // \brief `StringRange str_substring(str, start, ?end)`
 // \brief Gets a substring as a range within the input string range.
@@ -153,11 +158,12 @@ size_t str_find(StringRange str, StringRange to_find);
 //
 // \returns a StringRange as a substring of the input range.
 //
-#define     str_substring(str, ...) _STR_SUBSTR(str, __VA_ARGS__)
-#define     str_slice(str, ...)     _STR_SUBSTR(str, __VA_ARGS__)
-StringRange str_trim(StringRange str);
-StringRange str_trim_start(StringRange str);
-StringRange str_trim_end(StringRange str);
+#define str_substring(str, ...) _str_substring(str, __VA_ARGS__)
+#define str_slice(str, ...)     _str_substring(str, __VA_ARGS__)
+
+#define str_trim(str)       istr_trim(_s2r(str))
+#define str_trim_start(str) istr_trim_start(_s2r(str))
+#define str_trim_end(str)   istr_trim_end(_s2r(str))
 
 // \brief Splits the string into an array of substrings based on the delimiter.
 //
@@ -168,7 +174,7 @@ StringRange str_trim_end(StringRange str);
 //
 // \returns An array of StringRanges whose lifetimes are bound to str.
 //    The Array must be deleted by the user via array_delete(&arr).
-Array str_split(StringRange str, StringRange del);
+#define str_split(str, del) istr_split(_s2r(str), _s2r(del))
 
 // \brief Joins an array of strings into a new string, each separated by a
 //    given delimiter. The array can be of either Strings or StringRanges.
@@ -184,19 +190,68 @@ Array str_split(StringRange str, StringRange del);
 //
 // \returns a new string, which must be deleted later by the caller.
 //
-String str_join(StringRange deliminter, const Array strings);
-String str_concat(StringRange left, StringRange right);
-String str_prepend(StringRange str, size_t length, char c);
-String str_append(StringRange str, size_t length, char c);
+#define str_join(del, strings)      istr_join(_s2r(del), strings)
+#define str_concat(left, right)     istr_concat(_s2r(left), _s2r(right))
+#define str_replace(str, tok, w)    istr_replace(_s2r(str), _s2r(tok), _s2r(w))
+#define str_replace_all(s, t, w)    istr_replace_all(_s2r(s), _s2r(t), _s2r(w))
+#define str_prepend(str, length, c) istr_prepend(_s2r(str), length, c)
+#define str_append(str, length, c)  istr_append(_s2r(str), length, c)
+
 //String str_pad_left(StringRange str, size_t length, char c);
 //String str_pad_right(StringRange str, size_t length, char c);
 
-StringRange _str_substring(StringRange str, int start, int end);
-#define _STR_SUBSTR_VA(STR, START, END, ...) \
-  _str_substring(STR, (int)START, (int)END)
-#define _STR_SUBSTR(STR, ...) \
-  _STR_SUBSTR_VA(_str_as_range(STR), __VA_ARGS__, _str_as_range(STR).size)
+static inline StringRange _str_range_st(const String str) { return str->range; }
+static inline StringRange _str_range_r(StringRange range) { return range; }
+static inline size_t      _str_size(StringRange s) { return s.size; }
 
+String      istr_copy(StringRange str);
+bool        istr_eq(StringRange lhs, StringRange rhs);
+bool        istr_starts_with(StringRange str, StringRange starts);
+bool        istr_ends_with(StringRange str, StringRange ends);
+bool        istr_contains(StringRange str, StringRange check);
+size_t      istr_index_of(StringRange str, StringRange to_find, size_t from);
+//size_t    istr_index_of_last(StringRange str, StringRange find, size_t from);
+size_t      istr_find(StringRange str, StringRange to_find);
+//size_t    istr_find_last(StringRange str, StringRange to_find);
+//Array     istr_match(StringRange str, StringRange regex);
+StringRange istr_substring(StringRange str, int start, int end);
+StringRange istr_trim(StringRange str);
+StringRange istr_trim_start(StringRange str);
+StringRange istr_trim_end(StringRange str);
+Array       istr_split(StringRange str, StringRange del);
+//Array     istr_tokenize(StringRange str, const StringRange[] tokens);
+//Array     istr_parenthetize(StringRange str); // block out segments by parens? ([{}])
+String      istr_join(StringRange deliminter, const Array strings);
+String      istr_concat(StringRange left, StringRange right);
+// for replace, start with basic string replace, maybe later look into adding regex support?
+//    differentiate between regular strings and regex with the regular "a" vs "/a/"
+//String    istr_replace(StringRange str, StringRange to_rep, StringRange with);
+//String    istr_replace_all(StringRange str, StringRange r, StringRange w);
+//String    istr_format(StringRange fmt, ...);
+String      istr_prepend(StringRange str, size_t length, char c);
+String      istr_append(StringRange str, size_t length, char c);
+//String    istr_to_upper(StringRange str);
+//String    istr_to_lower(StringRange str);
+//String    istr_to_title(StringRange str);
+
+#define _str_sub_args(str, start, end, ...) _s2r(str), (int)start, (int)end
+#define _str_sub_a(str, ...) _str_sub_args(str, __VA_ARGS__, _s2r(str).size)
+#define _str_substring(str, ...) istr_substring(_str_sub_a(str, __VA_ARGS__))
+
+/*
+typedef struct {
+  int type;
+  union {
+    StringRange range;
+    long long int i;
+    long long unsigned int ui;
+    double f;
+  };
+} _Str_FmtArg;
+
+#define _str_format(str, ...) istr_format(str, _va_exp(_s2r, __VA_ARGS__), str_va_end)
+#define str_format(str, ...) _str_format(_s2r(str), __VA_ARGS__)
+//*/
 
 ////////////////////////////////////////////////////////////////////////////////
 

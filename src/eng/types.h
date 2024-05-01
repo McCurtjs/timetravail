@@ -73,7 +73,7 @@ typedef size_t jshandle;
 //    }
 
 #ifndef loop
-# define loop while (TRUE)
+# define loop for(;;)
 # define until(condition) if (condition) break;
 #endif
 
@@ -90,6 +90,32 @@ typedef size_t jshandle;
 # define STR_RECUR(S) #S
 # define STR(S) STR_RECUR(S)
 #endif
+
+#ifndef ARRAY_COUNT
+# define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(*arr))
+#endif
+
+// Variadic expander to apply a macro/function to each argument such as a
+//		_Generic selector for type safety.
+#define _va_exp_1(F,a,...) F(a)
+#define _va_exp_2(F,a,...) F(a), _va_exp_1(F,__VA_ARGS__)
+#define _va_exp_3(F,a,...) F(a), _va_exp_2(F,__VA_ARGS__)
+#define _va_exp_4(F,a,...) F(a), _va_exp_3(F,__VA_ARGS__)
+#define _va_exp_5(F,a,...) F(a), _va_exp_4(F,__VA_ARGS__)
+#define _va_exp_6(F,a,...) F(a), _va_exp_5(F,__VA_ARGS__)
+#define _va_exp_7(F,a,...) F(a), _va_exp_6(F,__VA_ARGS__)
+#define _va_exp_8(F,a,...) F(a), _va_exp_7(F,__VA_ARGS__)
+#define _va_exp_9(F,a,...) F(a), _va_exp_8(F,__VA_ARGS__)
+#define _va_exp_a(F,a,...) F(a), _va_exp_9(F,__VA_ARGS__)
+#define _va_exp_b(F,a,...) F(a), _va_exp_a(F,__VA_ARGS__)
+#define _va_exp_c(F,a,...) F(a), _va_exp_b(F,__VA_ARGS__)
+#define _va_exp_d(F,a,...) F(a), _va_exp_c(F,__VA_ARGS__)
+#define _va_exp_e(F,a,...) F(a), _va_exp_d(F,__VA_ARGS__)
+#define _va_exp_f(F,a,...) F(a), _va_exp_e(F,__VA_ARGS__)
+#define _va_exp_va(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,X,...) \
+				_va_exp##X(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o)				//
+#define _va_exp(F, ...)																												\
+				_va_exp_va(F,__VA_ARGS__,_f,_e,_d,_c,_b,_a,_9,_8,_7,_6,_5,_4,_3,_2,_1)//
 
 // Squelches warnings about unused parameters.
 // Ideally, for GCC and Clang this should be __attribute__((unused)) in the

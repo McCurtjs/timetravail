@@ -92,6 +92,7 @@ static const char* param_file = NULL;       // filename
 static int param_line = 0;                  // filename:l or :l
 static Verbosity param_verbose = V_NONE;    // -v or -va or -vn
 static int param_tabsize = 2;               // -t [n]
+static csBool param_padding = FALSE;        // -p
 static csBool param_no_expect_fail = FALSE; // -f
 static csBool param_memory_test = TRUE;     // -m (to disable)
 static csBool param_show_types = FALSE;     // -s
@@ -110,6 +111,7 @@ static csUint output_indent = 0;
 static const char* output_fmt = NULL;
 
 csBool cspec_strcmp(const char* A, const char* B) {
+  if (!A && !B) return TRUE;
   if (!A || !B) return FALSE;
   while (*A && *B) {
     if (*A++ != *B++) return FALSE;
@@ -185,19 +187,30 @@ static void output_str(const char* s) {
       continue;
     }
 
-    // insert Unix-style color indicators for %c if we're not in WASM
-#ifndef __WASM__
-    char color_indicator[] = "\033[_;3_m";
-    if (*s == '%' && *(s + 1) == 'c'
-    && output_index < output_size - sizeof(color_indicator)
-    ) {
-      for (csUint i = 0; i < sizeof(color_indicator) - 1; ++i) {
-        output_buffer[output_index++] = color_indicator[i];
+    if (*s == '%') {
+      if (*(s + 1) == 'n') {
+        if (param_padding) {
+          output_buffer[output_index++] = '\n';
+        }
+        prev = ' ';
+        s += 2;
+        continue;
       }
-      s += 2;
-      continue;
-    }
+
+#ifndef __WASM__
+      // insert Unix-style color indicators for %c if we're not in WASM
+      else if (*(s + 1) == 'c') {
+        char color_indicator[] = "\033[_;3_m";
+        if (output_index < output_size - sizeof(color_indicator)) {
+          for (csUint i = 0; i < sizeof(color_indicator) - 1; ++i) {
+            output_buffer[output_index++] = color_indicator[i];
+          }
+          s += 2;
+          continue;
+        }
+      }
 #endif
+    }
 
     prev = *(s++);
     output_buffer[output_index++] = prev;
@@ -458,10 +471,12 @@ static void memory_print_row(const csByte* row, int level, csBool target) {
 
 static void memory_print_record(const MemoryRecord* record, int level) {
   size_t i = 0;
+  if (param_padding) output_print();
   while (i < record->size + memory_size_fence + 16) {
     memory_print_row(record->block + i - 16 + memory_size_fence, level, i == 16);
     i += 16;
   }
+  if (param_padding) output_print();
 }
 
 static csBool memory_check_fence(MemoryRecord* record) {
@@ -586,7 +601,7 @@ static void memory_final_checks(void) {
     if (test_in_progress) {
       if (!memory_expect_error) {
         output_pad(param_tabsize * level + 21, ' ');
-        output_str("mallocs: {}, frees: {}");
+        output_str("mallocs: {}, frees: {}%n");
         output_sint(memory_count_mallocs);
         output_sint(memory_count_frees);
         output_print();
@@ -1114,19 +1129,22 @@ static csBool resolve_param(const char* typ_N, const void* N) {
     }
   }
 
-  if (cspec_strcmp(typ_N, "char*")
-  ||  cspec_strcmp(typ_N, "byte*")
-  ||  cspec_strcmp(typ_N, "csByte*")
-  ||  cspec_strcmp(typ_N, "unsigned char*")
-  ||  cspec_strcmp(typ_N, "const char*")
-  ||  cspec_strcmp(typ_N, "const byte*")
-  ||  cspec_strcmp(typ_N, "const csByte*")
-  ||  cspec_strcmp(typ_N, "const unsigned char*")
+  csBool is_size_t = cspec_strcmp(typ_N, "size_t");
+
+  if (cspec_strrstr(typ_N, "char*")
+  ||  cspec_strrstr(typ_N, "byte*")
+  ||  cspec_strrstr(typ_N, "csByte*")
+  ||  cspec_strrstr(typ_N, "unsigned char*")
+  ||  cspec_strrstr(typ_N, "char[]")
   ) {
     const char* tmp = output_fmt;
     output_fmt = NULL;
     output_char('"');
-    output_str(*(const char**)N);
+    if (cspec_strrstr(typ_N, "[]")) {
+      output_str((const char*)N);
+    } else {
+      output_str(*(const char**)N);
+    }
     output_char('"');
     output_fmt = tmp;
     output_continue_format();
@@ -1136,7 +1154,10 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   ) {
     output_ptr(*(const void**)N);
   }
-  else if
+  else if (cspec_strrstr(typ_N, "[]")) {
+    output_ptr(N);
+
+  } else if
   (  cspec_strcmp(typ_N, "char")
   || cspec_strcmp(typ_N, "unsigned char")
   ) {
@@ -1166,9 +1187,7 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   else if
   (  cspec_strcmp(typ_N, "long")
   || cspec_strcmp(typ_N, "long int")
-#ifdef __WASM__
-  || cspec_strcmp(typ_N, "size_t")
-#endif
+  || (sizeof(void*) == 4 && is_size_t)
   ) {
     output_sint(*(const long int*)N);
   }
@@ -1176,9 +1195,7 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   (  cspec_strcmp(typ_N, "llong")
   || cspec_strcmp(typ_N, "long long")
   || cspec_strcmp(typ_N, "long long int")
-#ifndef __WASM__
-  || cspec_strcmp(typ_N, "size_t")
-#endif
+  || (sizeof(void*) == 8 && is_size_t)
   ) {
     output_sint(*(const long long int*)N);
   }
@@ -1282,7 +1299,8 @@ void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
   va_start(args, fmt);
   for (int i = 0; i < arg_ct; ++i) {
     const char* type = va_arg(args, const char*);
-    va_arg(args, const void*); // skip the value
+    const char* unused = va_arg(args, const void*); // skip the value
+    (void)unused;
 
     output_str(type);
     if (i + 1 < arg_ct) output_str(", ");
@@ -1294,6 +1312,9 @@ void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
 finish:
 
   output_print();
+
+  // print empty line for padding
+  if (param_padding) output_print();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1544,6 +1565,7 @@ static csBool process_param_basic(char c) {
     case 'f': handled = TRUE; param_no_expect_fail = TRUE; break;
     case 'm': handled = TRUE; param_memory_test = FALSE; break;
     case 's': handled = TRUE; param_show_types = TRUE; break;
+    case 'p': handled = TRUE; param_padding = TRUE; break;
   }
   return handled;
 }
@@ -1577,6 +1599,7 @@ static csBool process_args(int argc, char* argv[]) {
           "\n: n                                 : verbose output (includes user notes)"
           "\n: v verbose                         : verbose output (prints all tests run)"
           "\n: V                                 : verbose output (maximum)"
+          "\n: p padding                         : adds empty lines around error outputs for readability"
           "\n: t tab-size         n (default 2)  : spaces per indent in test output"
           "\n: f force-fails                     : disables 'expect(to_fail)', printing failure output"
           "\n: m ignore-memory                   : disables memory testing"

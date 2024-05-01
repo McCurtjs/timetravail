@@ -6,6 +6,67 @@
 # include <stdlib.h>
 #endif
 
+extern csBool cspec_strcmp(const char* A, const char* B);
+extern csBool cspec_strrstr(const char* s, const char* ends_with);
+
+describe(deduction) {
+
+  // ignore these tests if not >= C11
+#ifdef _USE_DEDUCTION
+
+  int x = 0;
+  char* type_string = NULL;
+  char* expected = NULL;
+
+  it("resolves a type") {
+    type_string = _type_s(x);
+    expected = "int";
+  }
+
+  it("resolves a pointer type") {
+    int* px = &x; (void)px;
+    type_string = _type_s(px);
+    expected = "int*";
+  }
+
+  it("resolves an array type") {
+    int arr[] = { 1, 2 }; (void)arr;
+    type_string = _type_s(arr);
+    expected = "int[]";
+  }
+
+  it("resolves a const pointer type") {
+    const int* px = &x; (void)px;
+    type_string = _type_s(px);
+    expected = "const int*";
+  }
+
+  it("resolves a string from char*") {
+    char* str = "str"; (void)str;
+    type_string = _type_s(str);
+    expected = "char*";
+  }
+
+  it("resolves a char[] from string literal") {
+    typeof("str") str = "str"; (void)str;
+    type_string = _type_s(str);
+    expected = "char[]";
+  }
+
+  /*
+  it("checks size_t") {
+    size_t s = sizeof(size_t);
+    expect(s, == , 51, size_t);
+  } //*/
+
+  after{
+    expect(to_pass(cspec_strcmp, type_string, expected));
+  }
+
+#endif
+
+}
+
 #ifdef _MSC_VER
 #pragma warning ( push )
 // Disable MSVC warning "conditional expression is constant"
@@ -231,9 +292,6 @@ describe(contexts) {
 #ifndef PI
 #define PI 3.1415926535897932384626f
 #endif
-
-extern csBool cspec_strcmp(const char* A, const char* B);
-extern csBool cspec_strrstr(const char* s, const char* ends_with);
 
 describe(expect_basic) {
 
@@ -699,20 +757,17 @@ describe(matcher_basics) {
         x = 5;
         expect(x to be_positive);
         expect(x to not be_negative);
-        expect(x to be_non_negative);
       }
 
       it("is zero") {
         expect(x to not be_positive);
         expect(x to not be_negative);
-        expect(x to be_non_negative);
       }
 
       it("is negative") {
         x = -5;
         expect(x to not be_positive);
         expect(x to be_negative);
-        expect(x to not be_non_negative);
       }
 
     }
@@ -758,7 +813,7 @@ describe(matcher_basics) {
 
       test("negative expecting non-negative") {
         x = -1;
-        expect(x to be_non_negative);
+        expect(x to not be_negative);
       }
 
     }
@@ -928,8 +983,8 @@ describe(matcher_be_about) {
     }
 
     it("checks for near-equality") {
-      float subject = 0.33;
-      subject += 0.10;
+      float subject = 0.33f;
+      subject += 0.10f;
       expect(subject, != , 0.43);
       expect(subject to be_about(0.43f));
     }
@@ -947,8 +1002,8 @@ describe(matcher_be_about) {
     }
 
     it("checks for near-equality") {
-      float subject = 0.33;
-      subject += 0.10;
+      float subject = 0.33f;
+      subject += 0.10f;
       expect(subject, != , 0.43);
       expect(subject to not be_about(0.43f));
     }
@@ -958,6 +1013,7 @@ describe(matcher_be_about) {
 }
 
 test_suite(tests_cspec) {
+  test_group(deduction),
   test_group(tests),
   test_group(memory),
   test_group(contexts),

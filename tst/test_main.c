@@ -180,21 +180,28 @@ void string_tests() {
 csUint resolve_types (
   const char** p_type, const void* value, char* out_buffer, csUint out_size
 ) {
-  (void)value;
-  (void)out_buffer;
-  (void)out_size;
-
   StringRange type = str_range(*p_type);
+  const StringRange* string_range = NULL;
 
-  if (str_eq(type, R("StringRange")) || str_eq(type, R("StringRange*"))) {
-    const StringRange* range = str_ends_with(type, R("*")) ? *((StringRange**)value) : value;
+  if (str_eq(type, "StringRange*")) {
+    string_range = *(const StringRange**)value;
+  }
+  else if (str_eq(type, "StringRange")) {
+    string_range = (const StringRange*)value;
+  }
+  else if (str_eq(type, "String")) {
+    string_range = &(*(const String*)value)->range;
+  }
+
+  if (string_range) {
     csUint w = 0;
-    if (str_ends_with(type, R("*"))) out_buffer[w++] = '&';
+    if (str_ends_with(type, "*") && w < out_size) out_buffer[w++] = '&';
     out_buffer[w++] = '"';
-    for (csUint i = 0; w < out_size && i < range->size; ++i) {
-      out_buffer[w++] = range->begin[i];
+    for (csUint i = 0; w < out_size - 1 && i < string_range->size; ++i) {
+      out_buffer[w++] = string_range->begin[i];
     }
-    if (w < out_size) out_buffer[w++] = '"';
+    out_buffer[w++] = '"';
+
     return w;
   }
 
@@ -209,7 +216,7 @@ extern TestSuite tests_string;
 // Main
 
 #ifdef __WASM__
-static char* argv[] = {"WASM", "-vf"};
+static char* argv[] = {"WASM", "-v"};
 static int argc = sizeof(argv) / sizeof(char*);
 int export(wasm_tests) ()
 #else

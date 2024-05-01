@@ -1,7 +1,7 @@
 #include "str.h"
 
-#define CSPEC_CUSTOM_TYPES      \
-  StringRange: "StringRange", StringRange*: "StringRange*", //
+#define CSPEC_CUSTOM_TYPES                                                    \
+  StringRange: "StringRange", StringRange*: "StringRange*", String: "String", //
 
 #include "cspec.h"
 
@@ -10,11 +10,13 @@ describe(str_range) {
   it("creates a range from a literal") {
     StringRange range = R("literal string range");
 
-    expect(range.length, == , 20, size_t);
+    expect(range.length, == , 20u);
+    expect(range.size, == , 20u);
   }
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
+  // warns that the length and size are a union, which is the point
 #pragma GCC diagnostic ignored "-Waddress"
 #endif
   it("validates that length and size are union aliases") {
@@ -31,7 +33,7 @@ describe(str_range) {
     StringRange range = R(c_str);
 
     expect(range.begin == c_str);
-    expect(range.length, == , 22, size_t);
+    expect(range.length, == , 22u);
   }
 
   it("creates a range within the given c-string string") {
@@ -39,7 +41,7 @@ describe(str_range) {
     StringRange range = str_range(c_str);
 
     expect(range.begin == c_str);
-    expect(range.length, == , 18, size_t);
+    expect(range.length, == , 18u);
   }
 
   it("creates a range using the _s version that specifies length") {
@@ -47,10 +49,11 @@ describe(str_range) {
     StringRange range = str_range_s(c_str, 4);
 
     expect(range.begin == c_str);
-    expect(range.length, == , 4, size_t);
+    expect(range.length, == , 4u);
+    expect(range to match(str_eq, "This"));
   }
 
-  expect(malloc_count == 0);
+  expect(malloc_count, == , 0);
 
 }
 
@@ -61,12 +64,12 @@ describe(str_new) {
 
   it("makes a copy of the c_string using malloc") {
     subject = str_new(c_str);
-    expect(str_eq(subject->range, R(c_str)));
+    expect(str_eq(subject, c_str));
   }
 
   it("makes a copy using the _s version") {
     subject = str_new_s(c_str, 4);
-    expect(str_eq(subject->range, R("This")));
+    expect(str_eq(subject, "This"));
   }
 
   it("ensures the direct and range pointers are the same/shared in union") {
@@ -87,12 +90,27 @@ describe(str_new) {
 describe(str_copy) {
   String subject = NULL;
 
-  StringRange range = R("This is a string");
+  char c_str[] = "This is a string";
+  char* p_str = c_str;
+  StringRange range = R(c_str);
 
-  it("allocates a new copy of the string") {
+  it("allocates a new copy of the string directly from the c string") {
+    subject = str_copy(c_str);
+    expect(subject to match(str_eq, p_str));
+    expect(subject->begin != c_str);
+  }
+
+  it("allocates a new copy of the string from a range") {
     subject = str_copy(range);
-    expect(str_eq(subject->range, range));
+    expect(subject to match(str_eq, range));
     expect(subject->begin != range.begin);
+  }
+
+  it("allocates a new copy of the string from another dynamic string") {
+    String str = str_new(c_str);
+    subject = str_copy(str);
+    expect(subject to match(str_eq, str));
+    str_delete(&str);
   }
 
   if (subject) {
@@ -108,11 +126,13 @@ describe(str_from_bool) {
   it("gets a true value from a bool") {
     subject = str_from_bool(TRUE);
     expect(subject == str_true);
+    expect(subject to match(str_eq, "true"));
   }
 
   it("gets a false value from a bool") {
     subject = str_from_bool(FALSE);
     expect(subject == str_false);
+    expect(subject to match(str_eq, "false"));
   }
 
   if (subject) {
@@ -324,27 +344,27 @@ describe(str_contains) {
   StringRange range = R("This is a string");
 
   it("handles a basic true use case") {
-    expect(str_contains(range, R("is a")));
+    expect(range to match(str_contains, "is a"));
   }
 
   it("handles a basic false use case") {
-    expect(not str_contains(range, R("not in")));
+    expect(range to not match(str_contains, "not in"));
   }
 
   it("is case sensitive") {
-    expect(not str_contains(range, R("IS A")));
+    expect(range to not match(str_contains, "IS A"));
   }
 
   it("returns true given an empty string") {
-    expect(str_contains(range, R("")));
+    expect(range to match(str_contains, ""));
   }
 
   it("returns true given the full string") {
-    expect(str_contains(range, R("This is a string")));
+    expect(range to match(str_contains, "This is a string"));
   }
 
   it("returns false given more than the full string") {
-    expect(not str_contains(range, R("This is a string.")));
+    expect(range to not match(str_contains, "This is a string."));
   }
 
 }
@@ -354,23 +374,23 @@ describe(str_index_of) {
   StringRange is = R("is");
 
   it("finds an index") {
-    expect((int)str_index_of(range, is, 0), == , 2);
+    expect(str_index_of(range, is, 0), == , 2u);
   }
 
   it("fails to find a substring that isn't present") {
-    expect((int)str_index_of(range, R("Not present"), 0));
+    expect(str_index_of(range, R("Not present"), 0), == , range.size);
   }
 
   it("begins the search from a given position") {
-    expect((int)str_index_of(range, is, 3), == , 5);
+    expect(str_index_of(range, is, 3), == , 5u);
   }
 
   it("fails to find a word in the string that starts before the start_pos") {
-    expect((int)str_index_of(range, is, 6), == , 16);
+    expect(str_index_of(range, is, 6), == , range.size);
   }
 
   it("fails to find anything if the start pos is after the end of the string") {
-    expect((int)str_index_of(range, is, 99), == , 16);
+    expect(str_index_of(range, is, 99), == , range.size);
   }
 
 }
@@ -380,17 +400,17 @@ describe(str_find) {
 
   it("finds an index") {
     StringRange is = R("is");
-    expect((int)str_find(range, is), == , 2);
+    expect(istr_find(range, is), == , 2u);
   }
 
   it("fails to find a substring that isn't present") {
     StringRange np = R("not present");
-    expect((int)str_find(range, np), == , 16);
+    expect(istr_find(range, np), == , range.size);
   }
 
   it("can find the first word in the string") {
     StringRange This = R("This");
-    expect((int)str_find(range, This), == , 0);
+    expect(istr_find(range, This), == , 0u);
   }
 
   expect(malloc_count == 0);
@@ -405,55 +425,53 @@ describe(str_substring) {
 
     it("gets a substring from 0 to 0") {
       StringRange subject = str_substring(range, 0, 0);
-      expect(str_eq(subject, str_empty->range));
+      expect(subject to match(str_eq, str_empty));
     }
 
     it("gets substring of whole string (using default argument") {
       StringRange subject = str_substring(range, 0);
-      expect(str_eq(subject, range));
+      expect(subject to match(str_eq, range));
     }
 
     it("gets a partial substring from the beginning") {
       StringRange subject = str_substring(range, 0, 4);
-      expect(str_eq(subject, R("This")));
+      expect(subject to match(str_eq, "This"));
+      //expect(str_eq to not succeed_with(subject, "This"));
     }
 
     it("gets a substring starting partway in the string") {
       StringRange subject = str_substring(range, 5, 9);
-      StringRange _is_a = R("is a");
-      expect(str_eq(subject, _is_a));
+      expect(subject to match(str_eq, "is a"));
     }
 
     it("uses a negative offset for the start of the substring") {
       StringRange subject = str_substring(range, -6);
-      StringRange _string = R("string");
-      expect(str_eq(subject, _string));
+      expect(subject to match(str_eq, "string"));
     }
 
     it("uses negative offsets for the start and end") {
       StringRange subject = str_substring(range, -8, -3);
-      StringRange _a_str = R("a str");
-      expect(str_eq(subject, _a_str));
+      expect(subject to match(str_eq, "a str"));
     }
 
     it("has a string start past the end") {
       StringRange subject = str_substring(range, 20);
-      expect(str_eq(subject, str_empty->range));
+      expect(subject to match(str_eq, str_empty));
     }
 
     it("has a string end before the beginning") {
       StringRange subject = str_substring(range, 5, 3);
-      expect(str_eq(subject, str_empty->range));
+      expect(subject to match(str_eq, str_empty));
     }
 
     it("has a string end before the beginning") {
       StringRange subject = str_substring(range, 1, 0);
-      expect(str_eq(subject, str_empty->range));
+      expect(subject to match(str_eq, str_empty));
     }
 
     it("can accept a basic c-string") {
       StringRange subject = str_substring("This is a string", -6);
-      expect(str_eq(subject, R("string")));
+      expect(subject to match(str_eq, "string"));
     }
 
     expect(malloc_count == 0);
@@ -463,7 +481,7 @@ describe(str_substring) {
   it("can accept a dynamic String") {
     String str = str_copy(range);
     StringRange subject = str_substring(str, -6);
-    expect(str_eq(subject, R("string")));
+    expect(subject to match(str_eq, "string"));
     str_delete(&str);
   }
 
@@ -472,31 +490,33 @@ describe(str_substring) {
 describe(str_trim) {
 
   StringRange range = R("\t  String with extra spaces   \n");
+  StringRange subject = str_empty->range;
+  StringRange expected = str_empty->range;
 
   it("trims all leading and trailing spaces") {
-    StringRange subject = str_trim(range);
-    StringRange expected = R("String with extra spaces");
-    expect(str_eq(subject, expected));
+    subject = str_trim(range);
+    expected = R("String with extra spaces");
   }
 
   it("trims all leading spaces") {
-    StringRange subject = str_trim_start(range);
-    StringRange expected = R("String with extra spaces   \n");
-    expect(str_eq(subject, expected));
+    subject = str_trim_start(range);
+    expected = R("String with extra spaces   \n");
   }
 
   it("trims all trailing spaces") {
-    StringRange subject = str_trim_end(range);
-    StringRange expected = R("\t  String with extra spaces");
-    expect(str_eq(subject, expected));
+    subject = str_trim_end(range);
+    expected = R("\t  String with extra spaces");
   }
 
   it("Does nothing to a string with no leading or trailing spaces") {
-    StringRange subject = str_trim(str_true->range);
-    expect(str_eq(subject, str_true->range));
+    subject = str_trim(str_true);
+    expected = R("true");
   }
 
-  expect(malloc_count == 0);
+  after{
+    expect(subject to match(str_eq, expected));
+    expect(malloc_count == 0);
+  }
 
 }
 
@@ -506,7 +526,7 @@ describe(str_split) {
   Array result = NULL;
 
   it("performs a basic split on commas") {
-    result = str_split(range, R(","));
+    result = str_split(range, ",");
     expect(result->size, == , 3u);
 
     StringRange expected[3] = { R("This is"), R(" a collection"), R(" of strings") };
@@ -514,7 +534,7 @@ describe(str_split) {
   }
 
   it("performs a multi-char split") {
-    result = str_split(range, R(", "));
+    result = str_split(range, ", ");
     expect(result->size, == , 3u);
 
     StringRange expected[3] = { R("This is"), R("a collection"), R("of strings") };
@@ -530,13 +550,13 @@ describe(str_split) {
   }
 
   it("tries to split on a delimiter that isn't present") {
-    result = str_split(range, R("NOT_INCLUDED"));
+    result = str_split(range, "NOT_INCLUDED");
     expect(result->size, == , 1u);
     expect(result to all(str_eq, range, StringRange, array));
   }
 
   it("tries to split with a delimiter that is too big") {
-    result = str_split(range, R("This is, a collection, of strings, but more"));
+    result = str_split(range, "This is, a collection, of strings, but more");
     expect(result->size, == , 1u);
     expect(result to all(str_eq, range, StringRange, array));
   }
@@ -561,21 +581,21 @@ describe(str_join) {
   context("basic set of StringRange tokens to form a sentence") {
 
     StringRange range = R("These are the test tokens");
-    tokens = str_split(range, R(" "));
+    tokens = str_split(range, " ");
 
     it("recreates the original string") {
-      result = str_join(R(" "), tokens);
-      expect(to_pass(str_eq, result->range, range));
+      result = str_join(" ", tokens);
+      expect(result to match(str_eq, range));
     }
 
     it("puts together the string without spaces ") {
-      result = str_join(R(""), tokens);
-      expect(to_pass(str_eq, result->range, R("Thesearethetesttokens")));
+      result = str_join("", tokens);
+      expect(result to match(str_eq, "Thesearethetesttokens"));
     }
 
     it("gives a multi-char deliminiter between the tokens") {
-      result = str_join(R(" - "), tokens);
-      expect(to_pass(str_eq, result->range, R("These - are - the - test - tokens")));
+      result = str_join(" - ", tokens);
+      expect(result to match(str_eq, "These - are - the - test - tokens"));
     }
 
   }
@@ -585,8 +605,9 @@ describe(str_join) {
     tokens = array_new_reserve(String, 0);
 
     it("produces an empty string") {
-      result = str_join(R("!"), tokens);
+      result = str_join("!", tokens);
       expect(result->size, == , 0u);
+      expect(result == str_empty);
     }
 
   }
@@ -602,8 +623,8 @@ describe(str_join) {
     array_push_back(tokens, &str3);
 
     it("properly joins the strings") {
-      result = str_join(R(", "), tokens);
-      expect(result->range to match(str_eq, R("Str 1, Str 2, Str 3")));
+      result = str_join(", ", tokens);
+      expect(result->range to match(str_eq, "Str 1, Str 2, Str 3"));
     }
 
     it("can mix String and StringRange* in the same array") {
@@ -611,8 +632,8 @@ describe(str_join) {
       StringRange* rp = &range;
       array_push_back(tokens, &rp);
 
-      result = str_join(R("|"), tokens);
-      expect(result->range to match(str_eq, R("Str 1|Str 2|Str 3|Range 4")));
+      result = str_join("|", tokens);
+      expect(result->range to match(str_eq, "Str 1|Str 2|Str 3|Range 4"));
     }
 
     str_delete(&str1);
@@ -630,15 +651,28 @@ describe(str_concat) {
   String result = NULL;
 
   it("joins two strings together") {
-    result = str_concat(R("LHS "), R("RHS"));
-    expect(to_pass(str_eq, result->range, R("LHS RHS")));
+    result = str_concat("LHS ", "RHS");
+    expect(to_pass(str_eq, result, "LHS RHS"));
   }
 
-  it("still copies the string if joining with an empty") {
-    StringRange lhs = R("LHS");
-    result = str_concat(lhs, str_empty->range);
-    expect(to_pass(str_eq, result->range, R("LHS")));
-    expect(result->begin, != , lhs.begin);
+  it("still copies the string if joining with an empty (rhs)") {
+    char* lhs = "LHS";
+    result = str_concat(lhs, str_empty);
+    expect(to_pass(str_eq, result, "LHS"));
+    expect(result->begin, != , lhs);
+  }
+
+  it("still copies the string if joining with an empty (lhs)") {
+    char* rhs = "RHS";
+    result = str_concat(str_empty, rhs);
+    expect(to_pass(str_eq, result, "RHS"));
+    expect(result->begin, != , rhs);
+  }
+
+  it("makes an empty string when both are empty") {
+    result = str_concat(str_empty, str_empty);
+    expect(to_pass(str_eq, result, str_empty));
+    expect(result, == , str_empty);
   }
 
   if (result) str_delete(&result);
