@@ -29,6 +29,7 @@ void  array_read_front(const Array array, void* out_element);
 void* array_get_back(Array array);
 void  array_read_back(const Array array, void* out_element);
 
+/*
 // usage:
 // MyType* array_foreach(iterator, array) { use(iterator); }
 #define array_foreach(VAR, ARRAY)                                             \
@@ -39,16 +40,24 @@ void  array_read_back(const Array array, void* out_element);
       : 0;                                                                    \
     ++MACRO_CONCAT(_array_iter_, __LINE__)                                    \
   )                                                                           //
+/*/
+// usage:
+// MyType* array_foreach(iterator, array) { use(iterator); }
+#define array_foreach(VAR, ARRAY)                                             \
+  VAR = array_get_front((Array)ARRAY);                                        \
+  assert(sizeof(*VAR) == ARRAY->element_size);                                \
+  for (uint MACRO_CONCAT(_array_iter_, __LINE__) = 0;                         \
+    MACRO_CONCAT(_array_iter_, __LINE__) < ARRAY->size;                       \
+    ++MACRO_CONCAT(_array_iter_, __LINE__), ++VAR                             \
+  )                                                                           //
+//*/
 
 // usage:
 // MyType* array_foreach_index(iter, i, array) { something_else[i] = iter; }
 #define array_foreach_index(VAR, INDEX, ARRAY)                                \
-  VAR = NULL;                                                                 \
-  for (uint INDEX = 0;                                                        \
-    INDEX < ARRAY->size                                                       \
-      ? (VAR = array_get((Array)ARRAY, INDEX)), 1                             \
-      : 0;                                                                    \
-    ++INDEX)                                                                  //
+  VAR = array_get_front((Array)ARRAY);                                        \
+  assert(sizeof(*VAR) == ARRAY->element_size);                                \
+  for (uint INDEX = 0; INDEX < ARRAY->size; ++INDEX, ++VAR)                   //
 
 #endif
 

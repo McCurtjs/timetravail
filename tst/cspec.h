@@ -677,7 +677,7 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 # endif
 # define _type_s_lit(X, T) _Generic((&X), T**: #T"*", default: #T"[]" )
 # define _type_s_h(X, T) T: #T, T*: _type_s_lit(X, T), const T*: _type_s_lit(X, const T)
-/*
+//*
 # define _type_s(X) _Generic((X), void*: "void*", const void*: "const void*",                                         \
   CSPEC_CUSTOM_TYPES   _type_s_h(X, _Bool),                                                                           \
   _type_s_h(X, char),  _type_s_h(X, short), _type_s_h(X, int),    _type_s_h(X, long),   _type_s_h(X, long long),      \
