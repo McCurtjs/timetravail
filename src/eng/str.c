@@ -108,20 +108,13 @@ StringRange str_range_s(const char* c_str, size_t length) {
   };
 }
 
-static const StringRange* str_to_range(const void* element, bool is_ptr) {
-  return is_ptr ? *(StringRange**)element : element;
-}
-
-String istr_join(StringRange del, const Array strings) {
+String istr_join(StringRange del, const Array_StrR strings) {
   const size_t range_count = strings->size;
   if (range_count == 0) return str_empty;
 
-  bool is_ptr = strings->element_size == sizeof(String);
   size_t length = 0;
-  const StringRange* range;
 
-  for (uint i = 0; i < range_count; ++i) {
-    range = str_to_range(array_get(strings, i), is_ptr);
+  StringRange* array_foreach(range, strings) {
     length += range->size;
   }
 
@@ -132,10 +125,8 @@ String istr_join(StringRange del, const Array strings) {
 
   char* dst = ret->begin;
 
-  for (uint i = 0; i < range_count; ++i) {
-    range = str_to_range(array_get(strings, i), is_ptr);
+  array_foreach_index(range, i, strings) {
     memcpy(dst, range->begin, range->size);
-
     dst += range->size;
 
     if (i != range_count - 1) {
@@ -144,8 +135,7 @@ String istr_join(StringRange del, const Array strings) {
     }
   }
 
-  str_terminate(ret);
-  return (String)ret;
+  return str_terminate(ret);
 }
 
 String istr_concat(StringRange left, StringRange right) {
@@ -178,15 +168,15 @@ String istr_append(StringRange str, size_t length, char c) {
   return str_terminate(ret);
 }
 
-Array istr_split(StringRange str, StringRange del) {
-  Array ret = array_new(StringRange);
+Array_StrR istr_split(StringRange str, StringRange del) {
+  Array_StrR ret = arr_str_new();
 
-  // specialization for empty string, return a range for each char
+  // specialization for empty delimiter, return a range for each char
   if (del.size == 0) {
-    array_reserve(ret, (uint)str.size);
+    arr_str_reserve(ret, (uint)str.size);
     for (size_t i = 0; i < str.size; ++i) {
       StringRange c = str_range_s(&str.begin[i], 1);
-      array_push_back(ret, &c);
+      arr_str_push_back(ret, c);
     }
     return ret;
   }
@@ -194,11 +184,11 @@ Array istr_split(StringRange str, StringRange del) {
   int i = 0;
   do {
     int prev = i;
-    i = (int)str_index_of(str, del, i);
+    i = (int)istr_index_of(str, del, i);
     StringRange range = istr_substring(str, prev, i);
-    array_push_back(ret, &range);
+    arr_str_push_back(ret, range);
     i += (int)del.size;
-    if (i == (int)str.size) array_push_back(ret, &str_empty->range);
+    if (i == (int)str.size) arr_str_push_back(ret, str_empty->range);
   } while (i < (int)str.size);
 
   return ret;
@@ -269,7 +259,7 @@ bool istr_contains(StringRange str, StringRange check) {
 
 size_t istr_index_of(StringRange str, StringRange to_find, size_t from_pos) {
   if (str.size < to_find.size) return str.size;
-  if (to_find.size == 0) return from_pos;
+  if (to_find.size == 0) return MIN(from_pos, str.size);
   size_t j;
   for (size_t i = from_pos; i <= str.size - to_find.size; ++i) {
     j = 0;

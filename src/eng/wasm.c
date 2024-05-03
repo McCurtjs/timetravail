@@ -67,7 +67,7 @@ FN_SIGNATURE_PRINT_STR {
 }
 
 FN_SIGNATURE_PRINT_STR_C {
-  Array arr = str_split(str, R("%c"));
+  Array_StringRange arr = str_split(str, "%c");
   if (arr->size != 2) {
     printf("%.*s\n", (int)str.size, str.begin);
   } else {
@@ -78,16 +78,16 @@ FN_SIGNATURE_PRINT_STR_C {
       is_bold = 1;
     }
     sprintf(color, "\033[%01i;%02im", is_bold, c);
-    StringRange second = *(StringRange*)array_get_back(arr);
-    array_pop_back(arr);
-    array_push_back(arr, &R(color));
-    array_push_back(arr, &second);
-    array_push_back(arr, &R("\033[0m"));
+    StringRange second = arr_str_get_back(arr);
+    arr_str_pop_back(arr);
+    arr_str_push_back(arr, R(color));
+    arr_str_push_back(arr, second);
+    arr_str_push_back(arr, R("\033[0m"));
     String result = str_join(str_empty->range, arr);
     printf("%.*s\n", (int)result->size, result->begin);
     str_delete(&result);
   }
-  array_delete(&arr);
+  arr_str_delete(&arr);
 }
 
 FN_SIGNATURE_PRINT_INT {

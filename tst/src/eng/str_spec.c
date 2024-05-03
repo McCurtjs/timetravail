@@ -393,6 +393,25 @@ describe(str_index_of) {
     expect(str_index_of(range, is, 99), == , range.size);
   }
 
+  it("looping end-pos can be used to track through the string") {
+    size_t tracker = 0;
+
+    tracker = str_index_of(range, "i", tracker);
+    StringRange result = str_substring(range, tracker);
+    expect(result to match(str_eq, "is is a string"));
+
+    tracker = str_index_of(range, "i", tracker+1);
+    result = str_substring(range, tracker);
+    expect(result to match(str_eq, "is a string"));
+
+    tracker = str_index_of(range, "i", tracker+1);
+    result = str_substring(range, tracker);
+    expect(result to match(str_eq, "ing"));
+
+    tracker = str_index_of(range, "i", tracker+1);
+    expect(tracker, == , range.size);
+  }
+
 }
 
 describe(str_find) {
@@ -523,7 +542,7 @@ describe(str_trim) {
 describe(str_split) {
 
   StringRange range = R("This is, a collection, of strings");
-  Array result = NULL;
+  Array_StringRange result = NULL;
 
   it("performs a basic split on commas") {
     result = str_split(range, ",");
@@ -568,14 +587,14 @@ describe(str_split) {
   }
 
   if (result) {
-    array_delete(&result);
+    arr_str_delete(&result);
   }
 
 }
 
 describe(str_join) {
 
-  Array tokens = NULL; 
+  Array_StringRange tokens = NULL; 
   String result = NULL;
 
   context("basic set of StringRange tokens to form a sentence") {
@@ -602,7 +621,7 @@ describe(str_join) {
 
   context("given an empty array of String") {
 
-    tokens = array_new_reserve(String, 0);
+    tokens = arr_str_new_reserve(0);
 
     it("produces an empty string") {
       result = str_join("!", tokens);
@@ -617,23 +636,22 @@ describe(str_join) {
     String str1 = str_new("Str 1");
     String str2 = str_new("Str 2");
     String str3 = str_new("Str 3");
-    tokens = array_new_reserve(String, 3);
-    array_push_back(tokens, &str1);
-    array_push_back(tokens, &str2);
-    array_push_back(tokens, &str3);
+    tokens = arr_str_new_reserve(3);
+    arr_str_push_back(tokens, str1->range);
+    arr_str_push_back(tokens, str2->range);
+    arr_str_push_back(tokens, str3->range);
 
     it("properly joins the strings") {
       result = str_join(", ", tokens);
-      expect(result->range to match(str_eq, "Str 1, Str 2, Str 3"));
+      expect(result to match(str_eq, "Str 1, Str 2, Str 3"));
     }
 
     it("can mix String and StringRange* in the same array") {
       StringRange range = R("Range 4");
-      StringRange* rp = &range;
-      array_push_back(tokens, &rp);
+      arr_str_push_back(tokens, range);
 
       result = str_join("|", tokens);
-      expect(result->range to match(str_eq, "Str 1|Str 2|Str 3|Range 4"));
+      expect(result to match(str_eq, "Str 1|Str 2|Str 3|Range 4"));
     }
 
     str_delete(&str1);
@@ -642,7 +660,7 @@ describe(str_join) {
   }
 
   if (result) str_delete(&result);
-  if (tokens) array_delete(&tokens);
+  if (tokens) arr_str_delete(&tokens);
 
 }
 

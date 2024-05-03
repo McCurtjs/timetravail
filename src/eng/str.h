@@ -87,7 +87,14 @@ typedef struct _Str_Base {
     const StringRange range;
     _STR_RANGE_DEF(const, const);
   };
-}*String;
+}* String;
+
+#define con_type StringRange
+#define con_prefix str
+#include "array.h"
+#undef con_type
+#undef con_prefix
+typedef Array_StringRange Array_StrR;
 
 #ifdef _MSC_VER
 // Annoyingly, MSVC for some reason detects the _Generic specifier as "unused".
@@ -173,20 +180,16 @@ void    str_delete(String* str);
 //    delimiter are removed from the resulting substrings.
 //
 // \returns An array of StringRanges whose lifetimes are bound to str.
-//    The Array must be deleted by the user via array_delete(&arr).
+//    The Array must be deleted by the user via arr_str_delete(&arr).
 #define str_split(str, del) istr_split(_s2r(str), _s2r(del))
 
-// \brief Joins an array of strings into a new string, each separated by a
-//    given delimiter. The array can be of either Strings or StringRanges.
+// \brief Joins an array of string ranges into a new string, each separated by a
+//    given delimiter.
 //
 // \param del - the delimiter to insert between each string in the array.
 //   ex: (" + ", ["A", "B"]) will result in "A + B"
 //
-// \param strings - The array of strings to join.
-//    The array can be one of the following:
-//    1) an array of StringRange objects.
-//    2) an array of any mix of String and StringRange*. Note: in this case,
-//      make sure not to include String* in the array.
+// \param strings - The array of string ranges to join.
 //
 // \returns a new string, which must be deleted later by the caller.
 //
@@ -218,10 +221,10 @@ StringRange istr_substring(StringRange str, int start, int end);
 StringRange istr_trim(StringRange str);
 StringRange istr_trim_start(StringRange str);
 StringRange istr_trim_end(StringRange str);
-Array       istr_split(StringRange str, StringRange del);
+Array_StrR  istr_split(StringRange str, StringRange del);
 //Array     istr_tokenize(StringRange str, const StringRange[] tokens);
 //Array     istr_parenthetize(StringRange str); // block out segments by parens? ([{}])
-String      istr_join(StringRange deliminter, const Array strings);
+String      istr_join(StringRange deliminter, const Array_StrR strings);
 String      istr_concat(StringRange left, StringRange right);
 // for replace, start with basic string replace, maybe later look into adding regex support?
 //    differentiate between regular strings and regex with the regular "a" vs "/a/"

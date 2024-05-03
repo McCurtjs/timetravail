@@ -748,6 +748,7 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 
 #define _fn_comp(fn, B) fn, B, 0, 0, 0, 0
 
+// expect(fn to succeed_with(a, b)) works, but should support any number of args....
 //#define succeed_with(A, B) 1, (A, B), 0, 0, 0, 0, 0
 //#define succeed 1, (), 0, 0, 0, 0, 0 // kinda dumb? It's just different syntax for expect(fn()), but expect(fn to succeed).
 
