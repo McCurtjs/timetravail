@@ -475,7 +475,6 @@ static void memory_print_row(const csByte* row, int level, csBool target) {
 
 static void memory_print_record(const MemoryRecord* record, int level) {
   size_t i = 0;
-  if (param_padding) output_print();
   while (i < record->size + memory_size_fence + 16) {
     memory_print_row(record->block + i - 16 + memory_size_fence, level, i == 16);
     i += 16;
@@ -524,6 +523,8 @@ void _test_memory_log_block(int line, const void* ptr) {
   );
 
   int level = print_headers(CONCOL_bWhite, LOGGED, NULL);
+
+  if (param_padding) output_print();
 
   if (record) {
     memory_print_record(record, level);
@@ -1078,6 +1079,7 @@ static int test_error_no_fail(const char* message, csBool is_mem_err) {
   if (is_mem_err) output_str("memory error: ");
   output_str(message);
   output_print();
+  if (param_padding) output_print();
   return level;
 }
 
@@ -1253,9 +1255,19 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   return TRUE;
 }
 
-void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
-  va_list args;
-
+void _test_error_typed(
+  int line, const char* pre, const char* fmt,
+  const char* t_arg0, const void* arg0,
+  const char* t_arg1, const void* arg1,
+  const char* t_arg2, const void* arg2,
+  const char* t_arg3, const void* arg3,
+  const char* t_arg4, const void* arg4,
+  const char* t_arg5, const void* arg5,
+  const char* t_arg6, const void* arg6,
+  const char* t_arg7, const void* arg7,
+  const char* t_arg8, const void* arg8,
+  const char* t_arg9, const void* arg9
+) {
   if (!test_in_progress) return;
   test_failed = TRUE;
   if (test_expect_fail) return;
@@ -1263,7 +1275,8 @@ void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
   int level = print_headers(CONCOL_Red, PRINTED, NULL);
   if (output_indent) {
     output_pad(output_indent, ' ');
-  } else {
+  }
+  else {
     output_pad(param_tabsize * level, ' ');
     output_str("line {}: ");
     output_sint(line);
@@ -1273,43 +1286,34 @@ void _test_error_typed(int line, const char* pre, const char* fmt, ...) {
 
   if (!fmt) goto finish;
 
-  int arg_ct = 0;
-  int valid_ct = 0;
-
-  va_start(args, fmt);
-  for (;;) {
-    if (!va_arg(args, const char*)) break;
-    ++arg_ct;
-    if (va_arg(args, const void*)) ++valid_ct;
-  }
-  va_end(args);
-
-  if (!arg_ct || arg_ct != valid_ct) goto finish;
   output_str(fmt);
 
-  va_start(args, fmt);
-  for (int i = 0; i < arg_ct; ++i) {
-    const char* type = va_arg(args, const char*);
-    const void* value = va_arg(args, const void*);
-    resolve_param(type, value);
-  }
-  va_end(args);
+  if (t_arg0) resolve_param(t_arg0, arg0);
+  if (t_arg1) resolve_param(t_arg1, arg1);
+  if (t_arg2) resolve_param(t_arg2, arg2);
+  if (t_arg3) resolve_param(t_arg3, arg3);
+  if (t_arg4) resolve_param(t_arg4, arg4);
+  if (t_arg5) resolve_param(t_arg5, arg5);
+  if (t_arg6) resolve_param(t_arg6, arg6);
+  if (t_arg7) resolve_param(t_arg7, arg7);
+  if (t_arg8) resolve_param(t_arg8, arg8);
+  if (t_arg9) resolve_param(t_arg9, arg9);
 
   if (!param_show_types) goto finish;
 
   // Follows the line printing the given types for debugging, ie. : ( int, int )
   output_str(" : ( ");
 
-  va_start(args, fmt);
-  for (int i = 0; i < arg_ct; ++i) {
-    const char* type = va_arg(args, const char*);
-    const char* unused = va_arg(args, const void*); // skip the value
-    (void)unused;
-
-    output_str(type);
-    if (i + 1 < arg_ct) output_str(", ");
-  }
-  va_end(args);
+  if (t_arg0) output_str(t_arg0);
+  if (t_arg1) { output_str(", "); output_str(t_arg1); }
+  if (t_arg2) { output_str(", "); output_str(t_arg2); }
+  if (t_arg3) { output_str(", "); output_str(t_arg3); }
+  if (t_arg4) { output_str(", "); output_str(t_arg4); }
+  if (t_arg5) { output_str(", "); output_str(t_arg5); }
+  if (t_arg6) { output_str(", "); output_str(t_arg6); }
+  if (t_arg7) { output_str(", "); output_str(t_arg7); }
+  if (t_arg8) { output_str(", "); output_str(t_arg8); }
+  if (t_arg9) { output_str(", "); output_str(t_arg9); }
 
   output_str(" )");
 

@@ -677,8 +677,6 @@ int     cspec_atoi(const char* s);
 // I warned you, turn back now, it gets ugly.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>
-
 csBool  _test_begin(int line, const char* desc);
 csBool  _test_end(void);
 csBool  _test_active(void);
@@ -687,7 +685,6 @@ csBool  _test_context_end(int line);
 void    _test_log_fn(int line, const char* messgae);
 void    _test_warn_fn(int line, const char* message);
 void    _test_error_fn(const char* message);
-void    _test_error_typed(int line, const char* pfix, const char* fmt, ...);
 csBool  _test_expect_to_fail(void);
 csBool  _test_memory_expect_to_fail(void);
 csBool  _test_memory_malloc_null(csBool only_next);
@@ -695,6 +692,13 @@ int     _test_memory_malloc_count(void);
 int     _test_memory_free_count(void);
 void    _test_memory_log_block(int line, const void* ptr);
 int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
+void    _test_error_typed(int line, const char* pfix, const char* fmt,
+  const char* t_a0, const void* a0, const char* t_a1, const void* a1,
+  const char* t_a2, const void* a2, const char* t_a3, const void* a3,
+  const char* t_a4, const void* a4, const char* t_a5, const void* a5,
+  const char* t_a6, const void* a6, const char* t_a7, const void* a7,
+  const char* t_a8, const void* a8, const char* t_a9, const void* a9
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 // I warned you about MACROS bro!!! I told you dog!
@@ -738,6 +742,33 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #  define _type_s(X) "_type"#X
 # endif
 //*/
+
+# define _csva_exp_1(F,G,a,...) F(1,a) G(1,a)
+# define _csva_exp_2(F,G,a,...) F(2,a) _csva_exp_1(F,G,__VA_ARGS__) G(2,a)
+# define _csva_exp_3(F,G,a,...) F(3,a) _csva_exp_2(F,G,__VA_ARGS__) G(3,a)
+# define _csva_exp_4(F,G,a,...) F(4,a) _csva_exp_3(F,G,__VA_ARGS__) G(4,a)
+# define _csva_exp_5(F,G,a,...) F(5,a) _csva_exp_4(F,G,__VA_ARGS__) G(5,a)
+# define _csva_exp_6(F,G,a,...) F(6,a) _csva_exp_5(F,G,__VA_ARGS__) G(6,a)
+# define _csva_exp_7(F,G,a,...) F(7,a) _csva_exp_6(F,G,__VA_ARGS__) G(7,a)
+# define _csva_exp_8(F,G,a,...) F(8,a) _csva_exp_7(F,G,__VA_ARGS__) G(8,a)
+# define _csva_exp_9(F,G,a,...) F(9,a) _csva_exp_8(F,G,__VA_ARGS__) G(9,a)
+# define _csva_exp_va(F,G,a,b,c,d,e,f,g,h,i,X,...) _csva_exp_##X(F,G,a,b,c,d,e,f,g,h,i,X)
+# define _csva_exp(F, G, ...) _csva_exp_va(F,G,__VA_ARGS__,9,8,7,6,5,4,3,2,1)
+
+# define _param_mty(N, P, ...)
+# define _param_def(N, P, ...) typeof(P) MACRO_CONCAT(_P, N) = P;
+# define _param_arg(N, P, ...) _type_s(P), (void*)&MACRO_CONCAT(_P, N),
+# define _param_str(N, P, ...) "\nparam "#N": {}"
+
+# define _param_fn_def(...) _csva_exp(_param_def, _param_mty, __VA_ARGS__)
+# define _param_fn_arg(...) _csva_exp(_param_arg, _param_mty, __VA_ARGS__)
+# define _param_fn_str(...) _csva_exp(_param_mty, _param_str, __VA_ARGS__)
+
+# define _test_fail_comp(S) { _test_fail_args("expected "S, "%n\nreceived {}", _type_s(_Aout), (void*)&_Aout); return; }
+# define _test_fail_fn_expr(F, x, B, P) { _test_fail_args("expected X "#x" "#B" where X == "#F#P, "%n\nreceived {} "#x" {}" _param_fn_str P, _type_s(_R), (void*)&_R, _type_s(_B), (void*)&_B, _param_fn_arg P 0); return; }
+# define _test_fail_fn_comp(S, P) { _test_fail_args("expected "S, "%n\nreceived {}" _param_fn_str P, _type_s(_R), (void*)&_R, _param_fn_arg P 0); return; }
+# define _test_fail_fn_true(F, A, B) { _test_fail_args("expected to pass "#F"("#A", "#B")", "%n\nparam 1: {}\nparam 2: {}", _type_s(_A), (void*)&_A, _type_s(_B), (void*)&_B); return; }
+
 #endif
 
 #define _loop_tst MACRO_CONCAT(_loop_tst_, __LINE__)
@@ -757,41 +788,18 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _test_log(message) _test_log_fn(__LINE__, message)
 #define _test_warn(message) _test_warn_fn(__LINE__, message)
 #define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
-#define _test_fail_args(S, /* fmt, */ ...) _test_error_typed(__LINE__, S, __VA_ARGS__, NULL, NULL)
 
-#define _test_fail_t(A, x, B, sTa, sTb) { _test_fail_args("expected "#A" "#x" "#B, "%n\nreceived {} "#x" {}", sTa, &_A, sTb, &_B); return; }
-#define _test_fail_comp(S) { _test_fail_args("expected "S, "%n\nreceived {}", _type_s(_Aout), &_Aout); return; }
-#define _test_fail_fn_expr(F, x, B, P) { _test_fail_args("expected X "#x" "#B" where X == "#F#P, "%n\nreceived {} "#x" {}" _param_fn_str P, _type_s(_R), &_R, _type_s(_B), &_B, _param_fn_arg P NULL); return; }
-#define _test_fail_fn_comp(S, P) { _test_fail_args("expected "S, "%n\nreceived {}" _param_fn_str P, _type_s(_R), &_R, _param_fn_arg P NULL); return; }
-#define _test_fail_fn_true(F, A, B) { _test_fail_args("expected to pass "#F"( "#A" )", "%n\nparam 1: {}\nparam 2: {}", _type_s(_A), &_A, _type_s(_B), &_B); return; }
-#define _test_fail_all(S, T) {                                                                                                                  \
-  _test_fail_args("expected "S, NULL);                                                                                                          \
-    if (_pvalue) {                                                                                                                              \
-    if (_print_expected_value) _test_fail_args("", "but found {} on iteration {}\nexpecting {}", #T, _pvalue, "uint", &_index, #T, &_expected); \
-    else                       _test_fail_args("", "but found {} on iteration {}",               #T, _pvalue, "uint", &_index);                 \
-    return;                                                                                                                                     \
-  } }                                                                                                                                           //
+#define _test_fail_args_va(S,fmt,A,a,B,b,C,c,D,d,E,e,F,f,G,g,H,h,I,i,J,j,...) _test_error_typed(__LINE__,S,fmt,A,a,B,b,C,c,D,d,E,e,F,f,G,g,H,h,I,i,J,j)
+#define _test_fail_args(S, /* fmt, */ ...) _test_fail_args_va(S,__VA_ARGS__,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
 
-#define _csva_exp_1(F,G,a,...) F(1,a) G(1,a)
-#define _csva_exp_2(F,G,a,...) F(2,a) _csva_exp_1(F,G,__VA_ARGS__) G(2,a)
-#define _csva_exp_3(F,G,a,...) F(3,a) _csva_exp_2(F,G,__VA_ARGS__) G(3,a)
-#define _csva_exp_4(F,G,a,...) F(4,a) _csva_exp_3(F,G,__VA_ARGS__) G(4,a)
-#define _csva_exp_5(F,G,a,...) F(5,a) _csva_exp_4(F,G,__VA_ARGS__) G(5,a)
-#define _csva_exp_6(F,G,a,...) F(6,a) _csva_exp_5(F,G,__VA_ARGS__) G(6,a)
-#define _csva_exp_7(F,G,a,...) F(7,a) _csva_exp_6(F,G,__VA_ARGS__) G(7,a)
-#define _csva_exp_8(F,G,a,...) F(8,a) _csva_exp_7(F,G,__VA_ARGS__) G(8,a)
-#define _csva_exp_9(F,G,a,...) F(9,a) _csva_exp_8(F,G,__VA_ARGS__) G(9,a)
-#define _csva_exp_va(F,G,a,b,c,d,e,f,g,h,i,X,...) _csva_exp_##X(F,G,a,b,c,d,e,f,g,h,i,X)
-#define _csva_exp(F, G, ...) _csva_exp_va(F,G,__VA_ARGS__,9,8,7,6,5,4,3,2,1)
-
-#define _param_mty(N, P, ...)
-#define _param_def(N, P, ...) typeof(P) MACRO_CONCAT(_P, N) = P;
-#define _param_arg(N, P, ...) _type_s(P), &MACRO_CONCAT(_P, N),
-#define _param_str(N, P, ...) "\nparam "#N": {}"
-
-#define _param_fn_def(...) _csva_exp(_param_def, _param_mty, __VA_ARGS__)
-#define _param_fn_arg(...) _csva_exp(_param_arg, _param_mty, __VA_ARGS__)
-#define _param_fn_str(...) _csva_exp(_param_mty, _param_str, __VA_ARGS__)
+#define _test_fail_t(A, x, B, sTa, sTb) { _test_fail_args("expected "#A" "#x" "#B, "%n\nreceived {} "#x" {}", sTa, (void*)&_A, sTb, (void*)&_B); return; }
+#define _test_fail_all(S, T) {                                                                                                                          \
+  _test_fail_args("expected "S, NULL);                                                                                                                  \
+    if (_pvalue) {                                                                                                                                      \
+    if (_print_expected_value) _test_fail_args("", "but found {} on iteration {}\nexpecting {}", #T, (void*)_pvalue, "uint", &_index, #T, &_expected);  \
+    else                       _test_fail_args("", "but found {} on iteration {}",               #T, (void*)_pvalue, "uint", &_index);                  \
+    return;                                                                                                                                             \
+  } }                                                                                                                                                   //
 
 #define _expect_fn_expr(S, F, x, B, P, ...)         typeof(F P) _R = (F P);   typeof(B) _B = (B);       _param_fn_def P if (!(_R x _B))   _test_fail_fn_expr(F, x, B, P)
 #define _expect_fn_comp(S, F, M, P, ...)            typeof(F P) _R = (F P);   csBool    _test = M(_R);  _param_fn_def P if (!_test)       _test_fail_fn_comp(S, P)
@@ -839,17 +847,21 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _all_va(matcher, B, T_el, T_con, F, ...) F(matcher, B, T_el, T_con)
 
 #ifndef _USE_DEDUCTION
-# undef _expect_true2
-# define _expect_true2(S, A, x, B, ...)                                       \
-  _test_warn("output type deduction is disabled pre C11");                    \
-  _test_warn("use `expect("#A", "#x" , "#B", type)` for value display");      \
-  if(!(A x B)) _test_fail("line "STR(__LINE__)": expected "#A" "#x" "#B)      //
-
+# undef _expect_expr
+# undef _expect_fn_expr
+# undef _expect_fn_comp
+# undef _expect_fn_true
 # undef _expect_comp
-# define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("line "STR(__LINE__)": expected "S)
 
-# undef _expect_comp2
-# define _expect_comp2(S, A, F, B, ...) if (!F(A, B)) { _test_fail("line "STR(__LINE__)": expected to pass "#F"( "#A", "#B" )"); }
+# define _expect_expr(S, A, x, B, ...)                                    \
+  _test_warn("output type deduction is disabled");                        \
+  _test_warn("use `expect(lhs, "#x" , rhs, type)` for value display");    \
+  if(!(A x B)) _test_fail("line "STR(__LINE__)": expected "#A" "#x" "#B)  //
+
+#define _expect_fn_expr(S, F, x, B, P, ...)                             if (!((F P) x (B))) _test_fail("line "STR(__LINE__)": expected X "#x" "#B" where X == "#F#P)
+#define _expect_fn_comp(S, F, M, P, ...)      csBool _test = M((F P));  if (!_test)         _test_fail("line "STR(__LINE__)": expected "S)
+#define _expect_fn_true(S, A, F, B, ...)                                if (!(F(A, B)))     _test_fail("line "STR(__LINE__)": expected to pass "#F"( "#A", "#B" )")
+#define _expect_comp(S, A, F, ...)            csBool _test = F(A);      if (!_test)         _test_fail("line "STR(__LINE__)": expected "S)
 
 # undef _eval
 # undef _eval_comp
