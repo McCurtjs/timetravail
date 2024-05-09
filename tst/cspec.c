@@ -98,17 +98,18 @@ static csBool param_memory_test = TRUE;     // -m (to disable)
 static csBool param_show_types = FALSE;     // -s
 
 ////////////////////////////////////////////////////////////////////////////////
-// String Handling
+// Useful functions when we don't have a standrad library to rely on
 ////////////////////////////////////////////////////////////////////////////////
-// To make this work as a "single-header" include as well as to make sure it
-// works on WASM varianets with no libc, all our string handling for output
-// should be done in a static space to avoid the need for malloc/free.
-#define output_size 500
-#define output_float_precision 10
-static char output_buffer[output_size + 1];
-static csUint output_index = 0;
-static csUint output_indent = 0;
-static const char* output_fmt = NULL;
+
+void cspec_memset(void* s_, csByte c, csSize n) {
+  csByte* s = s_;
+  while (n--) *(s++) = c;
+}
+
+void cspec_memcpy(void* s_, const void* t_, csSize n) {
+  csByte* s = s_; const csByte* t = t_;
+  while (n--) *(s++) = *(t++);
+}
 
 csBool cspec_strcmp(const char* A, const char* B) {
   if (!A && !B) return TRUE;
@@ -157,6 +158,19 @@ int cspec_atoi(const char* s) {
   }
   return result * sign;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// String Handling/Output
+////////////////////////////////////////////////////////////////////////////////
+// To make this work as a "single-header" include as well as to make sure it
+// works on WASM varianets with no libc, all our string handling for output
+// should be done in a static space to avoid the need for malloc/free.
+#define output_size 500
+#define output_float_precision 10
+static char output_buffer[output_size + 1];
+static csUint output_index = 0;
+static csUint output_indent = 0;
+static const char* output_fmt = NULL;
 
 static void output_continue_format(void);
 
@@ -431,16 +445,6 @@ static csBool memory_error = FALSE;
 static MallocFailLevel memory_malloc_fail = M_NORMAL;
 static int memory_malloc_forced_failures = 0;
 #define memory_records_grow_factor 1.5f
-
-void cspec_memset(void* s_, csByte c, size_t n) {
-  csByte* s = s_;
-  while (n--) *(s++) = c;
-}
-
-void cspec_memcpy(void* s_, const void* t_, size_t n) {
-  csByte* s = s_; const csByte* t = t_;
-  while (n--) *(s++) = *(t++);
-}
 
 static void memory_print_row(const csByte* row, int level, csBool target) {
   output_pad(param_tabsize * level, ' ');

@@ -5,6 +5,12 @@ typedef _Bool csBool;
 typedef unsigned int csUint;
 typedef unsigned char csByte;
 
+#ifdef __WASM__
+typedef unsigned long csSize;
+#else
+typedef unsigned long long csSize;
+#endif
+
 typedef void (*test_fn)(void);
 
 typedef struct TestGroup {
@@ -218,20 +224,16 @@ void test_run_suite(const TestSuite* suite);
 //    the string equivalent of `condition`. The benefit of course is that this
 //    can be used for just about anything.
 //
-// \param - `expect(A, operator, B);` - ex: `expect(a, == , b);` - Similar to
+// \param - `expect(A, <operator>, B);` - ex: `expect(a, == , b);` - Similar to
 //    the above, but with options separated by commas. The difference is that it
 //    will determine the types and print the values of A and B on a failed test.
 //    Note: determining types won't work in versions older than C11.
 //
-// \param - `expect(to_pass(<comparator_fn>, A, B));` - ex `expect(to_pass(
-//    str_eq, lhs, rhs));`. Calls the given function with two arguments. Same as
-//    passing a function result directly, but on fail can print the value of A.
-//
-// \param - `expect(A, operator, B, TYPE);` - ex: `expect(a, < , b, float);`
+// \param - `expect(A, <operator>, B, <type>);` - ex: `expect(a, < , b, float);`
 //    Same as above, but A and B will be explicitly converted to TYPE, and will
 //    have their values printed in addition to the expression.
 //
-// \param - `expect(A, operator, B, type_A, type_B)` - Same as above, but
+// \param - `expect(A, <operator>, B, <type_A>, <type_B>)` - Same as above, but
 //    A and B are treated as separate types for output.
 //
 // \param - `expect(<directive>);` - ex: `expect(to_fail);` - Sets a general
@@ -241,13 +243,26 @@ void test_run_suite(const TestSuite* suite);
 //    the value of A against the given matcher expression. Matchers can be made
 //    in a variety of forms, and are described individaully below.
 //
+// \param - `expect(A to match(B, <function>));` - ex:
+//    `expect(str to match("test", str_eq));` - Tests the result of a function
+//    called as `function(A, B)`. Intended for functions that test equality of
+//    custom types.
+//
+// \param - `expect(<function> to <matcher> given(<params>));` - ex:
+//    `expect(v3cross to be_about(0.4f) given(vec1, vec2));` - Tests the result
+//    of a function with the given parameters against the given matcher.
+//
+// \param - `expect(<function> to be( <operator> , B) given(<params>));` - ex:
+//    `expect(get_sum to be( == , 6) given(1, 2, 3));` - Tests the result
+//    of a function with given parameters against the given expression.
+//
 // \param - `expect(cont to all(<matcher>, TYPE, TYPE_CON));` - Tests all values
 //    of the given container `cont` against the given matcher. See description
 //    of `all` for details.
 //
-// \param - `expect(cont to all_be(operator, B, TYPE, TYPE_CON));` - Tests all
+// \param - `expect(cont to all_be(<operator>, B, TYPE, TYPE_CON));` - Tests all
 //    values of the given container `cont` against the expression described by
-//    `<element> operator B` (ex: `arr[n] > 5`). See description of `all_be`
+//    `<element> <operator> B` (ex: `arr[n] > 5`). See description of `all_be`
 //    for details.
 #define expect(...)               _expect(#__VA_ARGS__, __VA_ARGS__)
 
@@ -311,7 +326,7 @@ void test_run_suite(const TestSuite* suite);
 #endif
 
 // \brief This is an example of a matcher which checks if a value is positive.
-//    it's functionally equivalent* to `expect(A > 0)`, except that it will also
+//    it's functionally equivalent to `expect(A > 0)`, except that it will also
 //    print the value of A.
 //
 // \param - `expect(value to be_positive);` - The value given on the left is
@@ -322,6 +337,7 @@ void test_run_suite(const TestSuite* suite);
 // \brief Checks that a given value is negative.
 //
 // \param - `expect(value to be_negative);`
+// \param - `expect(value to not be_negative);`
 #define be_negative(A)            ((A) < 0)
 
 // \brief Checks that a given value is even.
@@ -331,48 +347,60 @@ void test_run_suite(const TestSuite* suite);
 
 // \brief Checks that a given value is odd.
 //
-// \brief - `expect(value to be_odd);`
+// \param - `expect(value to be_odd);`
 #define be_odd(A)                 ((A) % 2 != 0)
 
-// \brief Evaluates the result of a function given two arguments. This is
-//    functionally the same as `expect(function(subject, param_2))` except in
-//    that it is able to deduce the type and print the value of the subject on
-//    test failure.
+// \brief Checks that a given value is TRUE.
 //
-// \brief Example: `expect(subject to match(function, param_2));`
+// \param - `expect(value to be_true);`
+// \param - `expect(fn to be_true given(args));`
+#define be_true(A)                ((A) == TRUE)
+
+// \brief Checks that a given value is FALSE.
 //
-// \param fn - The function to be called
+// \param - `expect(value to be_false)`
+// \param - `expect(fn to be_false given(args));`
+#define be_false(A)               ((A) == FALSE)
+
+// \brief Not strictly a matcher, but syntax for readability around basic
+//    expressions in some situations.
 //
-// \param B - The value to test the subject against, second parameter to fn
-#define match(fn, B)              _fn_comp(fn, B)
+// \brief Example: `expect(subject to be( > , 7))`
+// \brief Example: `expect(function to be( == , 12) given(args));`
+//
+// \param x - The operator for the expression
+//
+// \param B - The right-hand-side of the expression
+#define be(x, B)                  x, B
 
 // \brief Evaluates the result of a function given two arguments. This is
-//    functionally the same as `expect(function(subject, param_2))` except in
-//    that it is able to deduce the type and print the value of the subject on
-//    test failure.
+//    functionally the same as `expect(function(subject, param_2))` except that
+//    it can deduce the types of and print the function arguments and result.
 //
-// \brief Example: `expect(to_pass(function, subject, param_2));`
+// \brief The intent with this is to check results of comparison functions,
+//    though it can be used for any function that takes two arguments, it is
+//    best suited for functions that check for equality of custom types (such as
+//    a function that checks equality of a string or vector).
 //
-// \param fn - The function to be called
-//
-// \param A - The subject variable of the test, first parameter to fn
+// \brief Example: `expect(subject to match(param_2, function));`
 //
 // \param B - The value to test the subject against, second parameter to fn
-#define to_pass(fn, A, B)         A, _fn_comp(fn, B)
+//
+// \param fn - The function to be called
+#define match(B, fn)              _fn_comp(fn, B)
 
-// \brief Evaluates the result of a function given two arguments and fails the
-//    test if the value is non-zero. This is the same as
-//    `expect(subject to not match(function, param_2));` and is only really here
-//    because to_pass is not compatible with the `not` macro :(
+// \brief Can be used after a function or macro and a matcher or expression to
+//    call and test the function in a way that will be able to print out the
+//    result and parameters on test failure.
 //
-// \brief Example: `expect(to_not_pass(function, subject, param_2));`
+// \brief Value printing can handle up to nine arguments.
 //
-// \param fn - The function to be called
+// \brief Example: `expect(my_fn to be( == , 4) given(param1, param2));`
+// \brief Example: `expect(my_fn to be_true given(lhs, rhs));`
+// \brief Example: `expect(my_fn to not be_negative given(param));`
 //
-// \param A - The subject variable of the test, first parameter to fn
-//
-// \param B - The value to test the subject against, second parameter to fn
-#define to_not_pass(fn, A, B)     A, !_fn_comp(fn, B)
+// \param - list of parameters to pass to the function being tested
+#define given(...)                _given((__VA_ARGS__))
 
 // \brief This is a matcher that takes params and uses them to compose a more
 //    complex expectation for the test. It checks if the value is between a
@@ -431,7 +459,7 @@ void test_run_suite(const TestSuite* suite);
 // \brief Example: `expect(arr to all(be_positive, int, c_array));`
 //
 // \brief Example: `expect(arr to all(be_about(samples[n]), float, c_array));`
-// 
+//
 // \brief Example: `expect(arr to all(my_fn, rhs, int, c_array));`
 //
 // \param matcher - A regular matcher, such as be_positive, or be_within(A, B),
@@ -460,17 +488,17 @@ void test_run_suite(const TestSuite* suite);
 //
 // \brief Example: `expect(arr to all_match(my_fn, rhs, int, c_array));`
 //
+// \param value - The value to test each subject with, second parameter to fn.
+//
 // \param matcher - A function or macro that takes two arguments and returns a
 //    boolean value.
-//
-// \param value - The value to test each subject with, second parameter to fn.
 //
 // \param T_el - The type of the elements in the container.
 //
 // \param T_cont - The type of container. This value is not the actual type name
 //    of the container's struct, but the associated prefix before a
 //    _foreach_index macro (ex: c_array).
-#define all_match(matcher, value, T_el, T_con) all(matcher, value, T_el, T_con)
+#define all_match(value, matcher, T_el, T_con) all(matcher, value, T_el, T_con)
 
 // \brief The `all_be` matcher is similar to the `all` matcher, but rather than
 //    composing other matchers, it applies a basic expression to every element
@@ -494,8 +522,6 @@ void test_run_suite(const TestSuite* suite);
 //    is not an actual type name of an object/struct, but a prefix used by
 //    associated functions, in particular the foreach_index macro.
 #define all_be(op, value, T_elem, T_cont) _all_be(op, value, T_elem, T_cont)
-
-#define with ,
 
 #ifndef c_array_foreach_index
 // \brief A macro to provide an indexed foreach that can be used to iterate over
@@ -521,9 +547,9 @@ void test_run_suite(const TestSuite* suite);
 //
 // \param arr - The container to iterate over, in this case, a C-style array
 //    delcared with the form `type arr[n]`.
-#define c_array_foreach_index(iter, i, arr)                                 \
-  iter = NULL;                                                              \
-  for (csUint i = 0; i < ARRAY_COUNT(arr) ? (iter = &arr[i]), 1 : 0; ++i)   //
+#define c_array_foreach_index(iter, i, arr)                               \
+  iter = NULL;                                                            \
+  for (csUint i = 0; i < ARRAY_COUNT(arr) ? (iter = &arr[i]), 1 : 0; ++i) //
 #endif
 
 #ifndef c_array_ptr_foreach_index
@@ -575,7 +601,7 @@ typedef csUint (*resolve_user_types_fn)
 // \brief A function pointer that is initially null, but can be set by a user to
 //    describe how to print custom types without having to modify cspec.c.
 //
-// \param &p_type - a pointer to a pointer to c-string containing the name of 
+// \param &p_type - a pointer to a pointer to c-string containing the name of
 //    the type to convert. You can compare this to a typename you've defined,
 //    and either add a custom handler to write output to the buffer, or you can
 //    change the pointer to a string representing an equivalent type that can
@@ -594,6 +620,17 @@ typedef csUint (*resolve_user_types_fn)
 //    In this case, if ptyp_N was modified, the updated value will be used to
 //    determine how to write the contents of N.
 extern resolve_user_types_fn resolve_user_types;
+
+// A few internal functions that can be used if convenient in an environment
+//    that doesn't have access to the standard library.
+
+void    cspec_memset(void* s, csByte c, csSize n);
+void    cspec_memcpy(void* s, const void* t, csSize n);
+csBool  cspec_strcmp(const char* A, const char* B);
+csUint  cspec_strlen(const char* s);
+csBool  cspec_strrstr(const char* s, const char* ends_with);
+csBool  cspec_isdigit(char c);
+int     cspec_atoi(const char* s);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation details, turn back now, here there be dragons.
@@ -685,8 +722,9 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
   _type_s_h(X, unsigned long), _type_s_h(X, unsigned long long),  _type_s_h(X, float),  _type_s_h(X, double)          \
 )                                                                                                                     //
 /*/
-// abridged version that's easier on the msvc macro previewer, lol
-# define _type_s(X) _Generic((X),                                             \
+// abridged version that's easier on the visual studio macro previewer, lol
+# if 0
+#  define _type_s(X) _Generic((X),                                            \
   CSPEC_CUSTOM_TYPES                _Bool:              "bool",               \
   _type_s_h(X, char),               _type_s_h(X, int),                        \
   void*:          "void*",          const void*:        "const void*",        \
@@ -696,6 +734,9 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
   unsigned int:   "unsigned int",   unsigned int*:      "unsigned int*",      \
   unsigned long:  "unsigned long",  unsigned long long: "unsigned long long"  \
 )                                                                             //
+# else
+#  define _type_s(X) "_type"#X
+# endif
 //*/
 #endif
 
@@ -717,40 +758,55 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _test_warn(message) _test_warn_fn(__LINE__, message)
 #define _test_fail(issue) do { _test_error_fn(issue); return; } while(0)
 #define _test_fail_args(S, /* fmt, */ ...) _test_error_typed(__LINE__, S, __VA_ARGS__, NULL, NULL)
-#define _test_fail_t(A, x, B, sTa, sTb) do { _test_fail_args("expected "#A" "#x" "#B, "%n\nreceived {} "#x" {}", sTa, &_A, sTb, &_B); return; } while(0)
-#define _test_fail_all(S, T)                                                                                                                    \
-  _test_fail_args("expected "S, NULL); if (_pvalue) {                                                                                           \
+
+#define _test_fail_t(A, x, B, sTa, sTb) { _test_fail_args("expected "#A" "#x" "#B, "%n\nreceived {} "#x" {}", sTa, &_A, sTb, &_B); return; }
+#define _test_fail_comp(S) { _test_fail_args("expected "S, "%n\nreceived {}", _type_s(_Aout), &_Aout); return; }
+#define _test_fail_fn_expr(F, x, B, P) { _test_fail_args("expected X "#x" "#B" where X == "#F#P, "%n\nreceived {} "#x" {}" _param_fn_str P, _type_s(_R), &_R, _type_s(_B), &_B, _param_fn_arg P NULL); return; }
+#define _test_fail_fn_comp(S, P) { _test_fail_args("expected "S, "%n\nreceived {}" _param_fn_str P, _type_s(_R), &_R, _param_fn_arg P NULL); return; }
+#define _test_fail_fn_true(F, A, B) { _test_fail_args("expected to pass "#F"( "#A" )", "%n\nparam 1: {}\nparam 2: {}", _type_s(_A), &_A, _type_s(_B), &_B); return; }
+#define _test_fail_all(S, T) {                                                                                                                  \
+  _test_fail_args("expected "S, NULL);                                                                                                          \
+    if (_pvalue) {                                                                                                                              \
     if (_print_expected_value) _test_fail_args("", "but found {} on iteration {}\nexpecting {}", #T, _pvalue, "uint", &_index, #T, &_expected); \
     else                       _test_fail_args("", "but found {} on iteration {}",               #T, _pvalue, "uint", &_index);                 \
-  return;                                                                                                                                       \
-}                                                                                                                                               //
+    return;                                                                                                                                     \
+  } }                                                                                                                                           //
 
-#define _expect_comp_all(S, A, E, B, x, T, F, ...) csBool _test = F(A, B, E, x); if(!_test) { _test_fail_all(S, T); }
-#define _expect_type2(S, A, x, B, T, t, ...) T _A=(A); t _B=(B); if(!(_A x _B)) _test_fail_t(A, x, B, #T, #t)
-#define _expect_type1(S, A, x, B, T, ...) T _A=(A); T _B=(B); if(!(_A x _B)) _test_fail_t(A, x, B, #T, #T)
-//#define _expect_comp3(S, F, H, P, ...) if (H != (F P) { _test_fail_args("expected to pass "#F"( "#P" )", "%n\nparam 1 {}\nparam 2 {}", _type_s(_A), &_A, _type_s(_B), &_B); return; }
-#define _expect_comp2(S, A, F, B, ...) typeof(A) _A = A; typeof(B) _B = B; if (!(F(_A, _B))) { _test_fail_args("expected to pass "#F"( "#A", "#B" )", "%n\nparam 1 {}\nparam 2 {}", _type_s(_A), &_A, _type_s(_B), &_B); return; }
-#define _expect_true2(S, A, x, B, ...) typeof(A) _A=(A); typeof(B) _B=(B); if (!(_A x _B)) _test_fail_t(A, x, B, _type_s(_A), _type_s(_B))
-#define _expect_comp(S, A, F, ...) typeof(A) _Aout = (A); csBool _test = F(_Aout); if(!(_test)) { _test_fail_args("expected "S, "%n\nreceived {}", _type_s(_Aout), &_Aout); return; }
-#define _expect_true(S, A, ...) if(!(A)) _test_fail("line "STR(__LINE__)": expected "S)
-#define _expect_va(S, U, V, W, X, Y, Z, _,__,F, ...) do { _expect##F(S, U, V, W, X, Y, Z); } while(0)
-#define _expect(S, ...) _expect_va(S, __VA_ARGS__, _comp3, _comp2, _comp_all, _type2, _type1, _true2, _comp, _true)
+#define _csva_exp_1(F,G,a,...) F(1,a) G(1,a)
+#define _csva_exp_2(F,G,a,...) F(2,a) _csva_exp_1(F,G,__VA_ARGS__) G(2,a)
+#define _csva_exp_3(F,G,a,...) F(3,a) _csva_exp_2(F,G,__VA_ARGS__) G(3,a)
+#define _csva_exp_4(F,G,a,...) F(4,a) _csva_exp_3(F,G,__VA_ARGS__) G(4,a)
+#define _csva_exp_5(F,G,a,...) F(5,a) _csva_exp_4(F,G,__VA_ARGS__) G(5,a)
+#define _csva_exp_6(F,G,a,...) F(6,a) _csva_exp_5(F,G,__VA_ARGS__) G(6,a)
+#define _csva_exp_7(F,G,a,...) F(7,a) _csva_exp_6(F,G,__VA_ARGS__) G(7,a)
+#define _csva_exp_8(F,G,a,...) F(8,a) _csva_exp_7(F,G,__VA_ARGS__) G(8,a)
+#define _csva_exp_9(F,G,a,...) F(9,a) _csva_exp_8(F,G,__VA_ARGS__) G(9,a)
+#define _csva_exp_va(F,G,a,b,c,d,e,f,g,h,i,X,...) _csva_exp_##X(F,G,a,b,c,d,e,f,g,h,i,X)
+#define _csva_exp(F, G, ...) _csva_exp_va(F,G,__VA_ARGS__,9,8,7,6,5,4,3,2,1)
 
-/*
-#define _fn_comp_args(A) A, _B
-#define _fn_wow2(a, b, c) a(b(c))
-#define _fn_wow(a, b) _fn_wow2(a, b)
-#define _fn_break2(a, ...) a, __VA_ARGS__
-#define _fn_break(...) _fn_break2(__VA_ARGS__)
-#define _fn_magic(fn, args, ...) _fn_wow(_fn_break fn, args)
-#define _fn_comp(fn, B) (FALSE; typeof(B) _B = B; _test ^= fn, _fn_comp_args)
-*/
+#define _param_mty(N, P, ...)
+#define _param_def(N, P, ...) typeof(P) MACRO_CONCAT(_P, N) = P;
+#define _param_arg(N, P, ...) _type_s(P), &MACRO_CONCAT(_P, N),
+#define _param_str(N, P, ...) "\nparam "#N": {}"
+
+#define _param_fn_def(...) _csva_exp(_param_def, _param_mty, __VA_ARGS__)
+#define _param_fn_arg(...) _csva_exp(_param_arg, _param_mty, __VA_ARGS__)
+#define _param_fn_str(...) _csva_exp(_param_mty, _param_str, __VA_ARGS__)
+
+#define _expect_fn_expr(S, F, x, B, P, ...)         typeof(F P) _R = (F P);   typeof(B) _B = (B);       _param_fn_def P if (!(_R x _B))   _test_fail_fn_expr(F, x, B, P)
+#define _expect_fn_comp(S, F, M, P, ...)            typeof(F P) _R = (F P);   csBool    _test = M(_R);  _param_fn_def P if (!_test)       _test_fail_fn_comp(S, P)
+#define _expect_fn_true(S, A, F, B, ...)            typeof(A)   _A = A;       typeof(B) _B = B;                         if (!(F(_A, _B))) _test_fail_fn_true(F, A, B)
+#define _expect_comp_all(S, A, E, B, x, T, F, ...)                            csBool    _test = F(A, B, E, x);          if (!_test)       _test_fail_all(S, T)
+#define _expect_type2(S, A, x, B, T, t, ...)        T           _A=(A);       t         _B=(B);                         if (!(_A x _B))   _test_fail_t(A, x, B, #T, #t)
+#define _expect_type1(S, A, x, B, T, ...)           T           _A=(A);       T         _B=(B);                         if (!(_A x _B))   _test_fail_t(A, x, B, #T, #T)
+#define _expect_expr(S, A, x, B, ...)               typeof(A)   _A=(A);       typeof(B) _B=(B);                         if (!(_A x _B))   _test_fail_t(A, x, B, _type_s(_A), _type_s(_B))
+#define _expect_comp(S, A, F, ...)                  typeof(A)   _Aout = (A);  csBool    _test = F(_Aout);               if (!_test)       _test_fail_comp(S)
+#define _expect_true(S, A, ...)                                                                                         if (!(A))         _test_fail("line "STR(__LINE__)": expected "S)
+#define _expect_va(S, U, V, W, X, Y, Z,_0,_1,_2, F, ...) do { _expect##F(S, U, V, W, X, Y, Z); } while(0)
+#define _expect(S, ...) _expect_va(S, __VA_ARGS__, _fn_expr, _fn_comp, _fn_true, _comp_all, _type2, _type1, _expr, _comp, _true)
 
 #define _fn_comp(fn, B) fn, B, 0, 0, 0, 0
-
-// expect(fn to succeed_with(a, b)) works, but should support any number of args....
-//#define succeed_with(A, B) 1, (A, B), 0, 0, 0, 0, 0
-//#define succeed 1, (), 0, 0, 0, 0, 0 // kinda dumb? It's just different syntax for expect(fn()), but expect(fn to succeed).
+#define _given(ARGS) , ARGS, 0, 0, 0, 0, 0
 
 #define _matcher_setup(B, C, T) FALSE; T _B = (B); T _C = (C); T _A =
 
@@ -771,28 +827,23 @@ int     _test_run_all(int count, TestSuite* suites[], int argc, char* argv[]);
 #define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
 
 #define _all_comp_part(A, FOREACH, MATCHER, EXPECTED) FOREACH(_iter_all, _loop_all, A) { _test = MATCHER; if (!_test) { _index = _loop_all; _pvalue = _iter_all; EXPECTED break; } } _test ^= _tmp
-#define _all_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all), )
-#define _all_be_comp(A, B, FOREACH, x) _all_comp_part(A, FOREACH, ((*_iter_all) x B), _expected = B;)
-#define _all_match_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all, B), _expected = B;)
+#define _all_comp(A, B, FOREACH, M)       _all_comp_part(A, FOREACH, M(*_iter_all), )
+#define _all_be_comp(A, B, FOREACH, x)    _all_comp_part(A, FOREACH, ((*_iter_all) x (B)),  _expected = (B);)
+#define _all_match_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all, B),      _expected = B;)
 
 #define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE
-#define _all(matcher, T_el, T_con, ...) _all_setup(T_el); T_el* T_con##_foreach_index, 0, matcher, T_el, _all_comp
-#define _all_be(x, B, T_el, T_con) _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
-#define _all_match(x, B, T_el, T_con, ...) _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_match_comp
+#define _all(M, T_el, T_con, ...)           _all_setup(T_el);                               T_el* T_con##_foreach_index, 0, M, T_el, _all_comp
+#define _all_be(x, B, T_el, T_con)          _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
+#define _all_match(F, B, T_el, T_con, ...)  _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, F, T_el, _all_match_comp
 
-#define _all_va(matcher, B, C, D, F, ...) F(matcher, B, C, D)
-
-//#define be(opr, value) opr (value),
-//#define _all_va(T_el, T_con, matcher, _, F, ...) _all_setup T_el* T_con##_foreach_index, matcher, F, T_el, 0
-//#define _all(T_el, T_con, ...) _all_va(T_el, T_con, __VA_ARGS__, _all_be_comp, _all_comp)
-//#define _all(matcher, T_el, T_container) TRUE; T_el* T_container##_foreach, matcher, 0, _all_b, _all_a
+#define _all_va(matcher, B, T_el, T_con, F, ...) F(matcher, B, T_el, T_con)
 
 #ifndef _USE_DEDUCTION
 # undef _expect_true2
-# define _expect_true2(S, A, B, C, ...)                                       \
+# define _expect_true2(S, A, x, B, ...)                                       \
   _test_warn("output type deduction is disabled pre C11");                    \
-  _test_warn("use `expect("#A", "#B" , "#C", type)` for value display");      \
-  if(!(A B C)) _test_fail("line "STR(__LINE__)": expected "#A" "#B" "#C)      //
+  _test_warn("use `expect("#A", "#x" , "#B", type)` for value display");      \
+  if(!(A x B)) _test_fail("line "STR(__LINE__)": expected "#A" "#x" "#B)      //
 
 # undef _expect_comp
 # define _expect_comp(S, A, B, ...) csBool _test = B(A); if(!(_test)) _test_fail("line "STR(__LINE__)": expected "S)

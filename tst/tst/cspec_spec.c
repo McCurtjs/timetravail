@@ -6,9 +6,6 @@
 # include <stdlib.h>
 #endif
 
-extern csBool cspec_strcmp(const char* A, const char* B);
-extern csBool cspec_strrstr(const char* s, const char* ends_with);
-
 describe(deduction) {
 
   // ignore these tests if not >= C11
@@ -60,7 +57,7 @@ describe(deduction) {
   } //*/
 
   after{
-    expect(to_pass(cspec_strcmp, type_string, expected));
+    expect(type_string to match(expected, cspec_strcmp));
   }
 
 #endif
@@ -541,15 +538,13 @@ describe(matchers) {
 
   context("compositions on singular values") {
 
-    const char* str = "Test string";
-
     context("tests succeed") {
 
       it("has a positive value") {
         expect(3 to be_positive);
       }
 
-      it("uses a to_not specifier") {
+      it("uses a 'to not' specifier") {
         expect(-3 to not be_positive);
       }
 
@@ -559,16 +554,12 @@ describe(matchers) {
         expect(i, ==, 3, int);
       }
 
-      it("uses to_not on a matcher that generates temporary") {
+      it("uses 'to not' on a matcher that generates temporary") {
         expect(4 to not be_between(2, 3));
       }
 
-      test("uses the 'match' matcher to compose a string comparison") {
-        expect(str to match(cspec_strcmp, "Test string"));
-      }
-
-      test("uses the 'to_pass' matcher to compose a string comparison") {
-        expect(to_pass(cspec_strrstr, str, "string"));
+      it("uses 'to be' in a basic context") {
+        expect(3 to be( < , 4));
       }
 
     }
@@ -581,7 +572,7 @@ describe(matchers) {
         expect(-3 to be_positive);
       }
 
-      it("uses a to_not modifier") {
+      it("uses a 'to not' modifier") {
         expect(3 to not be_positive);
       }
 
@@ -590,18 +581,64 @@ describe(matchers) {
         expect(++i to be_between(1, 2));
       }
 
-      it("uses to_not on a matcher that generates temporary") {
+      it("uses 'to not' on a matcher that generates temporary") {
         expect(4 to not be_between(3, 5));
       }
 
-      test("uses 'match' to compose a string comparison and print the error") {
-        expect(str to match(cspec_strcmp, "Toast string"));
+      it("uses 'to be' in a basic context") {
+        expect(3 to be( > , 4));
       }
 
-      test("uses 'to_pass' to compose a string compare and prints the error") {
-        expect(to_pass(cspec_strrstr, str, "sTring"));
-      }
+    }
 
+  }
+
+}
+
+describe(function_matchers) {
+
+  const char str_[] = "Test string";
+  const char* str = &str_[0];
+  csSize str_size = sizeof(str_) - 1;
+
+  context("tests succeed") {
+
+    it("uses the 'match' matcher to compose a string comparison") {
+      expect(str to match("Test string", cspec_strcmp));
+    }
+
+    it("uses the 'given' composition with a matcher to make the same comparison") {
+      expect(cspec_strcmp to be_true given(str, "Test string"));
+    }
+
+    it("uses the 'given' composition with an expression for the same comparison") {
+      expect(cspec_strcmp to be( == , TRUE) given(str, "Test string"));
+    }
+
+    it("uses the 'given' composition with one parameter") {
+      expect(cspec_strlen to be( == , str_size) given(str));
+    }
+
+  }
+
+  context("tests fail") {
+
+    expect(to_fail);
+
+    it("uses the 'match' matcher to compose a string comparison") {
+      expect(str to match("Test strong", cspec_strcmp));
+    }
+
+    it("uses the 'given' composition with a matcher to make the same comparison") {
+      expect(cspec_strcmp to be_true given(str, "Test strong"));
+    }
+
+    it("uses the 'given' composition with an expression for the same comparison") {
+      expect(cspec_strcmp to be( == , TRUE) given(str, "Test strong"));
+    }
+
+    it("uses the 'given' composition with one parameter") {
+      expect(cspec_strlen to be( != , str_size) given(str));
     }
 
   }
@@ -788,6 +825,22 @@ describe(matcher_basics) {
 
     }
 
+    context("be_true and be_false") {
+
+      it("is true") {
+        x = 1;
+        expect(x to be_true);
+        expect(x to not be_false);
+      }
+
+      it("is false") {
+        x = 0;
+        expect(x to not be_true);
+        expect(x to be_false);
+      }
+
+    }
+
   }
 
   context("tests fail") {
@@ -828,6 +881,20 @@ describe(matcher_basics) {
       test("odd expecting even") {
         x = 37;
         expect(x to be_even);
+      }
+
+    }
+
+    context("be_true and be_false") {
+
+      it("true expecting false") {
+        x = 1;
+        expect(x to be_false);
+      }
+
+      it("is false") {
+        x = 0;
+        expect(x to be_true);
       }
 
     }
@@ -1021,6 +1088,7 @@ test_suite(tests_cspec) {
   test_group(expect_deduced_triplet),
   test_group(expect_basic_var_output),
   test_group(matchers),
+  test_group(function_matchers),
   test_group(container_matchers),
   test_group(matcher_basics),
   test_group(matcher_be_between),

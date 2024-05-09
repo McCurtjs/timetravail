@@ -112,10 +112,18 @@ typedef size_t jshandle;
 #define _va_exp_d(F,a,...) F(a), _va_exp_c(F,__VA_ARGS__)
 #define _va_exp_e(F,a,...) F(a), _va_exp_d(F,__VA_ARGS__)
 #define _va_exp_f(F,a,...) F(a), _va_exp_e(F,__VA_ARGS__)
-#define _va_exp_va(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,X,...) \
-				_va_exp##X(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o)				//
-#define _va_exp(F, ...)																												\
-				_va_exp_va(F,__VA_ARGS__,_f,_e,_d,_c,_b,_a,_9,_8,_7,_6,_5,_4,_3,_2,_1)//
+#define _va_exp_g(F,a,...) F(a), _va_exp_f(F,__VA_ARGS__)
+#define _va_exp_h(F,a,...) F(a), _va_exp_g(F,__VA_ARGS__)
+#define _va_exp_i(F,a,...) F(a), _va_exp_h(F,__VA_ARGS__)
+#define _va_exp_j(F,a,...) F(a), _va_exp_i(F,__VA_ARGS__)
+#define _va_exp_k(F,a,...) F(a), _va_exp_j(F,__VA_ARGS__)
+#define _va_exp_l(F,a,...) F(a), _va_exp_k(F,__VA_ARGS__)
+#define _va_exp_m(F,a,...) F(a), _va_exp_l(F,__VA_ARGS__)
+#define _va_exp_va(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,X,...)       \
+        _va_exp_##X(F,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v)            //
+
+#define _va_exp(F, ...)                                                       \
+        _va_exp_va(F,__VA_ARGS__,m,l,k,j,i,h,g,f,e,d,c,b,a,9,8,7,6,5,4,3,2,1) //
 
 // Squelches warnings about unused parameters.
 // Ideally, for GCC and Clang this should be __attribute__((unused)) in the

@@ -5,18 +5,18 @@
 
 #include "array.h"
 
-#define _STR_RANGE_DEF(SRCA, SRCB) \
-  struct {                         \
-    SRCA char*  SRCB begin;        \
-    union {                        \
-      size_t    SRCB length;       \
-      size_t    SRCB size;         \
-    };                             \
-  }                               //
+#define _STR_RANGE_DEF(SRCA, SRCB)  \
+  struct {                          \
+    SRCA char*  SRCB begin;         \
+    union {                         \
+      size_t    SRCB length;        \
+      size_t    SRCB size;          \
+    };                              \
+  }                                 //
 
-#define _STR_RANGE_DEF_BODY(C_STR) \
-  .begin = C_STR,                  \
-  .size = sizeof(C_STR)-1         //
+#define _STR_RANGE_DEF_BODY(C_STR)  \
+  .begin = C_STR,                   \
+  .size = sizeof(C_STR)-1           //
 
 // \brief StringRange is a basic immutable string segment containing the start
 //    and size of a string.
@@ -42,9 +42,9 @@ typedef _STR_RANGE_DEF(const,) StringRange;
 // \param C_STRING_LITERAL - The string literal value.
 //    Can accept either a string in double quotes, or a const static char[].
 //
-#define str_literal(C_STRING_LITERAL) ((StringRange) { \
-  _STR_RANGE_DEF_BODY(C_STRING_LITERAL)                \
-})                                                    //
+#define str_literal(C_STRING_LITERAL) ((StringRange) {  \
+  _STR_RANGE_DEF_BODY(C_STRING_LITERAL)                 \
+})                                                      //
 
 // \brief Alias for str_literal(c_str).
 // \brief Creates a string range from a string literal - ONLY use this for
@@ -60,9 +60,9 @@ typedef _STR_RANGE_DEF(const,) StringRange;
 
 // \brief Similar to R macro, just doesn't include the typename because MSVC
 //    can't handle that in some cases. Very annoying.
-#define M(C_STRING_LITERAL) { \
+#define M(C_STRING_LITERAL) {           \
   _STR_RANGE_DEF_BODY(C_STRING_LITERAL) \
-}                                      //
+}                                       //
 
 // \brief Used to allocate a static string from a string literal. This is only
 //    necessary in MSVC because it can't understand initializer list casting.
@@ -73,7 +73,7 @@ typedef _STR_RANGE_DEF(const,) StringRange;
 //
 #define str_static(NAME, C_STR) static StringRange NAME = { \
   _STR_RANGE_DEF_BODY(C_STR)                                \
-}                                                          //
+}                                                           //
 
 // \brief String is a handle type pointing to an immutable string on the heap.
 //
@@ -101,7 +101,7 @@ typedef Array_StringRange Array_StrR;
 #pragma warning ( disable : 4189 ) // local initialized but not referenced
 #endif
 // \brief Macro to coalesce a String, StringRange, or char* into a StringRange.
-#define _s2r(S) _Generic((S), \
+#define _s2r(S) _Generic((S),   \
   StringRange:  _str_range_r,   \
   String:       _str_range_st,  \
   char*:        str_range,      \
