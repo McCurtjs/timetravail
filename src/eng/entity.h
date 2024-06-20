@@ -30,6 +30,19 @@ typedef struct PlayerFrameData {
   uint hitstun;
 } PlayerFrameData;
 
+typedef struct ReplayNode {
+  uint frame;
+  uint frame_until;
+  uint buttons;
+  PlayerFrameData data;
+} ReplayNode;
+
+#define con_type ReplayNode
+#define con_prefix rpn
+#include "array.h"
+#undef con_type
+#undef con_prefix
+
 typedef struct TransformIndex {
   uint shader;
   uint model;
@@ -54,6 +67,10 @@ typedef struct Movement {
   vec2 origin, v_plat, v_rail;
 } Movement;
 
+// todo: if "Entity" is not partially opaque, should it be "entity" instead?
+//          should it just be opaque? Should entities be created via a prefab
+//          or entity_builder type object (want a way to define them inline in
+//          levels and whatnot of course).
 typedef struct Entity {
   uint type;
 
@@ -84,8 +101,8 @@ typedef struct Entity {
     Movement movement_params;
     struct {
       AnimationData anim_data;
-      Array replay;
-      Array replay_temp;
+      Array_ReplayNode replay;
+      Array_ReplayNode replay_temp;
       bool playback;
     };
   };

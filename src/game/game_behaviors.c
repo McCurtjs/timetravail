@@ -93,11 +93,11 @@ void behavior_goal(Entity* e, Game* game, float dt) {
 // Delete fns
 void delete_player(Entity* entity) {
   if (entity->replay) {
-    array_delete(&entity->replay);
+    arr_rpn_delete(&entity->replay);
   }
 
   if (entity->replay_temp) {
-    array_delete(&entity->replay_temp);
+    arr_rpn_delete(&entity->replay_temp);
   }
 }
 

@@ -4,11 +4,13 @@
 #include "types.h"
 
 typedef struct {
-  uint CV element_size;
-  uint CV capacity;
-  uint CV size;
-  uint CV size_bytes;
+  uint const element_size;
+  uint const capacity;
+  uint const size;
+  uint const size_bytes;
 }* Array;
+
+// todo: change all array_ prefixes to arr_
 
 #define array_new(TYPE) _array_new_(sizeof(TYPE))
 #define array_new_reserve(TYPE, capacity) _array_new_reserve_(sizeof(TYPE), capacity)
@@ -22,7 +24,7 @@ void  array_delete(Array* array);
 uint  array_insert(Array array, uint position, const void* in_element);
 uint  array_push_back(Array array, const void* in_element);
 uint  array_pop_back(Array array);
-void* array_get(Array array, uint index);
+void* array_get(Array array, uint index); // todo: rename "gets" to "get_ref"
 void  array_read(const Array array, uint index, void* out_element);
 void* array_get_front(Array array);
 void  array_read_front(const Array array, void* out_element);
@@ -43,6 +45,7 @@ void  array_read_back(const Array array, void* out_element);
 /*/
 // usage:
 // MyType* array_foreach(iterator, array) { use(iterator); }
+// todo: can't this just be defined using array_foreach_index?
 #define array_foreach(VAR, ARRAY)                                             \
   VAR = array_get_front((Array)ARRAY);                                        \
   assert(sizeof(*VAR) == ARRAY->element_size);                                \
@@ -64,12 +67,17 @@ void  array_read_back(const Array array, void* out_element);
 // specialized container/template type
 #ifdef con_type
 
+// Specialized container functions are declared as arr_<prefix>_<fn>
+//    ex: - if con_prefix is 'str', you'll get a function arr_str_push_back
+//        - if con_prefix is not set, you'll get arr_String_push_back
 #ifdef con_prefix
 # define _full_prefix MACRO_CONCAT(arr_, con_prefix)
 #else
 # define _full_prefix MACRO_CONCAT(arr_, con_type)
 #endif
 
+// The type of the specialized array class will be Array_<type>.
+//    for example: Array_String, Array_Entity, etc.
 #define _arr_type MACRO_CONCAT(Array_, con_type)
 
 #define _prefix(_fn) MACRO_CONCAT(_full_prefix, _fn)
@@ -78,10 +86,14 @@ void  array_read_back(const Array array, void* out_element);
 //    pointer type, it'll happily accept either as equivalent, but the whole
 //    point is to prompt type errors.
 typedef struct {
-  uint CV element_size;
-  uint CV capacity;
-  uint CV size;
-  uint CV size_bytes;
+  uint const element_size;
+  uint const capacity;
+  uint const size;
+  uint const size_bytes;
+  union {
+    con_type* const arr;
+    con_type* const first;
+  };
 }* _arr_type;
 
 static inline _arr_type _prefix(_new)

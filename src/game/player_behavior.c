@@ -26,13 +26,6 @@ uint get_input_mask(Game* game) {
   return inputs;
 }
 
-typedef struct ReplayNode {
-  uint frame;
-  uint frame_until;
-  uint buttons;
-  PlayerFrameData data;
-} ReplayNode;
-
 void behavior_player(Entity* e, Game* game, float _dt) {
   PARAM_UNUSED(_dt);
 
@@ -50,8 +43,8 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
   // Initialize the replay data storage on first update
   if (e->replay == NULL) {
-    e->replay = array_new_reserve(ReplayNode, 200);
-    array_push_back(e->replay, &(ReplayNode) {
+    e->replay = arr_rpn_new_reserve(200);
+    arr_rpn_push_back(e->replay, (ReplayNode) {
       .frame = game_frame,
       .frame_until = game_frame,
       .buttons = 0,
@@ -83,7 +76,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
   // Handle input event recording
   if (!e->playback) {
-    ReplayNode* prev_node = array_get_back(e->replay);
+    ReplayNode* prev_node = arr_rpn_get_back_ref(e->replay);
     bool hit_max_node_time = game_frame - prev_node->frame >= max_replay_temp;
 
     if (hit_max_node_time
@@ -99,7 +92,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
       if (game_frame != prev_node->frame) {
         prev_node->frame_until = game_frame;
 
-        array_push_back(e->replay, &(ReplayNode) {
+        arr_rpn_push_back(e->replay, (ReplayNode) {
           .frame = game_frame,
           .frame_until = game_frame,
           .buttons = inputs,
@@ -148,15 +141,14 @@ void behavior_player(Entity* e, Game* game, float _dt) {
   // Handle replay playback
   } else if (e->replay->size) {
     if (e->replay_temp == NULL) {
-      e->replay_temp = array_new_reserve(ReplayNode, max_replay_temp);
+      e->replay_temp = arr_rpn_new_reserve(max_replay_temp);
     }
 
     uint index;
-    ReplayNode node, next;
+    ReplayNode node = {0}, next;
 
     // First check if the current frame is before the first playback frame
-    array_read_front(e->replay, &node);
-    if (node.frame > game_frame) {
+    if (e->replay->first->frame > game_frame) {
       e->hidden = TRUE;
       return; // hard exit, don't waste time simulating playback
     } else {
@@ -166,7 +158,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     // Find the snapshot containing the current frame
     // TODO: replace with binary search, this is gross
     for (index = 0; index < e->replay->size; ++index) {
-      array_read(e->replay, index, &node);
+      node = e->replay->arr[index];
 
       if (game_frame >= node.frame && game_frame < node.frame_until) {
         break;
@@ -178,15 +170,15 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     // If the current frame is within the bounds of the temp array, get it
     ReplayNode* temp = NULL;
     if (e->replay_temp->size > 0) {
-      temp = array_get_front(e->replay_temp);
+      temp = e->replay_temp->first;
     }
 
     // If it's not in the temp buffer, we need to simulate a new range
     if (temp == NULL || temp->frame != node.frame) {
-      array_clear(e->replay_temp);
+      arr_rpn_clear(e->replay_temp);
 
       loop {
-        array_push_back(e->replay_temp, &node);
+        arr_rpn_push_back(e->replay_temp, node);
 
         // go one past the end so we can be sure the temp buffer also contains
         // the next frame (pre-inc is exact, post-inc overlaps the next block)
@@ -204,11 +196,11 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // Read the final correct node from the temp buffer
     if ((game_frame - block_start + 1) < e->replay_temp->size) {
-      array_read(e->replay_temp, game_frame - block_start, &node);
-      array_read(e->replay_temp, game_frame - block_start + 1, &next);
+      node = e->replay_temp->arr[game_frame - block_start];
+      next = e->replay_temp->arr[game_frame - block_start + 1];
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
-      array_read_back(e->replay, &next);
+      arr_rpn_read_back(e->replay, &next);
       next = node;
     }
 
@@ -217,7 +209,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     node.data.pos = v2lerp(node.data.pos, next.data.pos, frame_t);
 
     // At this point, "node" should be set to the correct current frame
-    temp = array_get_back(e->replay);
+    temp = arr_rpn_get_back_ref(e->replay);
     if (game_frame != node.frame && game_frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
       print_ptr(e); print_int(node.frame); print_int(game_frame);
