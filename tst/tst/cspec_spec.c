@@ -691,6 +691,11 @@ describe(container_matchers) {
         expect(arr to all(be_less_than, exp[n], int, c_array));
       }
 
+      it("does a piecewise comparison using the function matcher shorthand (macro)") {
+        int exp[] = { 6, 10, 14 };
+        expect(arr to all_match(exp[n], be_less_than, int, c_array));
+      }
+
       it("compares the values using the 'be' matcher") {
         expect(arr to all_be( < , 10, int, c_array));
       }
@@ -704,7 +709,7 @@ describe(container_matchers) {
       }
 
       it("contains only non-even values") {
-        expect(arr to all_be( %2 != , 0, int, c_array));
+        expect(arr to all_be( % 2 != , 0, int, c_array));
         expect(arr to all(be_odd, int, c_array));
       }
 
@@ -765,12 +770,27 @@ describe(container_matchers) {
       }
 
       it("wants at least one even value") {
-        expect(arr to not all_be(% 2 != , 0, int, c_array));
+        expect(arr to not all_be( % 2 != , 0, int, c_array));
       }
 
       it("does a piecewise comparison with an array 2 larger") {
         int exp[] = { 5, 7, 8 };
-        expect(arr to all_be(+2 == , exp[n], int, c_array));
+        expect(arr to all_be( +2 == , exp[n], int, c_array));
+      }
+
+    }
+
+  }
+
+  context("using an array of strings") {
+
+    char* arr[] = { "ab", "asdf", "qwerty" };
+
+    context("tests succeed") {
+
+      it("uses a function matcher with a function") {
+        char* words[] = { "ab", "asdf", "qwerty" };
+        expect(words to all_match(arr[n], cspec_strcmp, char*, c_array));
       }
 
     }

@@ -462,8 +462,8 @@ void test_run_suite(const TestSuite* suite);
 //
 // \brief Example: `expect(arr to all(my_fn, rhs, int, c_array));`
 //
-// \param matcher - A regular matcher, such as be_positive, or be_within(A, B),
-//    or a function that takes the container element as its first of up to two
+// \param M - A regular matcher, such as be_positive, or be_within(A, B), or a
+//    function that takes the container element as its first of up to two
 //    arguments.
 //
 // \param value [opt] - A value to pass to the matcher as a second parameter if
@@ -480,7 +480,7 @@ void test_run_suite(const TestSuite* suite);
 // \param T_cont - The type of container. This value is not the actual type name
 //    of the container's struct, but the associated prefix before a
 //    _foreach_index macro (ex: c_array).
-#define all(matcher, ...) _all_va(matcher, __VA_ARGS__, _all_match, _all)
+#define all(M, ...) _all_va(M, __VA_ARGS__, _all_match2, _all_match, _all)
 
 // \brief Alternate explicit alias for using a function with second parameter as
 //    a matcher. Functions the same as calling `expect(lhs to match(fn, value))`
@@ -822,14 +822,14 @@ void    _test_error_typed(int line, const char* pfix, const char* fmt,
 #define _be_type_default(T, R) R
 #define _be_type_typeof(_) _be_type_default
 
-#define _be_between_exclusive(A) (A); _test ^= (_B < _A && _A < _C)
-#define _be_between_inclusive(A) (A); _test ^= (_B <= _A && _A <= _C)
-#define _be_between_exclusive_end(A) (A); _test ^= (_B <= _A && _A < C)
-#define _be_between_exclusive_start(A) (A); _test ^= (_B < _A && _A <= C)
+#define _be_between_exclusive(A)        (A); _test ^= (_B <  _A && _A <  _C)
+#define _be_between_inclusive(A)        (A); _test ^= (_B <= _A && _A <= _C)
+#define _be_between_exclusive_end(A)    (A); _test ^= (_B <= _A && _A <  _C)
+#define _be_between_exclusive_start(A)  (A); _test ^= (_B <  _A && _A <= _C)
 #define _be_between_va(B_LO, C_HI, MODE, T, T_RES, ...) _matcher_setup(B_LO, C_HI, _be_type_##T_RES(T, T_RES)) _be_between_##MODE
 #define _be_between(B, ...) _be_between_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
 
-#define _be_within_exclusive(A) (A); _test ^= (_C - _B < _A && _A < _C + _B)
+#define _be_within_exclusive(A) (A); _test ^= (_C - _B <  _A && _A < _C + _B)
 #define _be_within_inclusive(A) (A); _test ^= (_C - _B <= _A && _A <= _C + _B)
 #define _be_within_va(B_EXT, C_MID, MODE, T, T_RES, ...) _matcher_setup(B_EXT, C_MID, _be_type_##T_RES(T, T_RES)) _be_within_##MODE
 #define _be_within(B, ...) _be_within_va(B, __VA_ARGS__, inclusive, typeof(B), typeof(B))
@@ -840,11 +840,12 @@ void    _test_error_typed(int line, const char* pfix, const char* fmt,
 #define _all_match_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all, B),      _expected = B;)
 
 #define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE
-#define _all(M, T_el, T_con, ...)           _all_setup(T_el);                               T_el* T_con##_foreach_index, 0, M, T_el, _all_comp
-#define _all_be(x, B, T_el, T_con)          _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
-#define _all_match(F, B, T_el, T_con, ...)  _all_setup(T_el); _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, F, T_el, _all_match_comp
+#define _all(M, T_el, T_con, ...)                   _all_setup(T_el);                                 T_el* T_con##_foreach_index, 0, M, T_el, _all_comp
+#define _all_be(x, B, T_el, T_con)                  _all_setup(T_el);   _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
+#define _all_match(F, B, T_el, T_con, ...)          _all_setup(T_el);   _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, F, T_el, _all_match_comp
+#define _all_match2(F, B, T_el, T_arg, T_con, ...)  _all_setup(T_arg);  _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, F, T_el, _all_match_comp
 
-#define _all_va(matcher, B, T_el, T_con, F, ...) F(matcher, B, T_el, T_con)
+#define _all_va(matcher, B, T_el, T_argcon, T_con, F, ...) F(matcher, B, T_el, T_argcon, T_con)
 
 #ifndef _USE_DEDUCTION
 # undef _expect_expr
