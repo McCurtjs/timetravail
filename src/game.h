@@ -95,10 +95,8 @@ typedef struct PlayerRef {
 } PlayerRef;
 
 #define con_type PlayerRef
-#define con_prefix pref
 #include "array.h"
 #undef con_type
-#undef con_prefix
 
 typedef struct Line {
   vec2 a, b;

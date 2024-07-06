@@ -11,9 +11,10 @@ typedef struct {
   void* const arr;
 }* Array;
 
-// todo: change all array_ prefixes to arr_
+// todo: change all array_ prefixes to arr_ ?
 // todo: add array_emplace_back or array_push_back_ref for pointer ops?
 //    (generic versions use arr_typ_push_back(arr, non_ptr_obj); )
+// todo: replace all "if (!a) return _;" checks with asserts
 
 #define array_new(TYPE) _array_new_(sizeof(TYPE))
 #define array_new_reserve(TYPE, capacity) _array_new_reserve_(sizeof(TYPE), capacity)
@@ -26,13 +27,15 @@ void  array_free(Array array);
 void  array_delete(Array* array);
 uint  array_write(Array array, uint position, const void* in_element);
 uint  array_write_back(Array array, const void* in_element);
+void* array_emplace(Array array, uint position);
+void* array_emplace_back(Array array);
 uint  array_pop_back(Array array);
 void* array_get_ref(Array array, uint index);
-void  array_read(const Array array, uint index, void* out_element);
+bool  array_read(const Array array, uint index, void* out_element);
 void* array_get_front_ref(Array array);
-void  array_read_front(const Array array, void* out_element);
+bool  array_read_front(const Array array, void* out_element);
 void* array_get_back_ref(Array array);
-void  array_read_back(const Array array, void* out_element);
+bool  array_read_back(const Array array, void* out_element);
 
 // \brief A macro shorthand to write foreach loops with any dynamic Array or
 //    Array-based sub-types.
@@ -56,6 +59,8 @@ void  array_read_back(const Array array, void* out_element);
 
 // note: using VAR + i*s instead of just ++VAR in order to ensure the loop will
 //    continue to work in cases where a resize is performed during iteration.
+
+// TODO: would it be better to also track an offset rather than multiply?
 
 #endif
 
@@ -92,111 +97,217 @@ typedef struct {
   };
 }* _arr_type;
 
+// \brief Initializes a new array of the given type. Allocates no new space for
+//    the array contents until an item is added.
+//
+// \returns A new empty dynamic array, ready for use.
 static inline _arr_type _prefix(_new)
 (void) {
   return (_arr_type) { (_arr_type)array_new(con_type) };
 }
 
+// \brief Initialies a new array of the given type. Pre-allocates space for N
+//    elements to be added without needing to expand the array. The array after
+//    initialization is still empty.
+//
+// \param capacity - the number of elements to reserve space for
+//
+// \returns A new empty dynamic array with the given capacity.
 static inline _arr_type _prefix(_new_reserve)
 (uint capacity) {
   return (_arr_type)array_new_reserve(con_type, capacity);
 }
 
+// \brief Reserves space in the array so that it can contain at least N
+//    elements. This will not reserve space for N _additional_ elements, any
+//    items already in the array will still count towards the final capacity.
+//
+// \brief Will not perform any destructive action on elements in the array, but
+//    can shrink the available capacity. reserve(0) for example will perform
+//    a truncation down to the exact number of elements currently in the array.
+//
+// \param capacity - the number of elements to reserve space for
 static inline void _prefix(_reserve)
 (_arr_type arr, uint capacity) {
   array_reserve((Array)arr, capacity);
 }
 
+// \brief Truncates the array, may decrease the size of the array and remove
+//    elements from the end of the array until the size requirement is met.
+//
+// \brief Performs no operation if the array is already smaller than max_size.
+//
+// \param max_size - the maximum resulting capacity of the array
 static inline void _prefix(_truncate)
 (_arr_type arr, uint capacity) {
   array_truncate((Array)arr, capacity);
 }
 
+// \brief Performs a soft-delete of the array contents without changing
+//    capacity or freeing any allocations.
 static inline void _prefix(_clear)
 (_arr_type arr) {
   array_clear((Array)arr);
 }
 
+// \brief Frees the contents of the array back to the allocator. The array
+//    object itself will still be stored in memory and can still be used.
 static inline void _prefix(_free)
 (_arr_type arr) {
   array_free((Array)arr);
 }
 
+// \brief Deletes the array object and its contents from memory. Once deleted,
+//    the provided pointer reference will be nulled.
 static inline void _prefix(_delete)
 (_arr_type* parr) {
   array_delete((Array*)parr);
 }
 
+// \brief Inserts a copy of the given element into the given position in the
+//    array. Elements after the insert position will be moved one space forward.
+//
+// \param position - the index at which the new element will be accessed
+//
+// \param element - the element to insert into the array
+//
+// \returns The size of the array after adding the element.
 static inline uint _prefix(_insert)
 (_arr_type arr, uint position, con_type element) {
   return array_write((Array)arr, position, &element);
 }
 
+// \brief Inserts a copy of the element referenced by the given pointer into the
+//    array at the given position.
+//
+// \param position - the index at which the new element will be accessed
+//
+// \param element - a pointer to the element to write into the array
+//
+// \returns The size of the array after adding the element.
 static inline uint _prefix(_write)
 (_arr_type arr, uint position, const con_type* element) {
   return array_write((Array)arr, position, element);
 }
 
+// \brief Inserts a copy of the given element into the back of the array
+//
+// \param element - the element to insert into the array
+//
+// \returns The size of the array after adding the element.
 static inline uint _prefix(_push_back)
 (_arr_type arr, con_type element) {
   return array_write_back((Array)arr, &element);
 }
 
-// Will this successfully associate this comment with the function?
-// todo: add documentation for each of these
+// \brief Inserts a copy of the element referenced by the given pointer into the
+//    back of the array.
+//
+// \param element - a pointer to the element to write into the array
+//
+// \returns The size of the array after adding the element.
 static inline uint _prefix(_write_back)
 (_arr_type arr, const con_type* element) {
   return array_write_back((Array)arr, element);
 }
 
+// \brief Removes the last element from the array.
+//
+// \brief Note: the memory at the location of that element will remain unchanged
+//    until another element is added in its place.
+//
+// \returns The size of the array after removing the element.
 static inline uint _prefix(_pop_back)
 (_arr_type arr) {
   return array_pop_back((Array)arr);
 }
 
+// \brief Returns a copy of the element at the given position.
+// \brief Will assert if the given index is out of bounds.
+//
+// \param index - the index at which to retrieve the item from
+//
+// \returns A copy of the indexed element.
 static inline con_type _prefix(_get)
-(_arr_type arr, uint index) {
-  return *(con_type*)array_get_ref((Array)arr, index);
+(const _arr_type arr, uint index) {
+  con_type* element = array_get_ref((Array)arr, index);
+  assert(element != NULL);
+  return *element;
 }
 
+// \brief Returns a reference to the element at the given position, or NULL if
+//    the index is not valid. Note: an index that is within the capacity of the
+//    array but outside the size will still return NULL.
+//
+// \param index - the index at which to retrieve the item from
+//
+// \returns A pointer to the indexed element.
 static inline con_type* _prefix(_get_ref)
 (_arr_type arr, uint index) {
   return (con_type*)array_get_ref((Array)arr, index);
 }
 
-static inline void _prefix(_read)
-(_arr_type arr, uint index, con_type* out_element) {
-  array_read((Array)arr, index, out_element);
+// \brief Copies the value at the given index into the referenced output object.
+// \brief If the index is invalid, no copy is performed.
+//
+// \param index - the index at which to retrieve the item from
+//
+// \param out_element - a pointer to the object to copy the data into
+//
+// \returns True if an element was written, false otherwise.
+static inline bool _prefix(_read)
+(const _arr_type arr, uint index, con_type* out_element) {
+  return array_read((Array)arr, index, out_element);
 }
 
+// \brief Gets a copy of the first element of the array.
+// \brief Will assert if called on an empty array.
+//
+// \returns A copy of the first element.
 static inline con_type _prefix(_get_front)
-(_arr_type arr) {
+(const _arr_type arr) {
+  assert(arr->size > 0);
   return *(con_type*)array_get_front_ref((Array)arr);
 }
 
+// \returns A pointer to the first element in the array, or NULL if empty.
 static inline con_type* _prefix(_get_front_ref)
 (_arr_type arr) {
   return (con_type*)array_get_front_ref((Array)arr);
 }
 
-static inline void _prefix(_read_front)
-(_arr_type arr, con_type* out_element) {
-  array_read_front((Array)arr, out_element);
+// \brief Writes a copy of the first element in the array into the memory
+//    pointed to by out_element. No change is made if array is empty.
+//
+// \returns True if an element is written, false otherwise.
+static inline bool _prefix(_read_front)
+(const _arr_type arr, con_type* out_element) {
+  return array_read_front((Array)arr, out_element);
 }
 
+// \brief Returns a copy of the last element in the array.
+// \brief Will assert if the array is empty.
+//
+// \returns A copy of the last element.
 static inline con_type _prefix(_get_back)
-(_arr_type arr) {
+(const _arr_type arr) {
+  assert(arr->size > 0);
   return *(con_type*)array_get_back_ref((Array)arr);
 }
 
+// \returns A pointer to the last element in the array, or NULL if empty.
 static inline con_type* _prefix(_get_back_ref)
 (_arr_type arr) {
   return (con_type*)array_get_back_ref((Array)arr);
 }
 
-static inline void _prefix(_read_back)
-(_arr_type arr, con_type* out_element) {
-  array_read_back((Array)arr, out_element);
+// \brief Writes a copy of the last element in the array into the memory
+//    pointed to by out_element. No change is made if array is empty.
+//
+// \returns True if an element was written, false otherwise.
+static inline bool _prefix(_read_back)
+(const _arr_type arr, con_type* out_element) {
+  return array_read_back((Array)arr, out_element);
 }
 
 #undef _arr_type

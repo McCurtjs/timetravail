@@ -38,10 +38,8 @@ typedef struct ReplayNode {
 } ReplayNode;
 
 #define con_type ReplayNode
-#define con_prefix rpn
 #include "array.h"
 #undef con_type
-#undef con_prefix
 
 typedef struct TransformIndex {
   uint shader;

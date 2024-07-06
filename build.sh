@@ -114,7 +114,7 @@ if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
     -I src -I src/eng -I tst \
   "
 
-  flags_debug_opt="-g -O0"
+  flags_debug_opt="-g -Oz"
   if [ "$build_type" = "Release" ]; then
     flags_debug_opt="-Oz -flto"
   fi

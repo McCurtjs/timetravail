@@ -62,7 +62,7 @@ void game_cleanup(Game* game) {
     }
   }
 
-  arr_pref_delete(&game->timeguys);
+  arr_PlayerRef_delete(&game->timeguys);
   arr_ety_delete(&game->entities);
   game->colliders = NULL;
   game->collider_count = 0;

@@ -43,8 +43,8 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
   // Initialize the replay data storage on first update
   if (e->replay == NULL) {
-    e->replay = arr_rpn_new_reserve(200);
-    arr_rpn_push_back(e->replay, (ReplayNode) {
+    e->replay = arr_ReplayNode_new_reserve(200);
+    arr_ReplayNode_push_back(e->replay, (ReplayNode) {
       .frame = game_frame,
       .frame_until = game_frame,
       .buttons = 0,
@@ -55,8 +55,8 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
-    arr_pref_get_back_ref(game->timeguys)->end_frame = game_frame;
-    arr_pref_push_back(game->timeguys, (PlayerRef) {
+    arr_PlayerRef_get_back_ref(game->timeguys)->end_frame = game_frame;
+    arr_PlayerRef_push_back(game->timeguys, (PlayerRef) {
       .start_frame = game_frame,
       .e = e,
     });
@@ -76,7 +76,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
   // Handle input event recording
   if (!e->playback) {
-    ReplayNode* prev_node = arr_rpn_get_back_ref(e->replay);
+    ReplayNode* prev_node = arr_ReplayNode_get_back_ref(e->replay);
     bool hit_max_node_time = game_frame - prev_node->frame >= max_replay_temp;
 
     if (hit_max_node_time
@@ -92,7 +92,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
       if (game_frame != prev_node->frame) {
         prev_node->frame_until = game_frame;
 
-        arr_rpn_push_back(e->replay, (ReplayNode) {
+        arr_ReplayNode_push_back(e->replay, (ReplayNode) {
           .frame = game_frame,
           .frame_until = game_frame,
           .buttons = inputs,
@@ -141,7 +141,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
   // Handle replay playback
   } else if (e->replay->size) {
     if (e->replay_temp == NULL) {
-      e->replay_temp = arr_rpn_new_reserve(max_replay_temp);
+      e->replay_temp = arr_ReplayNode_new_reserve(max_replay_temp);
     }
 
     uint index;
@@ -175,10 +175,10 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // If it's not in the temp buffer, we need to simulate a new range
     if (temp == NULL || temp->frame != node.frame) {
-      arr_rpn_clear(e->replay_temp);
+      arr_ReplayNode_clear(e->replay_temp);
 
       loop {
-        arr_rpn_push_back(e->replay_temp, node);
+        arr_ReplayNode_push_back(e->replay_temp, node);
 
         // go one past the end so we can be sure the temp buffer also contains
         // the next frame (pre-inc is exact, post-inc overlaps the next block)
@@ -200,7 +200,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
       next = e->replay_temp->arr[game_frame - block_start + 1];
     } else {
       // if the frame isn't in the buffer, this entity ran out of time :(
-      arr_rpn_read_back(e->replay, &next);
+      arr_ReplayNode_read_back(e->replay, &next);
       next = node;
     }
 
@@ -209,7 +209,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     node.data.pos = v2lerp(node.data.pos, next.data.pos, frame_t);
 
     // At this point, "node" should be set to the correct current frame
-    temp = arr_rpn_get_back_ref(e->replay);
+    temp = arr_ReplayNode_get_back_ref(e->replay);
     if (game_frame != node.frame && game_frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
       print_ptr(e); print_int(node.frame); print_int(game_frame);
