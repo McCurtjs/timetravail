@@ -96,11 +96,11 @@ void array_delete(Array* a_in) {
   *a_in = NULL;
 }
 
-uint array_insert(Array a_in, uint position, const void* element) {
+uint array_write(Array a_in, uint position, const void* element) {
   DARRAY_INTERNAL;
   if (!a) return 0;
   if (position >= a->size) {
-    return array_push_back(a_in, element);
+    return array_write_back(a_in, element);
   }
   if (a->size >= a->capacity) {
     array_reserve(a_in, GROWTH_FACTOR);
@@ -112,7 +112,7 @@ uint array_insert(Array a_in, uint position, const void* element) {
   return ++a->size;
 }
 
-uint array_push_back(Array a_in, const void* element) {
+uint array_write_back(Array a_in, const void* element) {
   DARRAY_INTERNAL;
   if (!a) return 0;
   if (a->size >= a->capacity) {
@@ -130,7 +130,7 @@ uint array_pop_back(Array a_in) {
   return --a->size;
 }
 
-void* array_get(Array a_in, uint index) {
+void* array_get_ref(Array a_in, uint index) {
   DARRAY_INTERNAL;
   if (!a || index >= a->size) return NULL;
   return a->data + index * a->element_size;
@@ -142,7 +142,7 @@ void array_read(const Array a_in, uint index, void* element) {
   memcpy(element, a->data + index * a->element_size, a->element_size);
 }
 
-void* array_get_front(Array a_in) {
+void* array_get_front_ref(Array a_in) {
   DARRAY_INTERNAL;
   if (!a || a->size == 0) return NULL;
   return a->data;
@@ -154,7 +154,7 @@ void array_read_front(const Array a_in, void* element) {
   memcpy(element, a->data, a->element_size);
 }
 
-void* array_get_back(Array a_in) {
+void* array_get_back_ref(Array a_in) {
   DARRAY_INTERNAL;
   if (!a || a->size == 0) return NULL;
   return a->data + (a->size - 1) * a->element_size;

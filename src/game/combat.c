@@ -19,9 +19,7 @@ bool handle_player_combat(
   vec2 hurtbox = v2f(fd->pos.x, fd->pos.y + 1.5f);
   float h_radius = 1.5;
 
-  for (uint i = 0; i < game->entities->size; ++i) {
-    //draw_color(c4gray.rgb);
-    Entity* entity = array_get(game->entities, i);
+  Entity* array_foreach(entity, game->entities) {
 
     if (entity->type != ENTITY_PLAYER) continue;
     if (anim_is_warp(entity->fd.animation)) continue;

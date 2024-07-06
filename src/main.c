@@ -92,16 +92,6 @@ void export(wasm_preload) (uint w, uint h) {
   model_build(&game.models.color_cube);
 
   shader_program_build_basic(&game.shaders.basic);
-
-  Array array = array_new(uint);
-  print("Array tests");
-  print_int(array->element_size);
-  print_int(array->size);
-  array_push_back(array, &(uint){5});
-  print_int(array->size);
-  uint i = *(uint*)array_get(array, 0);
-  print_int(i);
-  array_delete(&array);
 }
 
 static void cheesy_loading_animation(float dt) {

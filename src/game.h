@@ -39,6 +39,7 @@ typedef struct Game_Textures {
 #define game_button_input_count (game_key_count + game_mouse_button_count)
 
 // TODO: should have a generic buttons poller separate from the keymapping
+// TODO: both should use a hashmap instead of these hardcoded values
 typedef struct Game_Buttons {
   union {
     int buttons[game_button_input_count];
@@ -93,6 +94,12 @@ typedef struct PlayerRef {
   uint end_frame;
 } PlayerRef;
 
+#define con_type PlayerRef
+#define con_prefix pref
+#include "array.h"
+#undef con_type
+#undef con_prefix
+
 typedef struct Line {
   vec2 a, b;
 
@@ -118,15 +125,24 @@ typedef struct Game {
   Game_Textures textures;
 
   // Array levels; // list of levels with hot-swapping?
-  Array entities;
+  Array_Entity entities;
 
   // Game specific shenanigans
   // Probably move all of these to a level class?
+  //    Stage class? GameAttributes? User-definable via include macro?
+  //    Include game.h through a my_game.h header that sets the macro?
+  /*
+  // like this? Expect "MyGameData" to be defined before include, and
+  // just include that instead?
+  MyGameData instance = {0}; // stage? level? env? play?
+  */
+
+  Array_PlayerRef timeguys;
+
   float frame;
   bool reverse_playback;
   bool reverse_triggered;
   float reverse_speed;
-  Array timeguys;
   uint level;
 
   Line* colliders;

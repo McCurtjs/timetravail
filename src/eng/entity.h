@@ -113,4 +113,11 @@ typedef struct Entity {
 
 } Entity;
 
+
+#define con_type Entity
+#define con_prefix ety
+#include "array.h"
+#undef con_type
+#undef con_prefix
+
 #endif

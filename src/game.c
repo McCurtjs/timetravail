@@ -5,21 +5,20 @@
 #include "wasm.h"
 
 void game_init(Game* game) {
-  game->entities = array_new(Entity);
+  game->entities = arr_ety_new();
   game->frame = 0;
 }
 
 void game_add_entity(Game* game, const Entity* entity) {
-  array_push_back(game->entities, entity);
+  arr_ety_write_back(game->entities, entity);
 }
 
 Entity* game_get_active_player(Game* game) {
-  PlayerRef active = { NULL, 0, 0 }, temp;
-  for (uint index = 0; index < game->timeguys->size; ++index) {
-    array_read(game->timeguys, index, &temp);
+  PlayerRef active = { NULL, 0, 0 };
 
-    if (index == 0 || temp.start_frame <= game->frame) {
-      active = temp;
+  PlayerRef* array_foreach_index(temp, i, game->timeguys) {
+    if (i == 0 || temp->start_frame <= game->frame) {
+      active = *temp;
     }
   }
 
@@ -27,9 +26,8 @@ Entity* game_get_active_player(Game* game) {
 }
 
 void game_update(Game* game, float dt) {
-  for (uint i = 0 ; i < game->entities->size; ++i) {
-    Entity* entity = array_get(game->entities, i);
 
+  Entity* array_foreach(entity, game->entities) {
     if (entity->behavior) {
       entity->behavior(entity, game, dt);
     }
@@ -47,9 +45,7 @@ void game_update(Game* game, float dt) {
 void game_render(Game* game) {
   game->camera.projview = camera_projection_view(&game->camera);
 
-  for (uint i = 0; i < game->entities->size; ++i) {
-    Entity* entity = array_get(game->entities, i);
-
+  Entity* array_foreach(entity, game->entities) {
     if (entity->render && !entity->hidden) {
       entity->render(entity, game);
     }
@@ -60,16 +56,14 @@ void game_render(Game* game) {
 }
 
 void game_cleanup(Game* game) {
-  for (uint i = 0; i < game->entities->size; ++i) {
-    Entity* e = array_get(game->entities, i);
-
-    if (e->delete) {
-      e->delete(e);
+  Entity* array_foreach(entity, game->entities) {
+    if (entity->delete) {
+      entity->delete(entity);
     }
   }
 
-  array_delete(&game->timeguys);
-  array_delete(&game->entities);
+  arr_pref_delete(&game->timeguys);
+  arr_ety_delete(&game->entities);
   game->colliders = NULL;
   game->collider_count = 0;
 }

@@ -254,32 +254,12 @@ typedef struct {
 
 #define _str_format(str, ...) istr_format(str, _va_exp(_s2r, __VA_ARGS__), str_va_end)
 #define str_format(str, ...) _str_format(_s2r(str), __VA_ARGS__)
+
+
+TODO: Remove string builder, write string format using variadic function
+    (see if variadic actually compiles to one funciton in build?)
+
+
 //*/
-
-////////////////////////////////////////////////////////////////////////////////
-
-typedef struct {
-  union {
-    size_t CV length;
-    size_t CV size;
-  };
-}* StringBuilder;
-
-StringBuilder stb_new();
-StringBuilder stb_str(StringBuilder stb, String s); // these will be deleted
-StringBuilder stb_range(StringBuilder stb, StringRange r);
-StringBuilder stb_c_str(StringBuilder stb, const char* c_str);
-StringBuilder stb_pad(StringBuilder stb, size_t length, char c);
-StringBuilder stb_pad_range(StringBuilder stb, size_t length, StringRange r);
-
-/*
-void stb_arg_str(StringBuilder stb, const String s);
-void stb_arg_c_str(StringBuilder stb, const char* c);
-void stb_arg_range(StringBuilder stb, StringRange r);
-void stb_arg_int(StringBuilder stb, int i);
-void stb_arg_float(StringBuilder stb, float f);
-*/
-
-String stb_resolve(StringBuilder* stb);
 
 #endif

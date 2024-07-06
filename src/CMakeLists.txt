@@ -18,8 +18,8 @@ if (WIN32)
 endif()
 
 if (MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201)
-  target_compile_options(${PROJECT_NAME}_impl PRIVATE /W4 /WX /wd4201)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201 /std:clatest)
+  target_compile_options(${PROJECT_NAME}_impl PRIVATE /W4 /WX /wd4201 /std:clatest)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
   target_compile_options(${PROJECT_NAME}_impl PRIVATE

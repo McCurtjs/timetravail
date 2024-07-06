@@ -55,8 +55,8 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
-    ((PlayerRef*)array_get_back(game->timeguys))->end_frame = game_frame;
-    array_push_back(game->timeguys, &(PlayerRef) {
+    arr_pref_get_back_ref(game->timeguys)->end_frame = game_frame;
+    arr_pref_push_back(game->timeguys, (PlayerRef) {
       .start_frame = game_frame,
       .e = e,
     });
@@ -220,7 +220,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // And change the warp animations for the "ghosts"
     if (anim_is_warp(e->fd.animation)) {
-      if (e != array_get_back(game->entities)) {
+      if (e != arr_ety_get_back_ref(game->entities)) {
         e->fd.animation += 1;
       }
     }

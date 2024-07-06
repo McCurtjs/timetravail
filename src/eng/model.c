@@ -247,7 +247,7 @@ static void model_render_sprites(Model_Sprites* sprites) {
   glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
 
   uint size_bytes = sprites->verts->size_bytes;
-  void* data_start = array_get_front(sprites->verts);
+  void* data_start = array_get_front_ref(sprites->verts);
   glBufferData(GL_ARRAY_BUFFER, size_bytes, data_start, GL_DYNAMIC_DRAW);
 
   glEnable(GL_BLEND);
@@ -309,12 +309,12 @@ void model_sprites_draw(
     .tint = b4white.rgb,
   };
 
-  array_push_back(spr->verts, &TR);
-  array_push_back(spr->verts, &TL);
-  array_push_back(spr->verts, &BL);
-  array_push_back(spr->verts, &TR);
-  array_push_back(spr->verts, &BL);
-  array_push_back(spr->verts, &BR);
+  array_write_back(spr->verts, &TR);
+  array_write_back(spr->verts, &TL);
+  array_write_back(spr->verts, &BL);
+  array_write_back(spr->verts, &TR);
+  array_write_back(spr->verts, &BL);
+  array_write_back(spr->verts, &BR);
 }
 
 // Model OBJ
@@ -345,7 +345,7 @@ static int model_build_obj(Model_Obj* obj) {
 
   glBindBuffer(GL_ARRAY_BUFFER, obj->vert_buffer);
   glBufferData(GL_ARRAY_BUFFER, obj->verts->size_bytes,
-               array_get_front(obj->verts), GL_STATIC_DRAW);
+               array_get_front_ref(obj->verts), GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, v3floats, GL_FLOAT, GL_FALSE,
                         sizeof(ObjVertex), &((ObjVertex*)0)->pos);
@@ -361,7 +361,7 @@ static int model_build_obj(Model_Obj* obj) {
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->indices->size_bytes,
-               array_get_front(obj->indices), GL_STATIC_DRAW);
+               array_get_front_ref(obj->indices), GL_STATIC_DRAW);
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -419,7 +419,7 @@ void model_load_obj(Model* model, File* file) {
         vert.color = c4white.rgb;
       }
 
-      array_push_back(verts, &vert);
+      array_write_back(verts, &vert);
 
     // Read a vertex normal
     } else if (!strcmp(next, "vn")) {
@@ -429,7 +429,7 @@ void model_load_obj(Model* model, File* file) {
       norm.y = stof(strtok(NULL, " "));
       norm.z = stof(strtok(NULL, "\n"));
 
-      array_push_back(norms, &norm);
+      array_write_back(norms, &norm);
 
       next = strtok(NULL, " ");
 
@@ -440,7 +440,7 @@ void model_load_obj(Model* model, File* file) {
       uv.u = stof(strtok(NULL, " "));
       uv.v = stof(strtok(NULL, "\n"));
 
-      array_push_back(uvs, &uv);
+      array_write_back(uvs, &uv);
 
       next = strtok(NULL, " ");
 
@@ -451,17 +451,17 @@ void model_load_obj(Model* model, File* file) {
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, " "));
-      array_push_back(faces, &elem);
+      array_write_back(faces, &elem);
 
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, " "));
-      array_push_back(faces, &elem);
+      array_write_back(faces, &elem);
 
       elem.vert = atoi(strtok(NULL, "/"));
       elem.uv = atoi(strtok(NULL, "/"));
       elem.norm = atoi(strtok(NULL, "\n"));
-      array_push_back(faces, &elem);
+      array_write_back(faces, &elem);
 
       next = strtok(NULL, " ");
 
@@ -476,20 +476,20 @@ void model_load_obj(Model* model, File* file) {
 
   for (uint i = 0; i < faces->size; ++i) {
     // -1's to account for obj's 1-indexing
-    ObjFaceElem* f = array_get(faces, i);
-    ObjVertexPart* partial = array_get(verts, f->vert-1);
+    ObjFaceElem* f = array_get_ref(faces, i);
+    ObjVertexPart* partial = array_get_ref(verts, f->vert-1);
 
-    array_push_back(model->obj.verts, &(ObjVertex) {
+    array_write_back(model->obj.verts, &(ObjVertex) {
       .pos = partial->pos,
       .color = partial->color,
-      .norm = *((vec3*)array_get(norms, f->norm-1)),
-      .uv = *((vec2*)array_get(uvs, f->uv-1)),
+      .norm = *((vec3*)array_get_ref(norms, f->norm-1)),
+      .uv = *((vec2*)array_get_ref(uvs, f->uv-1)),
     });
 
     // TODO: make this actually make sense, lol. This should put the faces
     // in an actually indexed setup, but right now it's basically just a regular
     // array instead, which defeats the purpose
-    array_push_back(model->obj.indices, &i);
+    array_write_back(model->obj.indices, &i);
   }
 
   array_delete(&faces);

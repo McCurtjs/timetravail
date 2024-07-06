@@ -89,7 +89,7 @@ esac
 # Run build based on target type
 if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
 
-  flags_common="-Oz -flto \
+  flags_common="
     -Wall -Wextra -Wno-missing-braces \
     -I src -I src/eng \
   "
@@ -113,6 +113,11 @@ if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
     -Dcalloc=cspec_calloc -Dfree=cspec_free \
     -I src -I src/eng -I tst \
   "
+
+  flags_debug_opt="-g -O0"
+  if [ "$build_type" = "Release" ]; then
+    flags_debug_opt="-Oz -flto"
+  fi
 
   if [ "$build_target" = "wasm" ]; then
 
@@ -148,7 +153,8 @@ if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
 
       mkdir -p build/wasm
 
-      clang $flags_wasm -o build/wasm/test.wasm $flags_common $sources
+      clang $flags_wasm -o build/wasm/test.wasm \
+        $flags_common $flags_debug_opt $sources
 
       cp build/wasm/test.wasm web/test.wasm
 
@@ -157,7 +163,7 @@ if [ "$build_target" = "wasm" ] || [ "$build_target" = "clang" ]; then
       mkdir -p build/wasm/test
 
       clang $flags_wasm -o build/wasm/test/test.wasm \
-        $flags_common $flags_test $sources_test
+        $flags_common $flags_test $flags_debug_opt $sources_test
 
       cp build/wasm/test/test.wasm web/test.wasm
 

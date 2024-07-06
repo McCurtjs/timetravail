@@ -9,7 +9,13 @@
 #include "draw.h"
 #include "mat.h"
 
-static Array editor_colliders = NULL;
+#define con_type Line
+#define con_prefix line
+#include "array.h"
+#undef con_type
+#undef con_prefix
+
+static Array_Line editor_colliders = NULL;
 static vec2 player_start = svNzero;
 
 void behavior_editor(Entity* e, Game* game, float dt) {
@@ -67,18 +73,18 @@ void behavior_editor(Entity* e, Game* game, float dt) {
     bool wall = game->input.pressed.right;
     bool bouncy = game->input.pressed.forward;
 
-    array_push_back(editor_colliders, &(Line) {
+    arr_line_push_back(editor_colliders, (Line) {
       .a = start_point, .b = end_point,
       .bouncy = bouncy, .wall = wall, .droppable = droppable
     });
 
     // update count and reset collider data pointer in case it resized
-    game->colliders = array_get_front(editor_colliders);
+    game->colliders = editor_colliders->first;
     game->collider_count = editor_colliders->size;
   }
 
   if (game->input.triggered.run_replay && editor_colliders->size) {
-    array_pop_back(editor_colliders);
+    arr_line_pop_back(editor_colliders);
     game->collider_count = editor_colliders->size;
   }
 }
@@ -89,10 +95,10 @@ void level_load_editor(Game* game) {
   game->camera.front = v4front;
 
   if (!editor_colliders) {
-    editor_colliders = array_new(Line);
+    editor_colliders = arr_line_new();
   }
 
-  game->colliders = array_get_front(editor_colliders);
+  game->colliders = editor_colliders->first;
   game->collider_count = editor_colliders->size;
 
   // Debug Renderer
@@ -125,7 +131,7 @@ void level_load_editor_test(Game* game) {
   game->camera.pos = v4f(0, 0, 60, 1);
   game->camera.front = v4front;
 
-  game->colliders = array_get_front(editor_colliders);
+  game->colliders = editor_colliders->first;
   game->collider_count = editor_colliders->size;
 
   // Debug Renderer
@@ -169,10 +175,10 @@ void level_load_editor_test(Game* game) {
     .delete = delete_player,
   });
 
-  game->timeguys = array_new(PlayerRef);
-  array_push_back(game->timeguys, &(PlayerRef){
+  game->timeguys = arr_pref_new();
+  arr_pref_push_back(game->timeguys, (PlayerRef){
     .start_frame = 0,
-    .e = array_get_back(game->entities)
+    .e = arr_ety_get_back_ref(game->entities)
   });
 
 }

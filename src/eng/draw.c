@@ -2,7 +2,16 @@
 
 #include "gl.h"
 
+typedef struct Vert {
+  vec3    pos;
+  color4  color;
+} Vert;
+
+#define con_type Vert
+#define con_prefix vert
 #include "array.h"
+#undef con_type
+#undef con_prefix
 
 DebugDrawState draw = {
   .color = sc4black, 
@@ -12,28 +21,28 @@ DebugDrawState draw = {
   .scale = 0.1f
 };
 
-typedef struct Vert {
-  vec3    pos;
-  color4  color;
-} Vert;
+#define con_type DebugDrawState
+#define con_prefix dstate
+#include "array.h"
+#undef con_type
+#undef con_prefix
 
 
-static Array geometry = NULL;
+static Array_Vert geometry = NULL;
+static Array_DebugDrawState draw_state_stack = NULL;
 static uint gl_vao = 0;
 static uint gl_buffer = 0;
-
-static Array draw_state_stack = NULL;
 
 static void draw_init() {
   if (geometry) return;
   draw_default_state();
-  geometry = array_new_reserve(Vert, 128);
+  geometry = arr_vert_new_reserve(128);
 }
 
 static void draw_add_point(vec3 pos, color4 col) {
   draw_init();
 
-  array_push_back(geometry, &(Vert){pos, col});
+  arr_vert_push_back(geometry, (Vert){pos, col});
 }
 
 static void draw_init_gl() {
@@ -55,15 +64,15 @@ static void draw_init_gl() {
 
 void draw_push() {
   if (!draw_state_stack) {
-    draw_state_stack = array_new(DebugDrawState);
+    draw_state_stack = arr_dstate_new();
   }
-  array_push_back(draw_state_stack, &draw);
+  arr_dstate_push_back(draw_state_stack, draw);
 }
 
 void draw_pop() {
   if (!draw_state_stack || draw_state_stack->size == 0) return;
-  array_read_back(draw_state_stack, &draw);
-  array_pop_back(draw_state_stack);
+  draw = arr_dstate_get_back(draw_state_stack);
+  arr_dstate_pop_back(draw_state_stack);
 }
 
 void draw_default_state() {
@@ -151,7 +160,7 @@ void draw_render() {
 
   uint size_bytes = geometry->size_bytes;
   uint size_lines = geometry->size;
-  Vert* draw_buffer = array_get_front(geometry);
+  Vert* draw_buffer = geometry->buf;
 
   glBindVertexArray(gl_vao);
   glBindBuffer(GL_ARRAY_BUFFER, gl_buffer);
@@ -163,11 +172,11 @@ void draw_render() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   draw_default_state();
-  array_clear(geometry);
+  arr_vert_clear(geometry);
 }
 
 void draw_cleanup() {
-  array_delete(&geometry);
+  arr_vert_delete(&geometry);
   glDeleteBuffers(1, &gl_buffer);
   glDeleteVertexArrays(1, &gl_vao);
   gl_buffer = 0; gl_vao = 0;

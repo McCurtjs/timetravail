@@ -92,9 +92,9 @@ void level_load_level_1(Game* game) {
     .delete = delete_player,
   });
 
-  game->timeguys = array_new(PlayerRef);
-  array_push_back(game->timeguys, &(PlayerRef){
+  game->timeguys = arr_pref_new();
+  arr_pref_push_back(game->timeguys, (PlayerRef){
     .start_frame = 0,
-    .e = array_get_back(game->entities)
+    .e = arr_ety_get_back_ref(game->entities)
   });
 }
