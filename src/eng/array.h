@@ -29,12 +29,14 @@ uint  array_write(Array array, uint position, const void* in_element);
 uint  array_write_back(Array array, const void* in_element);
 void* array_emplace(Array array, uint position);
 void* array_emplace_back(Array array);
+uint  array_remove(Array array, uint position);
+uint  array_remove_unstable(Array array, uint position);
 uint  array_pop_back(Array array);
 void* array_get_ref(Array array, uint index);
-bool  array_read(const Array array, uint index, void* out_element);
 void* array_get_front_ref(Array array);
-bool  array_read_front(const Array array, void* out_element);
 void* array_get_back_ref(Array array);
+bool  array_read(const Array array, uint index, void* out_element);
+bool  array_read_front(const Array array, void* out_element);
 bool  array_read_back(const Array array, void* out_element);
 
 // \brief A macro shorthand to write foreach loops with any dynamic Array or
@@ -177,6 +179,16 @@ static inline uint _prefix(_insert)
   return array_write((Array)arr, position, &element);
 }
 
+// \brief Inserts a copy of the given element into the back of the array
+//
+// \param element - the element to insert into the array
+//
+// \returns The size of the array after adding the element.
+static inline uint _prefix(_push_back)
+(_arr_type arr, con_type element) {
+  return array_write_back((Array)arr, &element);
+}
+
 // \brief Inserts a copy of the element referenced by the given pointer into the
 //    array at the given position.
 //
@@ -190,16 +202,6 @@ static inline uint _prefix(_write)
   return array_write((Array)arr, position, element);
 }
 
-// \brief Inserts a copy of the given element into the back of the array
-//
-// \param element - the element to insert into the array
-//
-// \returns The size of the array after adding the element.
-static inline uint _prefix(_push_back)
-(_arr_type arr, con_type element) {
-  return array_write_back((Array)arr, &element);
-}
-
 // \brief Inserts a copy of the element referenced by the given pointer into the
 //    back of the array.
 //
@@ -210,6 +212,61 @@ static inline uint _prefix(_write_back)
 (_arr_type arr, const con_type* element) {
   return array_write_back((Array)arr, element);
 }
+
+// \brief Inserts space for an element in the array and returns a pointer to it
+//    without performing any initialization or copying into the given position.
+//
+// \param position - the index at which the new element will be accessed
+//
+// \returns A pointer to the newly added and uninitialized element.
+static inline con_type* _prefix(_emplace)
+(_arr_type arr, uint position) {
+  return array_emplace((Array)arr, position);
+}
+
+// \brief Inserts space for an element at the back of the array and returns a
+//    pointer to it without performing any initialization.
+//
+// \param position - the index at which the new element will be accessed
+//
+// \returns A pointer to the newly added and uninitialized element.
+static inline con_type* _prefix(_emplace_back)
+(_arr_type arr) {
+  return array_emplace_back((Array)arr);
+}
+
+// \brief Removes the given element in the array, shifting the remaining items
+//    to fill the space
+//
+// \param position - The index to remove
+//
+// \returns The size of the array after removing the element
+static inline uint _prefix(_remove)
+(_arr_type arr, uint position) {
+  return array_remove((Array)arr, position);
+}
+
+// \brief Removes the given element in the array, replacing its location in
+//    memory with the last element of the array in order to avoid copying the
+//    rest of the array elements.
+//
+// \brief In other words, O(1) removal time, but doesn't maintain element order.
+//
+// \param position - the index to remove and swap with the last element
+//
+// \returns The size of the array after removing the element.
+static inline uint _prefix(_remove_unstable)
+(_arr_type arr, uint position) {
+  return array_remove_unstable((Array)arr, position);
+}
+
+// TODO:
+/*
+static inline uint _prefix(_remove_range)
+(_arr_type arr, uint position, uint count) {
+  return array_remove_range((Array)arr, position, count);
+}
+//*/
 
 // \brief Removes the last element from the array.
 //
@@ -235,6 +292,26 @@ static inline con_type _prefix(_get)
   return *element;
 }
 
+// \brief Gets a copy of the first element of the array.
+// \brief Will assert if called on an empty array.
+//
+// \returns A copy of the first element.
+static inline con_type _prefix(_get_front)
+(const _arr_type arr) {
+  assert(arr->size > 0);
+  return *(con_type*)array_get_front_ref((Array)arr);
+}
+
+// \brief Returns a copy of the last element in the array.
+// \brief Will assert if the array is empty.
+//
+// \returns A copy of the last element.
+static inline con_type _prefix(_get_back)
+(const _arr_type arr) {
+  assert(arr->size > 0);
+  return *(con_type*)array_get_back_ref((Array)arr);
+}
+
 // \brief Returns a reference to the element at the given position, or NULL if
 //    the index is not valid. Note: an index that is within the capacity of the
 //    array but outside the size will still return NULL.
@@ -245,6 +322,18 @@ static inline con_type _prefix(_get)
 static inline con_type* _prefix(_get_ref)
 (_arr_type arr, uint index) {
   return (con_type*)array_get_ref((Array)arr, index);
+}
+
+// \returns A pointer to the first element in the array, or NULL if empty.
+static inline con_type* _prefix(_get_front_ref)
+(_arr_type arr) {
+  return (con_type*)array_get_front_ref((Array)arr);
+}
+
+// \returns A pointer to the last element in the array, or NULL if empty.
+static inline con_type* _prefix(_get_back_ref)
+(_arr_type arr) {
+  return (con_type*)array_get_back_ref((Array)arr);
 }
 
 // \brief Copies the value at the given index into the referenced output object.
@@ -260,22 +349,6 @@ static inline bool _prefix(_read)
   return array_read((Array)arr, index, out_element);
 }
 
-// \brief Gets a copy of the first element of the array.
-// \brief Will assert if called on an empty array.
-//
-// \returns A copy of the first element.
-static inline con_type _prefix(_get_front)
-(const _arr_type arr) {
-  assert(arr->size > 0);
-  return *(con_type*)array_get_front_ref((Array)arr);
-}
-
-// \returns A pointer to the first element in the array, or NULL if empty.
-static inline con_type* _prefix(_get_front_ref)
-(_arr_type arr) {
-  return (con_type*)array_get_front_ref((Array)arr);
-}
-
 // \brief Writes a copy of the first element in the array into the memory
 //    pointed to by out_element. No change is made if array is empty.
 //
@@ -285,28 +358,13 @@ static inline bool _prefix(_read_front)
   return array_read_front((Array)arr, out_element);
 }
 
-// \brief Returns a copy of the last element in the array.
-// \brief Will assert if the array is empty.
-//
-// \returns A copy of the last element.
-static inline con_type _prefix(_get_back)
-(const _arr_type arr) {
-  assert(arr->size > 0);
-  return *(con_type*)array_get_back_ref((Array)arr);
-}
-
-// \returns A pointer to the last element in the array, or NULL if empty.
-static inline con_type* _prefix(_get_back_ref)
-(_arr_type arr) {
-  return (con_type*)array_get_back_ref((Array)arr);
-}
-
 // \brief Writes a copy of the last element in the array into the memory
 //    pointed to by out_element. No change is made if array is empty.
 //
 // \returns True if an element was written, false otherwise.
 static inline bool _prefix(_read_back)
 (const _arr_type arr, con_type* out_element) {
+  assert(arr->size > 0);
   return array_read_back((Array)arr, out_element);
 }
 
