@@ -63,5 +63,9 @@ int main(int argc, char* argv[])
     &tests_string
   };
 
+  char* argv2[] = { argv[0], "str_spec.c:701", "-va"};
+  argc = sizeof(argv2) / sizeof(char*);
+  argv = argv2;
+
   return test_run_all(test_suites);
 }

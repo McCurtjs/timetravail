@@ -96,6 +96,14 @@ void array_delete(Array* a_in) {
   *a_in = NULL;
 }
 
+void* array_release(Array* a_in) {
+  if (!a_in || !*a_in) return NULL;
+  void* ret = (*a_in)->arr;
+  free(*a_in);
+  *a_in = NULL;
+  return ret;
+}
+
 uint array_write(Array a_in, uint position, const void* element) {
   DARRAY_INTERNAL;
   void* data = array_emplace(a_in, position);
@@ -109,7 +117,6 @@ uint array_write_back(Array a_in, const void* element) {
   void* data = array_emplace_back(a_in);
   if (!data) return 0;
   memcpy(data, element, a->element_size);
-  a->size_bytes += a->element_size;
   return a->size;
 }
 
@@ -135,7 +142,20 @@ void* array_emplace_back(Array a_in) {
   if (a->size >= a->capacity) {
     array_reserve(a_in, GROWTH_FACTOR);
   }
+  a->size_bytes += a->element_size;
   return a->data + a->size++ * a->element_size;
+}
+
+void* array_emplace_back_range(Array a_in, uint count) {
+  DARRAY_INTERNAL;
+  if (!a || count == 0) return NULL;
+  if (a->size * count >= a->capacity) {
+    array_reserve(a_in, a->size + count);
+  }
+  void* ret = a->data + a->size * a->element_size;
+  a->size_bytes += a->element_size * count;
+  a->size += count;
+  return ret;
 }
 
 uint array_remove(Array a_in, uint position) {

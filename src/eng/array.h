@@ -25,10 +25,12 @@ void  array_truncate(Array array, uint capacity);
 void  array_clear(Array array);
 void  array_free(Array array);
 void  array_delete(Array* array);
+void* array_release(Array* array);
 uint  array_write(Array array, uint position, const void* in_element);
 uint  array_write_back(Array array, const void* in_element);
 void* array_emplace(Array array, uint position);
 void* array_emplace_back(Array array);
+void* array_emplace_back_range(Array array, uint count);
 uint  array_remove(Array array, uint position);
 uint  array_remove_unstable(Array array, uint position);
 uint  array_pop_back(Array array);
@@ -162,8 +164,16 @@ static inline void _prefix(_free)
 // \brief Deletes the array object and its contents from memory. Once deleted,
 //    the provided pointer reference will be nulled.
 static inline void _prefix(_delete)
-(_arr_type* parr) {
-  array_delete((Array*)parr);
+(_arr_type* p_arr) {
+  array_delete((Array*)p_arr);
+}
+
+// \brief Deletes the array object without erasing the data.
+//
+// \returns The array without freeing it.
+static inline con_type* _prefix(_release)
+(_arr_type* p_arr) {
+  return array_release((Array*)p_arr);
 }
 
 // \brief Inserts a copy of the given element into the given position in the
@@ -227,12 +237,20 @@ static inline con_type* _prefix(_emplace)
 // \brief Inserts space for an element at the back of the array and returns a
 //    pointer to it without performing any initialization.
 //
-// \param position - the index at which the new element will be accessed
-//
 // \returns A pointer to the newly added and uninitialized element.
 static inline con_type* _prefix(_emplace_back)
 (_arr_type arr) {
   return array_emplace_back((Array)arr);
+}
+
+// \brief Inserts space for a number of elements at the back of the array and
+//    returns a pointer to the first element allocated this way. No
+//    initialization is performed on any of the new elements.
+//
+// \returns A pointer to the first of the newly added uninitialized elements.
+static inline con_type* _prefix(_emplace_back_range)
+(_arr_type arr, uint count) {
+  return array_emplace_back_range((Array)arr, count);
 }
 
 // \brief Removes the given element in the array, shifting the remaining items

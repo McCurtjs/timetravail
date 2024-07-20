@@ -797,14 +797,27 @@ void* cspec_realloc(void* mem, size_t nsize) {
         return NULL;
       }
 
+      if (nsize == record->size) {
+        return mem;
+      }
+
       csByte* block_start = record->block + memory_size_fence;
-      cspec_memset(block_start + nsize, 'e', memory_size_fence);
-      cspec_memset(block_start + record->size, 'N', nsize - record->size);
+
+      // different behavior between expanding vs contracting memory space
+      if (nsize > record->size) {
+        cspec_memset(block_start + nsize, 'e', memory_size_fence);
+        cspec_memset(block_start + record->size, 'N', nsize - record->size);
+
+      // case for shrinking the space
+      } else {
+        cspec_memset(block_start + nsize, 'e', memory_size_fence);
+        cspec_memset(block_start + nsize + memory_size_fence, 'X', record->size - nsize);
+      }
 
       record->size = nsize;
       memory_ptr = block_start + record->size + memory_size_fence - memory;
 
-      return record->block + memory_size_fence;
+      return record->block + memory_size_fence; // mem
 
     } else {
       void* ret = cspec_malloc(nsize);

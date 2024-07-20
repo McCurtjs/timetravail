@@ -698,6 +698,22 @@ describe(str_concat) {
 
 }
 
+describe(str_format) {
+
+  String result = NULL;
+
+  it("does a basic replacement") {
+    //_Str_FmtArg fmt_arg = _sarg_c_str("Replacement Test");
+    //result = istr_format(R("{} After"), fmt_arg, _str_fmtarg_end);
+    result = str_format("-|{}|- Blah", "Replacement Second");
+    test_log_memory(result->begin);
+    expect(result to match("hi", str_eq));
+  }
+
+  if (result) str_delete(&result);
+
+}
+
 test_suite(tests_string) {
   test_group(str_range),
   test_group(str_new),
@@ -717,5 +733,6 @@ test_suite(tests_string) {
   test_group(str_split),
   test_group(str_join),
   test_group(str_concat),
+  test_group(str_format),
   test_suite_end
 };
