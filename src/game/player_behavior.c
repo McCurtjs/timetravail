@@ -36,10 +36,10 @@ void behavior_player(Entity* e, Game* game, float _dt) {
   // Convert inputs from source game booleans to bitmask
   uint inputs = get_input_mask(game);
 
-  uint game_frame = (uint)game->frame;
+  index_s game_frame = (index_s)game->frame;
 
   // Stuipd stuipd stupid
-  uint first_frame = FALSE;
+  index_s first_frame = FALSE;
 
   // Initialize the replay data storage on first update
   if (e->replay == NULL) {
@@ -123,7 +123,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     if (hit_max_node_time
     && anim_is_idle(prev_anim) && next_anim == prev_anim
     ) {
-      srand(game_frame);
+      srand((uint)game_frame);
       uint r = rand();
       if (r % 7 < 4) {
         e->fd.animation = ANIMATION_IDLE_2;
@@ -144,7 +144,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
       e->replay_temp = arr_ReplayNode_new_reserve(max_replay_temp);
     }
 
-    uint index;
+    index_s index;
     ReplayNode node = {0}, next;
 
     // First check if the current frame is before the first playback frame
@@ -165,7 +165,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
       }
     }
 
-    uint block_start = node.frame;
+    index_s block_start = node.frame;
 
     // If the current frame is within the bounds of the temp array, get it
     ReplayNode* temp = NULL;

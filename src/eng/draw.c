@@ -158,8 +158,8 @@ void draw_rect(vec3 pos, vec3 a, vec3 b) {
 void draw_render() {
   draw_init_gl();
 
-  uint size_bytes = geometry->size_bytes;
-  uint size_lines = geometry->size;
+  int size_bytes = (int)geometry->size_bytes;
+  int size_lines = (int)geometry->size;
   Vert* draw_buffer = geometry->buf;
 
   glBindVertexArray(gl_vao);

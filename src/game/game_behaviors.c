@@ -13,7 +13,7 @@ void behavior_draw_physics_colliders(Entity* e, Game* game, float dt) {
   float z = 0.01f;
 
   draw_push();
-  for (uint i = 0; i < game->collider_count; ++i) {
+  for (index_s i = 0; i < game->collider_count; ++i) {
     Line line = game->colliders[i];
 
     draw.color = v4f(0.5, 0.5, 1, 1);
@@ -39,8 +39,8 @@ void render_sprites(Entity* e, Game* g) {
   vec2 pos = mv4mul(e->transform, p4origin).xy;
   vec2 scale = mv4mul(e->transform, v4f(1, 1, 0, 0)).xy;
 
-  uint current_frame = (uint)g->frame - e->fd.start_frame;
-  uint frame_index = anim_frame(e->fd.animation, current_frame)->frame;
+  index_s current_frame = (uint)g->frame - e->fd.start_frame;
+  index_s frame_index = anim_frame(e->fd.animation, current_frame)->frame;
 
   model_sprites_draw(&e->model->sprites, pos, scale, frame_index, e->fd.facing);
 }

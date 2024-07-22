@@ -29,7 +29,7 @@ bool handle_player_collisions(
 
   // Handle all platform collisions (there might be a good case for doing non-
   // standable walls before platforms you can stand on/lock to)
-  for (uint i = 0; i < game->collider_count; ++i) {
+  for (index_s i = 0; i < game->collider_count; ++i) {
     Line* line = &game->colliders[i];
     vec2 p;
 

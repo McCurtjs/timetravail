@@ -15,6 +15,7 @@ csUint resolve_types (
 ) {
   StringRange type = str_range(*p_type);
   const StringRange* string_range = NULL;
+  index_s out_size_s = (index_s)out_size;
 
   if (str_eq(type, "StringRange*")) {
     string_range = *(const StringRange**)value;
@@ -27,15 +28,15 @@ csUint resolve_types (
   }
 
   if (string_range) {
-    csUint w = 0;
-    if (str_ends_with(type, "*") && w < out_size) out_buffer[w++] = '&';
+    index_s w = 0;
+    if (str_ends_with(type, "*") && w < out_size_s) out_buffer[w++] = '&';
     out_buffer[w++] = '"';
-    for (csUint i = 0; w < out_size - 1 && i < string_range->size; ++i) {
+    for (index_s i = 0; w < out_size_s - 1 && i < string_range->size; ++i) {
       out_buffer[w++] = string_range->begin[i];
     }
     out_buffer[w++] = '"';
 
-    return w;
+    return (csUint)w;
   }
 
   return 0;
@@ -63,9 +64,11 @@ int main(int argc, char* argv[])
     &tests_string
   };
 
-  char* argv2[] = { argv[0], "str_spec.c:701", "-va"};
+#ifdef _MSC_VER
+  char* argv2[] = { argv[0], "str_spec.c:835", "-va"};
   argc = sizeof(argv2) / sizeof(char*);
   argv = argv2;
+#endif
 
   return test_run_all(test_suites);
 }

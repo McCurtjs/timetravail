@@ -22,7 +22,7 @@ typedef struct PlayerFrameData {
   int airborne;
   int has_double;
   const Line* standing;
-  uint start_frame;
+  index_s start_frame;
   uint animation;
   bool warp_triggered;
   bool facing;
@@ -31,8 +31,8 @@ typedef struct PlayerFrameData {
 } PlayerFrameData;
 
 typedef struct ReplayNode {
-  uint frame;
-  uint frame_until;
+  index_s frame;
+  index_s frame_until;
   uint buttons;
   PlayerFrameData data;
 } ReplayNode;

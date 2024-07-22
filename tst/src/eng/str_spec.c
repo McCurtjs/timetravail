@@ -60,16 +60,16 @@ describe(str_range) {
 describe(str_new) {
   String subject = NULL;
 
-  char c_str[] = "This is a c-string";
+  char* c_str = "This is a c-string";
 
   it("makes a copy of the c_string using malloc") {
     subject = str_new(c_str);
-    expect(str_eq(subject, c_str));
+    expect(subject to match(c_str, str_eq));
   }
 
   it("makes a copy using the _s version") {
     subject = str_new_s(c_str, 4);
-    expect(str_eq(subject, "This"));
+    expect(subject to match("This", str_eq));
   }
 
   it("ensures the direct and range pointers are the same/shared in union") {
@@ -146,27 +146,27 @@ describe(str_from_int) {
 
   it("gets an int from 0") {
     subject = str_from_int(0);
-    expect(str_eq(subject->range, R("0")));
+    expect(subject to match("0", str_eq));
   }
 
   it("converts from a positive integer") {
     subject = str_from_int(7);
-    expect(str_eq(subject->range, R("7")));
+    expect(subject to match("7", str_eq));
   }
 
   it("converts from a negative integer") {
     subject = str_from_int(-4);
-    expect(str_eq(subject->range, R("-4")));
+    expect(subject to match("-4", str_eq));
   }
 
   it("tries a bigger number") {
     subject = str_from_int(1746);
-    expect(str_eq(subject->range, R("1746")));
+    expect(subject to match("1746", str_eq));
   }
 
   it("tries a bigger negative number") {
     subject = str_from_int(-84756);
-    expect(str_eq(subject->range, R("-84756")));
+    expect(subject to match("-84756", str_eq));
   }
 
   if (subject) {
@@ -369,6 +369,132 @@ describe(str_contains) {
 
 }
 
+describe(str_to_bool) {
+  bool out = false, *p_out = &out;
+
+  it("fails when no output parameter is given") {
+    p_out = NULL;
+    expect(str_to_bool to be_false given(str_true, p_out));
+  }
+
+  it("converts from exact strings") {
+    expect(str_to_bool to be_true given("true", p_out));
+    expect(out to be_true);
+
+    expect(str_to_bool to be_true given("false", p_out));
+    expect(out to be_false);
+
+    expect(str_to_bool to be_true given(str_true, p_out));
+    expect(out to be_true);
+
+    expect(str_to_bool to be_true given(str_false, p_out));
+    expect(out to be_false);
+  }
+
+  it("is case insensitive") {
+    expect(str_to_bool to be_true given("TRUE", p_out));
+    expect(out to be_true);
+
+    expect(str_to_bool to be_true given("FALSE", p_out));
+    expect(out to be_false);
+
+    expect(str_to_bool to be_true given("True", p_out));
+    expect(out to be_true);
+
+    expect(str_to_bool to be_true given("False", p_out));
+    expect(out to be_false);
+  }
+
+  it("fails to convert empty or too-short strings") {
+    expect(str_to_bool to be_false given(str_empty, p_out));
+    expect(str_to_bool to be_false given("tru", p_out));
+    expect(str_to_bool to be_false given("fals", p_out));
+  }
+
+  it("does not accept leading spaces") {
+    expect(str_to_bool to be_false given(" true", p_out));
+    expect(str_to_bool to be_false given(" false", p_out));
+  }
+
+  it("fails to convert strings with non-matching characters") {
+    expect(str_to_bool to be_false given("trub", p_out));
+    expect(str_to_bool to be_false given("falze", p_out));
+  }
+
+  it("allows additional characters after the matching portion") {
+    expect(str_to_bool to be_true given("true stuff", p_out));
+    expect(out to be_true);
+
+    expect(str_to_bool to be_true given("false statement", p_out));
+    expect(out to be_false);
+  }
+
+}
+
+describe(str_to_int) {
+  index_s out = 0, *p_out = &out;
+
+  it("fails when no output parameter is given") {
+    p_out = NULL;
+    expect(str_to_int to be_false given("123235", p_out));
+  }
+
+  it("fails when input is empty") {
+    expect(str_to_int to be_false given(str_empty, p_out));
+  }
+
+  it("converts unsinged numbers") {
+    expect(str_to_int to be_true given("0", p_out));
+    expect(out, == , 0);
+
+    expect(str_to_int to be_true given("10", p_out));
+    expect(out, == , 10);
+
+    expect(str_to_int to be_true given("123401234", p_out));
+    expect(out, == , 123401234);
+  }
+
+  it("converts signed numbers") {
+    expect(str_to_int to be_true given("+0", p_out));
+    expect(out, == , 0);
+
+    expect(str_to_int to be_true given("+10", p_out));
+    expect(out, == , 10);
+
+    expect(str_to_int to be_true given("+123401234", p_out));
+    expect(out, == , 123401234);
+
+    expect(str_to_int to be_true given("-1", p_out));
+    expect(out, == , -1);
+
+    expect(str_to_int to be_true given("-10", p_out));
+    expect(out, == , -10);
+
+    expect(str_to_int to be_true given("-7482934", p_out));
+    expect(out, == , -7482934);
+  }
+
+  it("allows trailing characters") {
+    expect(str_to_int to be_true given("0 items", p_out));
+    expect(out, == , 0);
+
+    expect(str_to_int to be_true given("10 monkeys", p_out));
+    expect(out, == , 10);
+
+    expect(str_to_int to be_true given("3985206 is a number", p_out));
+    expect(out, == , 3985206);
+  }
+
+  it("doesn't allow leading spaces") {
+    expect(str_to_int to be_false given(" 5", p_out));
+  }
+
+  it("fails with non-numeric input") {
+    expect(str_to_int to be_false given("a5", p_out));
+  }
+
+}
+
 describe(str_index_of) {
   StringRange range = R("This is a string");
   StringRange is = R("is");
@@ -394,7 +520,7 @@ describe(str_index_of) {
   }
 
   it("looping end-pos can be used to track through the string") {
-    size_t tracker = 0;
+    index_s tracker = 0;
 
     tracker = str_index_of(range, "i", tracker);
     StringRange result = str_substring(range, tracker);
@@ -455,7 +581,6 @@ describe(str_substring) {
     it("gets a partial substring from the beginning") {
       StringRange subject = str_substring(range, 0, 4);
       expect(subject to match("This", str_eq));
-      //expect(str_eq to not succeed_with(subject, "This"));
     }
 
     it("gets a substring starting partway in the string") {
@@ -666,7 +791,6 @@ describe(str_join) {
 }
 
 describe(str_concat) {
-
   String result = NULL;
 
   it("joins two strings together") {
@@ -699,17 +823,57 @@ describe(str_concat) {
 }
 
 describe(str_format) {
-
   String result = NULL;
 
-  it("does a basic replacement") {
-    //_Str_FmtArg fmt_arg = _sarg_c_str("Replacement Test");
-    //result = istr_format(R("{} After"), fmt_arg, _str_fmtarg_end);
-    result = str_format("-|{}|- Blah", "Replacement Second");
-    test_log_memory(result->begin);
-    expect(result to match("hi", str_eq));
+  it("returns a copy when no format specifiers are present") {
+    StringRange test = R("Passthrough");
+    result = str_format(test, "unused");
+    expect(result to match(test, str_eq));
+    expect(result->begin != test.begin);
   }
 
+  it("escapes an open brace") {
+    result = str_format("{{}", "unused");
+    test_log_memory(result->begin);
+    expect(result to match("{}", str_eq));
+  }
+
+  it("does a basic string replacement") {
+    result = str_format("{} Blah", "Replacement Second");
+    expect(result to match("Replacement Second Blah", str_eq));
+  }
+
+  it("treats arg indexes past list size as blank") {
+    result = str_format("|{}|{}|", "test");
+    expect(result to match("|test||", str_eq));
+  }
+
+  it("treates explicitly provided out-of-range index as blank") {
+    result = str_format("|{1}|", "only");
+    expect(result to match("||", str_eq));
+  }
+
+  it("does a substitution with two format specifiers in sequence") {
+    result = str_format("1: {}, 2: {}", "first", "second");
+    expect(result to match("1: first, 2: second", str_eq));
+  }
+
+  it("indexes the arg list when given a formatter index") {
+    result = str_format("|{0}|{0}|{0}|", "test");
+    expect(result to match("|test|test|test|", str_eq));
+  }
+
+  it("can index the arg list in arbitrary order") {
+    result = str_format("|{1}|{0}|{2}|{0}|", "first", "second", "third");
+    expect(result to match("|second|first|third|first|", str_eq));
+  }
+
+  it("continues default indexing when index is invalid") {
+    result = str_format("|{}|{a}|", "first", "second");
+    expect(result to match("|first|second|", str_eq));
+  }
+
+  if (result) test_log_memory(result->begin);
   if (result) str_delete(&result);
 
 }
@@ -726,6 +890,8 @@ test_suite(tests_string) {
   test_group(str_starts_with),
   test_group(str_ends_with),
   test_group(str_contains),
+  test_group(str_to_bool),
+  test_group(str_to_int),
   test_group(str_index_of),
   test_group(str_find),
   test_group(str_substring),

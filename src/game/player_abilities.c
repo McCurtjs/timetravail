@@ -2,9 +2,9 @@
 
 void handle_abilities(
   PlayerFrameData old_fd, PlayerFrameData* new_fd, uint inputs,
-  uint frame, bool block_warp, bool move_cancel
+  index_s frame, bool block_warp, bool move_cancel
 ) {
-  uint animation_frame = frame - old_fd.start_frame;
+  index_s animation_frame = frame - old_fd.start_frame;
 
   // If we are warping, don't change the animation no matter what
   if (TRIGGERED(REPLAY) && !block_warp) {

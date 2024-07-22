@@ -10,11 +10,11 @@ void render_sprites(Entity* entity, Game* game);
 void delete_player(Entity* entity);
 
 bool handle_player_combat(Game* game, const Entity* e, PlayerFrameData* fd);
-void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame);
+void handle_movement(PlayerFrameData* d, float dt, uint inputs, index_s frame);
 bool handle_player_collisions(Game* game, PlayerFrameData old_fd,
                               PlayerFrameData* new_fd, uint inputs);
 void handle_abilities(PlayerFrameData old_fd, PlayerFrameData* new_fd,
-                      uint inputs, uint frame, bool block_warp, bool cancel);
+                      uint inputs, index_s frame, bool block_warp, bool cancel);
 
 // Other entity controllers
 void behavior_time_controller(Entity* entity, Game* game, float dt);

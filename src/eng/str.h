@@ -11,8 +11,8 @@
   struct {                          \
     SRCA char*  SRCB begin;         \
     union {                         \
-      size_t    SRCB length;        \
-      size_t    SRCB size;          \
+      index_s   SRCB length;        \
+      index_s   SRCB size;          \
     };                              \
   }                                 //
 
@@ -116,11 +116,11 @@ extern const String str_true;
 extern const String str_false;
 
 StringRange str_range(const char* c_str);
-StringRange str_range_s(const char* c_str, size_t length);
+StringRange str_range_s(const char* c_str, index_s length);
 
 String  str_new(const char* c_str);
-String  str_new_s(const char* c_str, size_t length);
-#define str_copy(str) istr_copy(_s2r(str))
+String  str_new_s(const char* c_str, index_s length);
+#define str_copy(str)               istr_copy(_s2r(str))
 String  str_from_bool(bool b);
 String  str_from_int(int i);
 String  str_from_float(float f);
@@ -132,6 +132,9 @@ void    str_delete(String* str);
 #define str_ends_with(str, end)     istr_ends_with(_s2r(str), _s2r(end))
 #define str_contains(str, check)    istr_contains(_s2r(str), _s2r(check))
 
+#define str_to_bool(str, out)       istr_to_bool(_s2r(str), out)
+#define str_to_int(str, out)        istr_to_int(_s2r(str), out)
+
 // \brief prefer s.size, but can be useful in cases where a function is needed.
 //
 // \returns s.size
@@ -141,9 +144,17 @@ void    str_delete(String* str);
 //    at from_pos.
 //
 // \returns
-//    The index in str of the match, or if none is present, returns str.size.
+//    The index in str of the match, or str.size if none is present.
 #define str_index_of(str, to_find, from_pos) \
-                     istr_index_of(_s2r(str), _s2r(to_find), from_pos)
+                    istr_index_of(_s2r(str), _s2r(to_find), from_pos)
+
+// \brief Gets the start of the next instance of to_find in str, starting
+//    at from_pos.
+//
+// \returns
+//    The index in str of the match, or str.size if none is present.
+#define str_index_of_char(str, to_find, from_pos) \
+                    istr_index_of_char(_s2r(str), to_find, from_pos)
 
 // \brief Alias for str_index_of(str, to_find, 0)
 #define str_find(str, to_find)      istr_find(_s2r(str), _s2r(to_find))
@@ -166,7 +177,6 @@ void    str_delete(String* str);
 // \param __VA_ARGS__ - start, ?end
 //
 // \returns a StringRange as a substring of the input range.
-//
 #define str_substring(str, ...)     _str_substring(str, __VA_ARGS__)
 #define str_slice(str, ...)         _str_substring(str, __VA_ARGS__)
 
@@ -194,7 +204,6 @@ void    str_delete(String* str);
 // \param strings - The array of string ranges to join.
 //
 // \returns a new string, which must be deleted later by the caller.
-//
 #define str_join(del, strings)      istr_join(_s2r(del), strings)
 #define str_concat(left, right)     istr_concat(_s2r(left), _s2r(right))
 #define str_replace(str, tok, w)    istr_replace(_s2r(str), _s2r(tok), _s2r(w))
@@ -204,28 +213,34 @@ void    str_delete(String* str);
 #define str_format(str, ...)        istr_format \
           (_s2r(str), _va_exp(_sfa, __VA_ARGS__), _str_fmtarg_end)
 
-//String str_pad_left(StringRange str, size_t length, char c);
-//String str_pad_right(StringRange str, size_t length, char c);
+//String str_pad_left(StringRange str, index_s length, char c);
+//String str_pad_right(StringRange str, index_s length, char c);
 
-static inline StringRange _str_range_st(const String str) { return str->range; }
+static inline index_s     _str_size(StringRange s) { return s.size; }
 static inline StringRange _str_range_r(StringRange range) { return range; }
-static inline size_t      _str_size(StringRange s) { return s.size; }
+static inline StringRange _str_range_st(const String str) {
+  if (str) return str->range;
+  return str_empty->range;
+}
 
 String      istr_copy(StringRange str);
 bool        istr_eq(StringRange lhs, StringRange rhs);
 bool        istr_starts_with(StringRange str, StringRange starts);
 bool        istr_ends_with(StringRange str, StringRange ends);
 bool        istr_contains(StringRange str, StringRange check);
-//bool      istr_to_bool(StringRange str, bool* out_bool);
-//bool      istr_to_int(StringRange str, int* out_int);
+bool        istr_to_bool(StringRange str, bool* out_bool);
+bool        istr_to_int(StringRange str, index_s* out_int);
 //bool      istr_to_float(StringRange str, float* out_float);
-size_t      istr_index_of_char(StringRange str, char c, size_t from);
-size_t      istr_index_of(StringRange str, StringRange to_find, size_t from);
-//size_t    istr_index_of_last(StringRange str, StringRange find, size_t from);
-size_t      istr_find(StringRange str, StringRange to_find);
-//size_t    istr_find_last(StringRange str, StringRange to_find);
+//String    istr_to_upper(StringRange str);
+//String    istr_to_lower(StringRange str);
+//String    istr_to_title(StringRange str);
+index_s     istr_index_of_char(StringRange str, char c, index_s from);
+index_s     istr_index_of(StringRange str, StringRange to_find, index_s from);
+//index_s   istr_index_of_last(StringRange str, StringRange find, index_s from);
+index_s     istr_find(StringRange str, StringRange to_find);
+//index_s   istr_find_last(StringRange str, StringRange to_find);
 //Array     istr_match(StringRange str, StringRange regex);
-StringRange istr_substring(StringRange str, int start, int end);
+StringRange istr_substring(StringRange str, index_s start, index_s end);
 StringRange istr_trim(StringRange str);
 StringRange istr_trim_start(StringRange str);
 StringRange istr_trim_end(StringRange str);
@@ -238,14 +253,11 @@ String      istr_concat(StringRange left, StringRange right);
 //    differentiate between regular strings and regex with the regular "a" vs "/a/"
 //String    istr_replace(StringRange str, StringRange to_rep, StringRange with);
 //String    istr_replace_all(StringRange str, StringRange r, StringRange w);
-String      istr_prepend(StringRange str, size_t length, char c);
-String      istr_append(StringRange str, size_t length, char c);
+String      istr_prepend(StringRange str, index_s length, char c);
+String      istr_append(StringRange str, index_s length, char c);
 String      istr_format(StringRange fmt, ...);
-//String    istr_to_upper(StringRange str);
-//String    istr_to_lower(StringRange str);
-//String    istr_to_title(StringRange str);
 
-#define _str_sub_args(str, start, end, ...) _s2r(str), (int)start, (int)end
+#define _str_sub_args(str, start, end, ...) _s2r(str), (index_s)start, (index_s)end
 #define _str_sub_a(str, ...) _str_sub_args(str, __VA_ARGS__, _s2r(str).size)
 #define _str_substring(str, ...) istr_substring(_str_sub_a(str, __VA_ARGS__))
 

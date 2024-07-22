@@ -5,6 +5,7 @@
 # ifndef __DEFINED_size_t
 #  define __DEFINED_size_t
 typedef unsigned long size_t;
+typedef          long ptrdiff_t;
 # endif
 
 
@@ -29,7 +30,8 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned short u16;
 typedef unsigned char byte;
-typedef size_t jshandle;
+typedef size_t    jshandle;
+typedef ptrdiff_t index_s;
 
 #ifndef NULL
 # define NULL ((void*)0)

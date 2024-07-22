@@ -839,7 +839,7 @@ void    _test_error_typed(int line, const char* pfix, const char* fmt,
 #define _all_be_comp(A, B, FOREACH, x)    _all_comp_part(A, FOREACH, ((*_iter_all) x (B)),  _expected = (B);)
 #define _all_match_comp(A, B, FOREACH, F) _all_comp_part(A, FOREACH, F(*_iter_all, B),      _expected = B;)
 
-#define _all_setup(T) FALSE; csBool _tmp = _test; csUint _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE
+#define _all_setup(T) FALSE; csBool _tmp = _test; long long _index = 0; void* _pvalue = NULL; T _expected; csBool _print_expected_value = FALSE
 #define _all(M, T_el, T_con, ...)                   _all_setup(T_el);                                 T_el* T_con##_foreach_index, 0, M, T_el, _all_comp
 #define _all_be(x, B, T_el, T_con)                  _all_setup(T_el);   _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, x, T_el, _all_be_comp
 #define _all_match(F, B, T_el, T_con, ...)          _all_setup(T_el);   _print_expected_value = TRUE; T_el* T_con##_foreach_index, B, F, T_el, _all_match_comp

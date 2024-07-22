@@ -4,10 +4,10 @@
 
 #include "wasm.h"
 
-void handle_movement(PlayerFrameData* d, float dt, uint inputs, uint frame) {
+void handle_movement(PlayerFrameData* d, float dt, uint inputs, index_s frame) {
   vec2 acceleration = v2zero;
   vec2 axis = v2x;
-  uint animation_frame = frame - d->start_frame;
+  index_s animation_frame = frame - d->start_frame;
   bool about_to_jump = FALSE;
 
   if (d->standing) {

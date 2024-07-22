@@ -33,7 +33,7 @@ const String str_va_end = &str_constants[1];
 const String str_true   = &str_constants[2];
 const String str_false  = &str_constants[3];
 
-static String_Internal* str_new_internal(size_t length) {
+static String_Internal* str_new_internal(index_s length) {
   if (length == 0) return NULL; // prompt callers to return empty string
   // Include an extra byte for the null terminator
   String_Internal* ret = malloc(sizeof(StringRange) + length + 1);
@@ -52,27 +52,38 @@ inline static bool str_is_literal(String str) {
   return (str >= &str_constants[0] && str < str_constants_end);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Direct string str_ functions
+////////////////////////////////////////////////////////////////////////////////
+
+StringRange str_range(const char* c_str) {
+  return (StringRange) {
+    .begin = c_str,
+    .length = strlen(c_str),
+  };
+}
+
+StringRange str_range_s(const char* c_str, index_s length) {
+  return (StringRange) {
+    .begin = c_str,
+    .length = length,
+  };
+}
+
 String str_new(const char* c_str) {
   if (!c_str) return str_empty;
-  size_t length = strlen(c_str);
+  index_s length = strlen(c_str);
   String_Internal* ret = str_new_internal(length);
   if (!ret) return str_empty;
   memcpy(&ret->head, c_str, length);
   return str_terminate(ret);
 }
 
-String str_new_s(const char* c_str, size_t length) {
+String str_new_s(const char* c_str, index_s length) {
   if (!c_str) return str_empty;
   String_Internal* ret = str_new_internal(length);
   if (!ret) return str_empty;
   memcpy(&ret->head, c_str, length);
-  return str_terminate(ret);
-}
-
-String istr_copy(StringRange str) {
-  String_Internal* ret = str_new_internal(str.size);
-  if (!ret) return str_empty;
-  memcpy(ret->begin, str.begin, str.size);
   return str_terminate(ret);
 }
 
@@ -94,25 +105,193 @@ void str_delete(String* str) {
   *str = NULL;
 }
 
-StringRange str_range(const char* c_str) {
+////////////////////////////////////////////////////////////////////////////////
+// Macro-overloaded str_ via istr_ functions
+////////////////////////////////////////////////////////////////////////////////
+
+String istr_copy(StringRange str) {
+  String_Internal* ret = str_new_internal(str.size);
+  if (!ret) return str_empty;
+  memcpy(ret->begin, str.begin, str.size);
+  return str_terminate(ret);
+}
+
+bool istr_eq(StringRange lhs, StringRange rhs) {
+  if (lhs.size != rhs.size) return FALSE;
+  return memcmp(lhs.begin, rhs.begin, lhs.size) == 0;
+}
+
+bool istr_starts_with(StringRange str, StringRange starts) {
+  if (starts.size > str.size) return FALSE;
+  return memcmp(str.begin, starts.begin, starts.size) == 0;
+}
+
+bool istr_ends_with(StringRange str, StringRange ends) {
+  if (ends.size > str.size) return FALSE;
+  return memcmp(str.begin + str.size - ends.size, ends.begin, ends.size) == 0;
+}
+
+bool istr_contains(StringRange str, StringRange check) {
+  return istr_find(str, check) != str.size;
+}
+
+bool istr_to_bool(StringRange str, bool* out) {
+  if (!out) return false;
+  if (str.size < 4) return false;
+  if (tolower(str.begin[0]) == 't') {
+    for (index_s i = 1; i < 4; ++i) {
+      if (tolower(str.begin[i]) != str_true->begin[i]) return false;
+    }
+    *out = true;
+    return true;
+  } else if (tolower(str.begin[0]) == 'f') {
+    for (index_s i = 1; i < 5; ++i) {
+      if (tolower(str.begin[i]) != str_false->begin[i]) return false;
+    }
+    *out = false;
+    return true;
+  }
+  return false;
+}
+
+bool istr_to_int(StringRange str, index_s* out) {
+  if (!out || str.size == 0) return false;
+  index_s sign = 1;
+  index_s start = 0;
+
+  if (str.begin[0] == '-') {
+    sign = -1;
+    ++start;
+  } else if (str.begin[0] == '+') {
+    ++start;
+  }
+
+  index_s num = 0;
+  index_s i = start;
+  for (; i < str.size; ++i) {
+    char c = str.begin[i];
+    if (!isdigit(c)) break;
+    num *= 10;
+    num += c - '0';
+  }
+
+  // return false in the case of a string only containing "-" or "+";
+  if (i == start) return false;
+
+  *out = sign * num;
+
+  return true;
+}
+
+bool istr_to_float(StringRange str, double* out) {
+  PARAM_UNUSED(str);
+  PARAM_UNUSED(out);
+  return false;
+}
+
+index_s istr_index_of_char(StringRange str, char c, index_s from_pos) {
+  if (from_pos >= str.size) return str.size;
+  for (index_s i = from_pos; i < str.size; ++i) {
+    if (str.begin[i] == c) {
+      return i;
+    }
+  }
+  return str.size;
+}
+
+index_s istr_index_of(StringRange str, StringRange to_find, index_s from_pos) {
+  if (str.size < to_find.size) return str.size;
+  if (to_find.size == 0) return MIN(from_pos, str.size);
+  index_s j;
+  for (index_s i = from_pos; i <= str.size - to_find.size; ++i) {
+    j = 0;
+    while (j < to_find.size) {
+      if (str.begin[i + j] != to_find.begin[j]) break;
+      if (++j == to_find.size) return i;
+    }
+  }
+  return str.size;
+}
+
+index_s istr_find(StringRange str, StringRange to_find) {
+  return istr_index_of(str, to_find, 0);
+}
+
+StringRange istr_substring(StringRange str, index_s start, index_s end) {
+  if (start == end) return str_empty->range;
+  if (start >= str.size) return str_empty->range;
+  if (start < 0) start = str.size + start;
+  if (start < 0) start = 0;
+  if (end > str.size) end = str.size;
+  if (end < 0) end = str.size + end;
+  if (end <= start) return str_empty->range;
   return (StringRange) {
-    .begin = c_str,
-    .length = strlen(c_str),
+    .begin = str.begin + start,
+      .size = end - start,
   };
 }
 
-StringRange str_range_s(const char* c_str, size_t length) {
+StringRange istr_trim(StringRange str) {
+  StringRange ret = istr_trim_start(str);
+  return istr_trim_end(ret);
+}
+
+StringRange istr_trim_start(StringRange str) {
+  index_s start, end = str.size;
+  for (start = 0; start < str.size; ++start) {
+    if (!isspace(str.begin[start])) break;
+  }
+  if (start == end) return str_empty->range;
   return (StringRange) {
-    .begin = c_str,
-    .length = length,
+    .begin = str.begin + start,
+      .size = end - start,
   };
+}
+
+StringRange istr_trim_end(StringRange str) {
+  index_s end = str.size;
+  while (end > 0) {
+    if (isspace(str.begin[end - 1])) --end;
+    else break;
+  }
+  if (end <= 0) return str_empty->range;
+  return (StringRange) {
+    .begin = str.begin,
+      .size = end,
+  };
+}
+
+Array_StrR istr_split(StringRange str, StringRange del) {
+  Array_StrR ret = arr_str_new();
+
+  // specialization for empty delimiter, return a range for each char
+  if (del.size == 0) {
+    arr_str_reserve(ret, str.size);
+    for (index_s i = 0; i < str.size; ++i) {
+      StringRange c = str_range_s(&str.begin[i], 1);
+      arr_str_push_back(ret, c);
+    }
+    return ret;
+  }
+
+  index_s i = 0;
+  do {
+    index_s prev = i;
+    i = istr_index_of(str, del, i);
+    StringRange range = istr_substring(str, prev, i);
+    arr_str_push_back(ret, range);
+    i += del.size;
+    if (i == str.size) arr_str_push_back(ret, str_empty->range);
+  } while (i < str.size);
+
+  return ret;
 }
 
 String istr_join(StringRange del, const Array_StringRange strings) {
-  const size_t range_count = strings->size;
+  const index_s range_count = strings->size;
   if (range_count == 0) return str_empty;
 
-  size_t length = 0;
+  index_s length = 0;
 
   StringRange* array_foreach(range, strings) {
     length += range->size;
@@ -139,7 +318,7 @@ String istr_join(StringRange del, const Array_StringRange strings) {
 }
 
 String istr_concat(StringRange left, StringRange right) {
-  size_t length = left.size + right.size;
+  index_s length = left.size + right.size;
   String_Internal* ret = str_new_internal(length);
   if (!ret) return str_empty;
   memcpy(ret->begin, left.begin, left.size);
@@ -147,135 +326,18 @@ String istr_concat(StringRange left, StringRange right) {
   return str_terminate(ret);
 }
 
-String istr_prepend(StringRange str, size_t length, char c) {
+String istr_prepend(StringRange str, index_s length, char c) {
   String_Internal* ret = str_new_internal(str.size + length);
   memset(ret->begin, c, length);
   memcpy(ret->begin + length, str.begin, str.size);
   return str_terminate(ret);
 }
 
-String istr_append(StringRange str, size_t length, char c) {
+String istr_append(StringRange str, index_s length, char c) {
   String_Internal* ret = str_new_internal(str.size + length);
   memcpy(ret->begin, str.begin, str.size);
   memset(ret->begin + str.size, c, length);
   return str_terminate(ret);
-}
-
-Array_StrR istr_split(StringRange str, StringRange del) {
-  Array_StrR ret = arr_str_new();
-
-  // specialization for empty delimiter, return a range for each char
-  if (del.size == 0) {
-    arr_str_reserve(ret, (uint)str.size);
-    for (size_t i = 0; i < str.size; ++i) {
-      StringRange c = str_range_s(&str.begin[i], 1);
-      arr_str_push_back(ret, c);
-    }
-    return ret;
-  }
-
-  int i = 0;
-  do {
-    int prev = i;
-    i = (int)istr_index_of(str, del, i);
-    StringRange range = istr_substring(str, prev, i);
-    arr_str_push_back(ret, range);
-    i += (int)del.size;
-    if (i == (int)str.size) arr_str_push_back(ret, str_empty->range);
-  } while (i < (int)str.size);
-
-  return ret;
-}
-
-StringRange istr_substring(StringRange str, int start, int end) {
-  if (start == end) return str_empty->range;
-  if (start >= (int)str.size) return str_empty->range;
-  if (start < 0) start = (int)str.size + start;
-  if (start < 0) start = 0;
-  if (end > (int)str.size) end = (int)str.size;
-  if (end < 0) end = (int)str.size + end;
-  if (end <= start) return str_empty->range;
-  return (StringRange) {
-    .begin = str.begin + start,
-    .size = end - start,
-  };
-}
-
-StringRange istr_trim(StringRange str) {
-  StringRange ret = istr_trim_start(str);
-  return istr_trim_end(ret);
-}
-
-StringRange istr_trim_start(StringRange str) {
-  int start, end = (int)str.size;
-  for (start = 0; start < (int)str.size; ++start) {
-    if (!isspace(str.begin[start])) break;
-  }
-  if (start == end) return str_empty->range;
-  return (StringRange) {
-    .begin = str.begin + start,
-    .size = end - start,
-  };
-}
-
-StringRange istr_trim_end(StringRange str) {
-  int end = (int)str.size;
-  while (end > 0) {
-    if (isspace(str.begin[end - 1])) --end;
-    else break;
-  }
-  if (end <= 0) return str_empty->range;
-  return (StringRange) {
-    .begin = str.begin,
-    .size = end,
-  };
-}
-
-bool istr_eq(StringRange lhs, StringRange rhs) {
-  if (lhs.size != rhs.size) return FALSE;
-  return memcmp(lhs.begin, rhs.begin, lhs.size) == 0;
-}
-
-bool istr_starts_with(StringRange str, StringRange starts) {
-  if (starts.size > str.size) return FALSE;
-  return memcmp(str.begin, starts.begin, starts.size) == 0;
-}
-
-bool istr_ends_with(StringRange str, StringRange ends) {
-  if (ends.size > str.size) return FALSE;
-  return memcmp(str.begin + str.size - ends.size, ends.begin, ends.size) == 0;
-}
-
-bool istr_contains(StringRange str, StringRange check) {
-  return istr_find(str, check) != str.size;
-}
-
-size_t istr_index_of_char(StringRange str, char c, size_t from_pos) {
-  if (from_pos >= str.size) return str.size;
-  for (size_t i = from_pos; i < str.size; ++i) {
-    if (str.begin[i] == c) {
-      return i;
-    }
-  }
-  return str.size;
-}
-
-size_t istr_index_of(StringRange str, StringRange to_find, size_t from_pos) {
-  if (str.size < to_find.size) return str.size;
-  if (to_find.size == 0) return MIN(from_pos, str.size);
-  size_t j;
-  for (size_t i = from_pos; i <= str.size - to_find.size; ++i) {
-    j = 0;
-    while (j < to_find.size) {
-      if (str.begin[i + j] != to_find.begin[j]) break;
-      if (++j == to_find.size) return i;
-    }
-  }
-  return str.size;
-}
-
-size_t istr_find(StringRange str, StringRange to_find) {
-  return istr_index_of(str, to_find, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -320,13 +382,13 @@ typedef struct {
 // preci: "values: |{0:.5}|{0:^.1}|{0:>10.6+}|",  1.23      -> "values: |1.23|1.2|1.230000  |"
 // types: "values: {0:i} {0:h} {0:c}",            65        -> "values: 65, 41, A"
 // date format specifiers? (ie, {%d} for "Monday" (use standard)
-static _Str_FmtSpec _str_fmt_read_spec(StringRange spec_str, byte arg_index) {
+static _Str_FmtSpec format_read_spec(StringRange spec_str, byte arg_index) {
 
   // set up the format specifier struct
   _Str_FmtSpec spec = { 0 };
   spec.index = arg_index;
 
-  size_t colon_offset = 0;
+  index_s colon_offset = 0;
 
   // no explicit argument index given, use the next in the list
   if (spec_str.size == 0) {
@@ -335,24 +397,30 @@ static _Str_FmtSpec _str_fmt_read_spec(StringRange spec_str, byte arg_index) {
   // format does not start with colon, meaning there is a format index
   // if the format does start with a colon, use next index but still format
   } else if (spec_str.begin[0] != ':') {
-    colon_offset = istr_index_of(spec_str, R(":"), 0);
-    // arg_index = str_parse_int(istr_substring(spec_str, 0, spec_str.size));
-    spec.index = arg_index;
+    colon_offset = istr_index_of_char(spec_str, ':', 0);
+    index_s index;
+    if (istr_to_int(spec_str, &index) && index < 256) {
+      spec.index = (byte)index;
+    }
   }
 
   // if no colon is in the string, the rest of the spec is defaults
   if (colon_offset == spec_str.size) {
     return spec;
   }
+
+  //StringRange s = istr_substring(spec_str, colon_offset + 1, spec_str.size);
+
+
   /*
   // otherwise, parse the format specifier
   // TODO: add 'end' as a size alias so the check can be against 'spec_str.end'?
-  size_t width_start = 0;
-  size_t width_end = 0;
-  size_t prec_start = 0;
-  size_t prec_end = 0;
+  index_s width_start = 0;
+  index_s width_end = 0;
+  index_s prec_start = 0;
+  index_s prec_end = 0;
 
-  for (size_t i = 1; i < spec_str.size; ++i) {
+  for (index_s i = 1; i < spec_str.size; ++i) {
     byte c = spec_str.begin[i];
 
     // prefix options (sign, alignment)
@@ -435,7 +503,7 @@ static _Str_FmtSpec _str_fmt_read_spec(StringRange spec_str, byte arg_index) {
   return spec;
 }
 
-static void _str_fmt_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
+static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
   if (spec.index >= params->size) {
     return;
@@ -459,7 +527,7 @@ static void _str_fmt_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) 
 
     } break;
 
-  }
+  } 
 
 }
 
@@ -469,7 +537,7 @@ String istr_format(StringRange fmt, ...) {
   //    header just for this function, especially if other dependent types
   //    end up being supported (such as vec3).
   Array params = array_new(_Str_FmtArg);
-  uint reserve_size = (uint)(sizeof(String_Internal) + fmt.size);
+  index_s reserve_size = sizeof(String_Internal) + fmt.size;
 
   _Str_FmtArg arg;
   va_list args;
@@ -482,7 +550,7 @@ String istr_format(StringRange fmt, ...) {
 
     until(arg.type == _Str_FmtArg_End);
 
-    reserve_size += (arg.type == _Str_FmtArg_StringRange) ? (uint)arg.range.size : 3;
+    reserve_size += (arg.type == _Str_FmtArg_StringRange) ? arg.range.size : 3;
 
     array_write_back(params, &arg);
   }
@@ -503,10 +571,10 @@ String istr_format(StringRange fmt, ...) {
   byte arg_index = 0;
 
   // track position in each section between formatters
-  size_t section_start = 0;
-  uint section_size = 0;
+  index_s section_start = 0;
+  index_s section_size = 0;
 
-  for (size_t i = 0; i < fmt.size; ++i) {
+  for (index_s i = 0; i < fmt.size; ++i) {
     byte c = fmt.begin[i];
 
     // just do a 1:1 copy by character until we hit a format specifier
@@ -525,26 +593,26 @@ String istr_format(StringRange fmt, ...) {
 
     // handle case for "{{" to print escaped left brace
     if (fmt.begin[i + 1] == '{') {
-      arr_byte_push_back(output, '{');
-      ++i;
       section_start = ++i;
+      section_size = 1;
       continue;
     }
 
     // get format specifier contents
-    size_t spec_end = istr_index_of(fmt, R("}"), i+1);
+    index_s spec_end = istr_index_of(fmt, R("}"), i+1);
 
     // case for un-closed brace
     if (spec_end == fmt.size) {
-      section_size = (uint)(fmt.size - section_start);
+      section_start = i;
+      section_size = fmt.size - section_start;
       break;
     }
 
-    StringRange spec_str = istr_substring(fmt, (int)i + 1, (int)spec_end);
-    _Str_FmtSpec spec = _str_fmt_read_spec(spec_str, arg_index);
+    StringRange spec_str = istr_substring(fmt, i + 1, spec_end);
+    _Str_FmtSpec spec = format_read_spec(spec_str, arg_index);
     arg_index = spec.index + 1;
 
-    _str_fmt_print_arg(output, params, spec);
+    format_print_arg(output, params, spec);
 
     i = spec_end;
     section_start = spec_end + 1;
@@ -557,8 +625,8 @@ String istr_format(StringRange fmt, ...) {
 
   array_delete(&params);
 
-  arr_byte_push_back(output, '\0');
   header->size = output->size - sizeof(struct _Str_Base);
+  arr_byte_push_back(output, '\0');
   header->begin = &header->head;
   String ret = (String)arr_byte_release(&output);
 

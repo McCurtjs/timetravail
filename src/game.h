@@ -90,8 +90,8 @@ typedef struct Game_Inputs {
 
 typedef struct PlayerRef {
   Entity* e;
-  uint start_frame;
-  uint end_frame;
+  index_s start_frame;
+  index_s end_frame;
 } PlayerRef;
 
 #define con_type PlayerRef
@@ -137,14 +137,14 @@ typedef struct Game {
 
   Array_PlayerRef timeguys;
 
-  float frame;
-  bool reverse_playback;
-  bool reverse_triggered;
-  float reverse_speed;
-  uint level;
+  float   frame;
+  bool    reverse_playback;
+  bool    reverse_triggered;
+  float   reverse_speed;
+  uint    level;
 
-  Line* colliders;
-  uint collider_count;
+  Line*   colliders;
+  index_s collider_count;
 
 } Game;
 

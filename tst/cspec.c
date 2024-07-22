@@ -232,6 +232,17 @@ static void output_str(const char* s) {
   output_continue_format();
 }
 
+static void output_str_quotes(const char* s, char q) {
+  if (output_index >= output_size - 2) return;
+  output_buffer[output_index++] = q;
+  while (s && *s) {
+    if (output_index >= output_size - 1) break;
+    output_buffer[output_index++] = *s++;
+  }
+  output_buffer[output_index++] = q;
+  output_continue_format();
+}
+
 static void output_continue_format(void) {
   if (output_fmt) {
     const char* tmp = output_fmt;
@@ -241,10 +252,15 @@ static void output_continue_format(void) {
   output_buffer[output_index] = '\0';
 }
 
-static void output_char(char c) {
-  if (output_index >= output_size) return;
+static csBool output_char_no_fmt(char c) {
+  if (output_index >= output_size) return FALSE;
   if (c <= 0x1F || c == 0x7F) c = '.';
   output_buffer[output_index++] = c;
+  return TRUE;
+}
+
+static void output_char(char c) {
+  if (!output_char_no_fmt(c)) return;
   output_continue_format();
 }
 
@@ -1156,17 +1172,11 @@ static csBool resolve_param(const char* typ_N, const void* N) {
   ||  cspec_strrstr(typ_N, "unsigned char*")
   ||  cspec_strrstr(typ_N, "char[]")
   ) {
-    const char* tmp = output_fmt;
-    output_fmt = NULL;
-    output_char('"');
     if (cspec_strrstr(typ_N, "[]")) {
-      output_str((const char*)N);
+      output_str_quotes((const char*)N, '"');
     } else {
-      output_str(*(const char**)N);
+      output_str_quotes(*(const char**)N, '"');
     }
-    output_char('"');
-    output_fmt = tmp;
-    output_continue_format();
   }
   else if (cspec_strrstr(typ_N, "*")
   ||  cspec_strrstr(typ_N, "_ptr")
@@ -1295,6 +1305,7 @@ void _test_error_typed(
     output_sint(line);
     output_indent = output_index;
   }
+  output_str("{}");
   output_str(pre);
 
   if (!fmt) goto finish;

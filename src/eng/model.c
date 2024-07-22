@@ -246,13 +246,13 @@ static void model_render_sprites(Model_Sprites* sprites) {
   glBindVertexArray(sprites->vao);
   glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
 
-  uint size_bytes = sprites->verts->size_bytes;
+  index_s size_bytes = sprites->verts->size_bytes;
   void* data_start = array_get_front_ref(sprites->verts);
   glBufferData(GL_ARRAY_BUFFER, size_bytes, data_start, GL_DYNAMIC_DRAW);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDrawArrays(GL_TRIANGLES, 0, sprites->verts->size);
+  glDrawArrays(GL_TRIANGLES, 0, (int)sprites->verts->size);
   glDisable(GL_BLEND);
 
   glBindVertexArray(0);
@@ -261,7 +261,7 @@ static void model_render_sprites(Model_Sprites* sprites) {
 }
 
 void model_sprites_draw(
-  const Model_Sprites* sprites, vec2 pos, vec2 scale, uint frame, bool mirror
+  const Model_Sprites* sprites, vec2 pos, vec2 scale, index_s frame, bool mirror
 ) {
   Model_Sprites* spr = (Model_Sprites*)sprites;
 
@@ -374,7 +374,7 @@ static int model_build_obj(Model_Obj* obj) {
 static void model_render_obj(Model_Obj* obj) {
   glBindVertexArray(obj->vao);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
-  glDrawElements(GL_TRIANGLES, obj->indices->size, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, (int)obj->indices->size, GL_UNSIGNED_INT, 0);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 }
@@ -474,7 +474,7 @@ void model_load_obj(Model* model, File* file) {
   model->obj.verts = array_new_reserve(ObjVertex, faces->size);
   model->obj.indices = array_new_reserve(uint, faces->size);
 
-  for (uint i = 0; i < faces->size; ++i) {
+  for (index_s i = 0; i < faces->size; ++i) {
     // -1's to account for obj's 1-indexing
     ObjFaceElem* f = array_get_ref(faces, i);
     ObjVertexPart* partial = array_get_ref(verts, f->vert-1);

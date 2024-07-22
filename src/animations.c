@@ -605,14 +605,14 @@ bool anim_is_hangtime_2(uint animation) {
 // Returns true if the given animation is finished before this frame
 // If the animation repeats, returns true if it's passed the intro
 // The frame passed in is real-time frame (ie, 2 images at rate 3 is 6 frames)
-bool anim_finished(uint animation, uint frame) {
+bool anim_finished(uint animation, index_s frame) {
   Animation* anim = &player_animations[animation];
   if (anim->repeat > 0)
     return frame / anim->rate >= (uint)anim->repeat;
   return frame / anim->rate >= anim->count - anim->repeat;
 }
 
-uint anim_frame_index(uint animation, uint time_playing) {
+index_s anim_frame_index(uint animation, index_s time_playing) {
   Animation* a = &player_animations[animation];
 
   // non-repeating frame, hangs on last frame.
@@ -621,7 +621,7 @@ uint anim_frame_index(uint animation, uint time_playing) {
 
   // regular animation where whole animation loops, or where we haven't gotten
   // to the loop point on a delayed loop
-  if (a->repeat == 0 || time_playing < (uint)a->repeat * a->rate)
+  if (a->repeat == 0 || time_playing < a->repeat * a->rate)
     return (time_playing / a->rate) % a->count;
 
   // case where repeat counter is positive, plays the beginning, loops the rest.
@@ -633,12 +633,12 @@ uint anim_frame_index(uint animation, uint time_playing) {
   ;
 }
 
-const Frame* anim_frame(uint animation, uint time_playing) {
+const Frame* anim_frame(uint animation, index_s time_playing) {
   Animation* a = &player_animations[animation];
   return &a->frames[anim_frame_index(animation, time_playing)];
 }
 
-const Hitbox* anim_hitbox(uint animation, uint time_playing) {
+const Hitbox* anim_hitbox(uint animation, index_s time_playing) {
   const Frame* f = anim_frame(animation, time_playing);
   if (f->hitbox == 0) return NULL;
   return &player_hitboxes[f->hitbox];

@@ -72,8 +72,8 @@ typedef struct Frame {
 
 typedef struct Animation {
   Frame* frames;
-  uint count;
-  uint rate;
+  index_s count;
+  index_s rate;
   int repeat;
 } Animation;
 
@@ -95,10 +95,10 @@ bool anim_is_warp(uint animation);
 bool anim_is_double_jump(uint animation);
 bool anim_is_attack(uint animation);
 bool anim_is_hangtime_2(uint animation);
-bool anim_finished(uint animation, uint frame);
-uint anim_frame_index(uint animation, uint time_playing);
-const Frame* anim_frame(uint animation, uint time_playing);
-const Hitbox* anim_hitbox(uint animation, uint time_playing);
-const Animation* anim_current(const Entity* e);
+bool    anim_finished(uint animation, index_s frame);
+index_s anim_frame_index(uint animation, index_s time_playing);
+const   Frame* anim_frame(uint animation, index_s time_playing);
+const   Hitbox* anim_hitbox(uint animation, index_s time_playing);
+const   Animation* anim_current(const Entity* e);
 
 #endif

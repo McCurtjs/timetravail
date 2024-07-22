@@ -4,10 +4,10 @@
 #include "types.h"
 
 typedef struct {
-  uint  const element_size;
-  uint  const capacity;
-  uint  const size;
-  uint  const size_bytes;
+  index_s const element_size;
+  index_s const capacity;
+  index_s const size;
+  index_s const size_bytes;
   void* const arr;
 }* Array;
 
@@ -18,28 +18,28 @@ typedef struct {
 
 #define array_new(TYPE) _array_new_(sizeof(TYPE))
 #define array_new_reserve(TYPE, capacity) _array_new_reserve_(sizeof(TYPE), capacity)
-Array _array_new_(uint elemenet_size);
-Array _array_new_reserve_(uint element_size, uint capacity);
-void  array_reserve(Array array, uint capacity);
-void  array_truncate(Array array, uint capacity);
-void  array_clear(Array array);
-void  array_free(Array array);
-void  array_delete(Array* array);
-void* array_release(Array* array);
-uint  array_write(Array array, uint position, const void* in_element);
-uint  array_write_back(Array array, const void* in_element);
-void* array_emplace(Array array, uint position);
-void* array_emplace_back(Array array);
-void* array_emplace_back_range(Array array, uint count);
-uint  array_remove(Array array, uint position);
-uint  array_remove_unstable(Array array, uint position);
-uint  array_pop_back(Array array);
-void* array_get_ref(Array array, uint index);
-void* array_get_front_ref(Array array);
-void* array_get_back_ref(Array array);
-bool  array_read(const Array array, uint index, void* out_element);
-bool  array_read_front(const Array array, void* out_element);
-bool  array_read_back(const Array array, void* out_element);
+Array   _array_new_(index_s elemenet_size);
+Array   _array_new_reserve_(index_s element_size, index_s capacity);
+void    array_reserve(Array array, index_s capacity);
+void    array_truncate(Array array, index_s capacity);
+void    array_clear(Array array);
+void    array_free(Array array);
+void    array_delete(Array* array);
+void*   array_release(Array* array);
+index_s array_write(Array array, index_s position, const void* in_element);
+index_s array_write_back(Array array, const void* in_element);
+void*   array_emplace(Array array, index_s position);
+void*   array_emplace_back(Array array);
+void*   array_emplace_back_range(Array array, index_s count);
+index_s array_remove(Array array, index_s position);
+index_s array_remove_unstable(Array array, index_s position);
+index_s array_pop_back(Array array);
+void*   array_get_ref(Array array, index_s index);
+void*   array_get_front_ref(Array array);
+void*   array_get_back_ref(Array array);
+bool    array_read(const Array array, index_s index, void* out_element);
+bool    array_read_front(const Array array, void* out_element);
+bool    array_read_back(const Array array, void* out_element);
 
 // \brief A macro shorthand to write foreach loops with any dynamic Array or
 //    Array-based sub-types.
@@ -57,7 +57,7 @@ bool  array_read_back(const Array array, void* out_element);
 #define array_foreach_index(VAR, INDEX, ARRAY)                                \
   VAR = (ARRAY)->arr;                                                         \
   assert(sizeof(*VAR) == ARRAY->element_size);                                \
-  for (uint INDEX = 0; INDEX < ARRAY->size; ++INDEX,                          \
+  for (index_s INDEX = 0; INDEX < ARRAY->size; ++INDEX,                       \
     VAR = (void*)((byte*)ARRAY->arr + INDEX * sizeof(*VAR))                   \
   )                                                                           //
 
@@ -90,10 +90,10 @@ bool  array_read_back(const Array array, void* out_element);
 //    pointer type, it'll happily accept either as equivalent, but the whole
 //    point is to prompt type errors.
 typedef struct {
-  uint const element_size;
-  uint const capacity;
-  uint const size;
-  uint const size_bytes;
+  index_s const element_size;
+  index_s const capacity;
+  index_s const size;
+  index_s const size_bytes;
   union {
     con_type* const arr;
     con_type* const buf;
@@ -118,7 +118,7 @@ static inline _arr_type _prefix(_new)
 //
 // \returns A new empty dynamic array with the given capacity.
 static inline _arr_type _prefix(_new_reserve)
-(uint capacity) {
+(index_s capacity) {
   return (_arr_type)array_new_reserve(con_type, capacity);
 }
 
@@ -132,7 +132,7 @@ static inline _arr_type _prefix(_new_reserve)
 //
 // \param capacity - the number of elements to reserve space for
 static inline void _prefix(_reserve)
-(_arr_type arr, uint capacity) {
+(_arr_type arr, index_s capacity) {
   array_reserve((Array)arr, capacity);
 }
 
@@ -143,7 +143,7 @@ static inline void _prefix(_reserve)
 //
 // \param max_size - the maximum resulting capacity of the array
 static inline void _prefix(_truncate)
-(_arr_type arr, uint capacity) {
+(_arr_type arr, index_s capacity) {
   array_truncate((Array)arr, capacity);
 }
 
@@ -184,8 +184,8 @@ static inline con_type* _prefix(_release)
 // \param element - the element to insert into the array
 //
 // \returns The size of the array after adding the element.
-static inline uint _prefix(_insert)
-(_arr_type arr, uint position, con_type element) {
+static inline index_s _prefix(_insert)
+(_arr_type arr, index_s position, con_type element) {
   return array_write((Array)arr, position, &element);
 }
 
@@ -194,7 +194,7 @@ static inline uint _prefix(_insert)
 // \param element - the element to insert into the array
 //
 // \returns The size of the array after adding the element.
-static inline uint _prefix(_push_back)
+static inline index_s _prefix(_push_back)
 (_arr_type arr, con_type element) {
   return array_write_back((Array)arr, &element);
 }
@@ -207,8 +207,8 @@ static inline uint _prefix(_push_back)
 // \param element - a pointer to the element to write into the array
 //
 // \returns The size of the array after adding the element.
-static inline uint _prefix(_write)
-(_arr_type arr, uint position, const con_type* element) {
+static inline index_s _prefix(_write)
+(_arr_type arr, index_s position, const con_type* element) {
   return array_write((Array)arr, position, element);
 }
 
@@ -218,7 +218,7 @@ static inline uint _prefix(_write)
 // \param element - a pointer to the element to write into the array
 //
 // \returns The size of the array after adding the element.
-static inline uint _prefix(_write_back)
+static inline index_s _prefix(_write_back)
 (_arr_type arr, const con_type* element) {
   return array_write_back((Array)arr, element);
 }
@@ -230,7 +230,7 @@ static inline uint _prefix(_write_back)
 //
 // \returns A pointer to the newly added and uninitialized element.
 static inline con_type* _prefix(_emplace)
-(_arr_type arr, uint position) {
+(_arr_type arr, index_s position) {
   return array_emplace((Array)arr, position);
 }
 
@@ -249,7 +249,7 @@ static inline con_type* _prefix(_emplace_back)
 //
 // \returns A pointer to the first of the newly added uninitialized elements.
 static inline con_type* _prefix(_emplace_back_range)
-(_arr_type arr, uint count) {
+(_arr_type arr, index_s count) {
   return array_emplace_back_range((Array)arr, count);
 }
 
@@ -259,8 +259,8 @@ static inline con_type* _prefix(_emplace_back_range)
 // \param position - The index to remove
 //
 // \returns The size of the array after removing the element
-static inline uint _prefix(_remove)
-(_arr_type arr, uint position) {
+static inline index_s _prefix(_remove)
+(_arr_type arr, index_s position) {
   return array_remove((Array)arr, position);
 }
 
@@ -273,15 +273,15 @@ static inline uint _prefix(_remove)
 // \param position - the index to remove and swap with the last element
 //
 // \returns The size of the array after removing the element.
-static inline uint _prefix(_remove_unstable)
-(_arr_type arr, uint position) {
+static inline index_s _prefix(_remove_unstable)
+(_arr_type arr, index_s position) {
   return array_remove_unstable((Array)arr, position);
 }
 
 // TODO:
 /*
-static inline uint _prefix(_remove_range)
-(_arr_type arr, uint position, uint count) {
+static inline index_s _prefix(_remove_range)
+(_arr_type arr, index_s position, index_s count) {
   return array_remove_range((Array)arr, position, count);
 }
 //*/
@@ -292,7 +292,7 @@ static inline uint _prefix(_remove_range)
 //    until another element is added in its place.
 //
 // \returns The size of the array after removing the element.
-static inline uint _prefix(_pop_back)
+static inline index_s _prefix(_pop_back)
 (_arr_type arr) {
   return array_pop_back((Array)arr);
 }
@@ -304,7 +304,7 @@ static inline uint _prefix(_pop_back)
 //
 // \returns A copy of the indexed element.
 static inline con_type _prefix(_get)
-(const _arr_type arr, uint index) {
+(const _arr_type arr, index_s index) {
   con_type* element = array_get_ref((Array)arr, index);
   assert(element != NULL);
   return *element;
@@ -338,7 +338,7 @@ static inline con_type _prefix(_get_back)
 //
 // \returns A pointer to the indexed element.
 static inline con_type* _prefix(_get_ref)
-(_arr_type arr, uint index) {
+(_arr_type arr, index_s index) {
   return (con_type*)array_get_ref((Array)arr, index);
 }
 
@@ -363,7 +363,7 @@ static inline con_type* _prefix(_get_back_ref)
 //
 // \returns True if an element was written, false otherwise.
 static inline bool _prefix(_read)
-(const _arr_type arr, uint index, con_type* out_element) {
+(const _arr_type arr, index_s index, con_type* out_element) {
   return array_read((Array)arr, index, out_element);
 }
 

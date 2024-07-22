@@ -24,7 +24,7 @@ bool handle_player_combat(
     if (entity->type != ENTITY_PLAYER) continue;
     if (anim_is_warp(entity->fd.animation)) continue;
 
-    uint current_frame = (uint)game->frame - entity->fd.start_frame;
+    index_s current_frame = (index_s)game->frame - entity->fd.start_frame;
     vec2 center = v2add(entity->fd.pos, v2scale(v2y, 1.5));
 
     //if (entity != active) draw_circle(v23f(center, 0), h_radius);
