@@ -134,6 +134,12 @@ typedef ptrdiff_t index_s;
 //    to void in the function body works on all three with max level warnings.
 #define PARAM_UNUSED(PARAM) (void)PARAM;
 
+#ifndef _MSC_VER
+# define SWITCH_FALLTHROUGH __attribute__((fallthrough))
+#else
+# define SWITCH_FALLTHROUGH
+#endif
+
 // Using this in container classes for return values that act as properties
 // Is this a bad pattern? Probably, but it's an idea I'm trying out.
 #define CV const volatile

@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   };
 
 #ifdef _MSC_VER
-  char* argv2[] = { argv[0], "str_spec.c:835", "-va"};
+  char* argv2[] = { argv[0], "str_spec.c:825", "-va"};
   argc = sizeof(argv2) / sizeof(char*);
   argv = argv2;
 #endif

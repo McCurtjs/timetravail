@@ -126,7 +126,7 @@ index_s array_write_back(Array a_in, const void* element) {
 
 void* array_emplace(Array a_in, index_s position) {
   DARRAY_INTERNAL;
-  if (!a) return NULL;
+  if (!a || position < 0) return NULL;
   if (position >= a->size) {
     return array_emplace_back(a_in);
   }
@@ -137,6 +137,23 @@ void* array_emplace(Array a_in, index_s position) {
   memmove(pos + a->element_size, pos, a->size_bytes - position * a->element_size);
   a->size_bytes += a->element_size;
   ++a->size;
+  return pos;
+}
+
+void* array_emplace_range(Array a_in, index_s position, index_s count) {
+  DARRAY_INTERNAL;
+  if (!a || position < 0 || count <= 0) return NULL;
+  if (position >= a->size) {
+    return array_emplace_back_range(a_in, count);
+  }
+  if (a->size + count >= a->capacity) {
+    array_reserve(a_in, a->size = count);
+  }
+  byte* pos = a->data + a->element_size * position;
+  ptrdiff_t new_bytes = a->element_size * count;
+  memmove(pos + new_bytes, pos, a->size_bytes - position * a->element_size);
+  a->size_bytes += new_bytes;
+  a->size += count;
   return pos;
 }
 
@@ -152,8 +169,8 @@ void* array_emplace_back(Array a_in) {
 
 void* array_emplace_back_range(Array a_in, index_s count) {
   DARRAY_INTERNAL;
-  if (!a || count == 0) return NULL;
-  if (a->size * count >= a->capacity) {
+  if (!a || count <= 0) return NULL;
+  if (a->size + count >= a->capacity) {
     array_reserve(a_in, a->size + count);
   }
   void* ret = a->data + a->size * a->element_size;
@@ -164,7 +181,7 @@ void* array_emplace_back_range(Array a_in, index_s count) {
 
 index_s array_remove(Array a_in, index_s position) {
   DARRAY_INTERNAL;
-  if (!a) return 0;
+  if (!a || position < 0) return 0;
   if (position >= a->size) return a->size;
   if (position == a->size - 1) return array_pop_back(a_in);
   byte* pos = a->data + a->element_size * position;

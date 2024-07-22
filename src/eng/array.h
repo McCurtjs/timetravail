@@ -29,6 +29,7 @@ void*   array_release(Array* array);
 index_s array_write(Array array, index_s position, const void* in_element);
 index_s array_write_back(Array array, const void* in_element);
 void*   array_emplace(Array array, index_s position);
+void*   array_emplace_range(Array array, index_s position, index_s count);
 void*   array_emplace_back(Array array);
 void*   array_emplace_back_range(Array array, index_s count);
 index_s array_remove(Array array, index_s position);
@@ -126,10 +127,6 @@ static inline _arr_type _prefix(_new_reserve)
 //    elements. This will not reserve space for N _additional_ elements, any
 //    items already in the array will still count towards the final capacity.
 //
-// \brief Will not perform any destructive action on elements in the array, but
-//    can shrink the available capacity. reserve(0) for example will perform
-//    a truncation down to the exact number of elements currently in the array.
-//
 // \param capacity - the number of elements to reserve space for
 static inline void _prefix(_reserve)
 (_arr_type arr, index_s capacity) {
@@ -138,6 +135,9 @@ static inline void _prefix(_reserve)
 
 // \brief Truncates the array, may decrease the size of the array and remove
 //    elements from the end of the array until the size requirement is met.
+//
+// \brief For example, can free extra reserved space by calling
+//    `arr_type_truncate(array, array.size);`
 //
 // \brief Performs no operation if the array is already smaller than max_size.
 //
@@ -232,6 +232,19 @@ static inline index_s _prefix(_write_back)
 static inline con_type* _prefix(_emplace)
 (_arr_type arr, index_s position) {
   return array_emplace((Array)arr, position);
+}
+
+// \brief Inserts space for count elements in the array and returns a pointer to
+//    the first without performing any initialization or copying into the range.
+//
+// \param position - the index at which the first new element will be accessed.
+//
+// \param count - the number of elements to make space for
+//
+// \returns A pointer to the first newly added and uninitialized elements.
+static inline con_type* _prefix(_emplace_range)
+(_arr_type arr, index_s position, index_s count) {
+  return array_emplace_range((Array)arr, position, count);
 }
 
 // \brief Inserts space for an element at the back of the array and returns a

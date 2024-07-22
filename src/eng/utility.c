@@ -95,3 +95,13 @@ const char* ftos(float f) {
 
   return float_result;
 }
+
+void memrev(void* p, unsigned size) {
+  byte* s = p;
+  byte* e = s + size - 1;
+  while (s < e) {
+    byte t = *s;
+    *s++ = *e;
+    *e-- = t;
+  }
+}

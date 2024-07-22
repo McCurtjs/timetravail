@@ -273,8 +273,8 @@ typedef struct {
   int type;
   union {
     StringRange range;
-    long long int i;
-    long long unsigned int ui;
+    ptrdiff_t i;
+    size_t ui;
     double f;
   };
 } _Str_FmtArg;

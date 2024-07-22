@@ -825,52 +825,252 @@ describe(str_concat) {
 describe(str_format) {
   String result = NULL;
 
-  it("returns a copy when no format specifiers are present") {
-    StringRange test = R("Passthrough");
-    result = str_format(test, "unused");
-    expect(result to match(test, str_eq));
-    expect(result->begin != test.begin);
+  context("basic formatter cases") {
+
+    it("returns a copy when no format specifiers are present") {
+      StringRange test = R("Passthrough");
+      result = str_format(test, "unused");
+      expect(result to match(test, str_eq));
+      expect(result->begin != test.begin);
+    }
+
+    it("escapes an open brace") {
+      result = str_format("{{}", "unused");
+      expect(result to match("{}", str_eq));
+    }
+
+    it("does a basic string replacement") {
+      result = str_format("{} Blah", "Replacement Second");
+      expect(result to match("Replacement Second Blah", str_eq));
+    }
+
+    it("directly prints any invalid format specifier") {
+      result = str_format("|{}|{a}|", "first", "unused");
+      expect(result to match("|first|{a}|", str_eq));
+    }
+
+    it("won't try to substitute based on braces in arguments") {
+      result = str_format("{}", "{}", "unused");
+      expect(result to match("{}", str_eq));
+    }
+
+    it("does not allow spaces in a format specifier") {
+      result = str_format("{ }", "unused");
+      expect(result to match("{ }", str_eq));
+    }
+
+    it("can output a basic json without formatting it") {
+      result = str_format("{json_param: 2, obj: {a: 1}}", "unused");
+      expect(result to match("{json_param: 2, obj: {a: 1}}", str_eq));
+    }
+
+    it("does a substitution with two format specifiers in sequence") {
+      result = str_format("1: {}, 2: {}", "first", "second");
+      expect(result to match("1: first, 2: second", str_eq));
+    }
+
+    it("treats arg indexes past list size as blank") {
+      result = str_format("|{}|{}|", "test");
+      expect(result to match("|test||", str_eq));
+    }
+
+    it("completely pads an argument out of range") {
+      result = str_format("|{1:5}|", "unused");
+      expect(result to match("|     |", str_eq));
+    }
+
   }
 
-  it("escapes an open brace") {
-    result = str_format("{{}", "unused");
-    test_log_memory(result->begin);
-    expect(result to match("{}", str_eq));
+  context("positional arguments") {
+
+    it("indexes the arg list when given a formatter index") {
+      result = str_format("|{0}|{0}|{0}|", "test");
+      expect(result to match("|test|test|test|", str_eq));
+    }
+
+    it("can index the arg list in arbitrary order") {
+      result = str_format("|{1}|{0}|{2}|{0}|", "first", "second", "third");
+      expect(result to match("|second|first|third|first|", str_eq));
+    }
+
+    it("treats explicitly provided out-of-range index as blank") {
+      result = str_format("|{1}|", "only");
+      expect(result to match("||", str_eq));
+    }
+
+    it("continues counting arguments after the first explicit index") {
+      result = str_format("|{1}|{}|", "first", "second", "third");
+      expect(result to match("|second|third|", str_eq));
+    }
+
   }
 
-  it("does a basic string replacement") {
-    result = str_format("{} Blah", "Replacement Second");
-    expect(result to match("Replacement Second Blah", str_eq));
+  context("formatting for strings") {
+
+    context("alignment and padding") {
+
+      it("can set a minimum width for an argument") {
+        result = str_format("|{:10}|", "test");
+        expect(result to match("|test      |", str_eq));
+      }
+
+      it("can take an alignment specifier (left default)") {
+        result = str_format("|{:<10}|", "test");
+        expect(result to match("|test      |", str_eq));
+      }
+
+      it("can take an alignment specifier (right)") {
+        result = str_format("|{:>10}|", "test");
+        expect(result to match("|      test|", str_eq));
+      }
+
+      it("can take an alignment specifier (center)") {
+        result = str_format("|{:^10}|", "test");
+        expect(result to match("|   test   |", str_eq));
+      }
+
+      it("can handle an odd width center alignment") {
+        result = str_format("|{:^9}|", "test");
+        expect(result to match("|   test  |", str_eq));
+      }
+
+      it("uses a given char for padding") {
+        result = str_format("|{:#-10}|", "test");
+        expect(result to match("|test------|", str_eq));
+      }
+
+      it("combines alignment and padding char") {
+        result = str_format("|{:>#-10}|", "test");
+        expect(result to match("|------test|", str_eq));
+      }
+
+      it("allows combining of positional arguments and alignments") {
+        result = str_format("|{1:>#`5}|{0:<#,5}|", "a", "b");
+        expect(result to match("|````b|a,,,,|", str_eq));
+      }
+
+    }
+
   }
 
-  it("treats arg indexes past list size as blank") {
-    result = str_format("|{}|{}|", "test");
-    expect(result to match("|test||", str_eq));
-  }
+  context("formatting for integer values") {
 
-  it("treates explicitly provided out-of-range index as blank") {
-    result = str_format("|{1}|", "only");
-    expect(result to match("||", str_eq));
-  }
+    it("prints an integer with no special formatting") {
+      result = str_format("{}", 15);
+      expect(result to match("15", str_eq));
+    }
 
-  it("does a substitution with two format specifiers in sequence") {
-    result = str_format("1: {}, 2: {}", "first", "second");
-    expect(result to match("1: first, 2: second", str_eq));
-  }
+    it("can output zero") {
+      result = str_format("{}", 0);
+      expect(result to match("0", str_eq));
+    }
 
-  it("indexes the arg list when given a formatter index") {
-    result = str_format("|{0}|{0}|{0}|", "test");
-    expect(result to match("|test|test|test|", str_eq));
-  }
+    context("sign display") {
 
-  it("can index the arg list in arbitrary order") {
-    result = str_format("|{1}|{0}|{2}|{0}|", "first", "second", "third");
-    expect(result to match("|second|first|third|first|", str_eq));
-  }
+      it("shows + sign on positive numbers") {
+        result = str_format("{:+}", 15);
+        expect(result to match("+15", str_eq));
+      }
 
-  it("continues default indexing when index is invalid") {
-    result = str_format("|{}|{a}|", "first", "second");
-    expect(result to match("|first|second|", str_eq));
+      it("positive zero") {
+        result = str_format("{:+}", 0);
+        expect(result to match("+0", str_eq));
+      }
+
+      it("negative zero") {
+        result = str_format("{:+}", -0);
+        expect(result to match("+0", str_eq));
+      }
+
+      it("prints an integer with no special formatting") {
+        result = str_format("{}", -15);
+        expect(result to match("-15", str_eq));
+      }
+
+      it("prints a negative integer with explicit sign") {
+        result = str_format("{:+}", -15);
+        expect(result to match("-15", str_eq));
+      }
+
+    }
+
+    context("alignment and padding") {
+
+      it("prints a left aligned integer with padding") {
+        result = str_format("|{:10}|", 15);
+        expect(result to match("|15        |", str_eq));
+      }
+
+      it("prints an explicitly left aligned integer with padding") {
+        result = str_format("|{:<10}|", 15);
+        expect(result to match("|15        |", str_eq));
+      }
+
+      it("prints a right aligned integer with padding") {
+        result = str_format("|{:>10}|", 15);
+        expect(result to match("|        15|", str_eq));
+      }
+
+      it("prints a right aligned integer with padding and sign") {
+        result = str_format("|{:+>10}|", 15);
+        expect(result to match("|       +15|", str_eq));
+      }
+
+      it("prints a value with ledger alignment") {
+        result = str_format("|{:+=10}|", 15);
+        expect(result to match("|+       15|", str_eq));
+      }
+
+      it("prints a value with ledger alignment sans plus") {
+        result = str_format("|{:=10}|", 15);
+        expect(result to match("|        15|", str_eq));
+      }
+
+      it("prints a negative value with ledger alignment") {
+        result = str_format("|{:=10}|", -3457);
+        expect(result to match("|-     3457|", str_eq));
+      }
+
+      it("prints with leading zeros") {
+        result = str_format("|{:010}|", 832983);
+        expect(result to match("|0000832983|", str_eq));
+      }
+
+      it("prints with explicitly defined padding character") {
+        result = str_format("|{:#.010}|", -345871);
+        expect(result to match("|-...345871|", str_eq));
+      }
+
+      it("prints a number centered") {
+        result = str_format("|{:^10}|", 124);
+        expect(result to match("|    124   |", str_eq));
+      }
+
+      it("prints a signed number centered") {
+        result = str_format("|{:^+10}|", 124);
+        expect(result to match("|   +124   |", str_eq));
+      }
+
+      it("prints a negative number centered") {
+        result = str_format("|{:^10}|", -1246);
+        expect(result to match("|   -1246  |", str_eq));
+      }
+
+      it("prints middle zero") {
+        result = str_format("({:^9})", 0);
+        expect(result to match("(    0    )", str_eq));
+      }
+
+      it("prints a number larger than the given width") {
+        result = str_format("|{:5}|", 1234567);
+        expect(result to match("|1234567|", str_eq));
+      }
+
+    }
+
+    context("representation styles") {
+
+    }
   }
 
   if (result) test_log_memory(result->begin);

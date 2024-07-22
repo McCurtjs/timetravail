@@ -363,14 +363,48 @@ enum _Str_FmtSpec_Alignment {
   _Str_FmtSpec_Right
 };
 
+typedef enum {
+  _Str_FmtState_Index,
+  _Str_FmtState_Style,
+  _Str_FmtState_Flags,
+  _Str_FmtState_Padch,
+  _Str_FmtState_Width,
+  _Str_FmtState_Preci,
+  _Str_FmtState_Final
+} _Str_FmtState;
+
+typedef enum {
+  _Str_FmtAlign_Left,
+  _Str_FmtAlign_Center,
+  _Str_FmtAlign_Right,
+  _Str_FmtAlign_Right_LeftSign,
+} _Str_FmtAlign;
+
+typedef enum {
+  _Str_FmtRep_Default,
+  _Str_FmtRep_Hex,
+  _Str_FmtRep_HEX,
+  _Str_FmtRep_Binary,
+  _Str_FmtRep_Char,
+  _Str_FmtRep_Day,
+  _Str_FmtRep_DayShort,
+  _Str_FmtRep_Month,
+  _Str_FmtRep_MonthShort
+} _Str_FmtRep;
+
+const byte _str_fmtarg_invalid_spec = 255;
+
 typedef struct {
   byte index;
-  byte width;               // 0 = no padding
-  byte precision;           // 0 = default of 1
-  byte alignment : 2;       // 0 = center
+  byte padding;             // default = space
+  byte precision;           // default of 1 (ie, 1.0)
+  byte alignment : 2;       // 0 = left, 1 = center, 2 = right
   byte sign : 1;            // 0 = - only, 1 = + for positive numbers
-  byte trailing_zeroes : 1; // 0 = don't, 1 = do ; only for decimals
-  byte representation : 2;  // 0 = default, 1 = hex, 2 = char, 3 = binary
+  byte representation : 4;  // 0 = default, 1 = hex, 2 = char, 3 = binary, d, D, m, M
+  byte trailing : 1;        // 0 = don't, 1 = do ; only for decimals
+  byte sci_notation : 2;    // 0 = no, 1 = e, 2 = E
+  byte percentage : 1;      // 0 = no, 1 = display decimals as percent
+  ushort width;             // 0 = no padding
 } _Str_FmtSpec;
 
 // handle format specifier
@@ -380,132 +414,218 @@ typedef struct {
 // width: "values: {:4}, {0:4}",                  1         -> "values: 1   , 1   "
 // align: "values: |{0:<4}|{0:>4}|{0:^4}|{0:^5}", 1         -> "values: |1   |   1| 1  |  1  |"
 // preci: "values: |{0:.5}|{0:^.1}|{0:>10.6+}|",  1.23      -> "values: |1.23|1.2|1.230000  |"
-// types: "values: {0:i} {0:h} {0:c}",            65        -> "values: 65, 41, A"
+// types: "values: {0!i} {0!x} {0!c}",            65        -> "values: 65, 41, A"
 // date format specifiers? (ie, {%d} for "Monday" (use standard)
-static _Str_FmtSpec format_read_spec(StringRange spec_str, byte arg_index) {
+static _Str_FmtSpec format_read_spec(
+  StringRange spec_str, byte arg_index, index_s* spec_end
+) {
 
   // set up the format specifier struct
   _Str_FmtSpec spec = { 0 };
   spec.index = arg_index;
 
-  index_s colon_offset = 0;
+  _Str_FmtState read_state = _Str_FmtState_Index;
 
-  // no explicit argument index given, use the next in the list
-  if (spec_str.size == 0) {
-    return spec;
+  for (index_s i = 0; i < spec_str.size; ++i) {
+    char c = spec_str.begin[i];
 
-  // format does not start with colon, meaning there is a format index
-  // if the format does start with a colon, use next index but still format
-  } else if (spec_str.begin[0] != ':') {
-    colon_offset = istr_index_of_char(spec_str, ':', 0);
-    index_s index;
-    if (istr_to_int(spec_str, &index) && index < 256) {
-      spec.index = (byte)index;
+    // close out the specifier at any point, also handles "{}"
+    if (c == '}') {
+      *spec_end = i + 1;
+      if (spec.precision == 0) {
+        spec.precision = 1;
+      }
+      if (spec.padding == 0) {
+        spec.padding = ' ';
+      }
+      return spec;
     }
-  }
 
-  // if no colon is in the string, the rest of the spec is defaults
-  if (colon_offset == spec_str.size) {
-    return spec;
-  }
+    switch (read_state) {
 
-  //StringRange s = istr_substring(spec_str, colon_offset + 1, spec_str.size);
+      // reading the arg index: "{12}", "{12!b}", "{0:10}"
+      case _Str_FmtState_Index: {
 
-
-  /*
-  // otherwise, parse the format specifier
-  // TODO: add 'end' as a size alias so the check can be against 'spec_str.end'?
-  index_s width_start = 0;
-  index_s width_end = 0;
-  index_s prec_start = 0;
-  index_s prec_end = 0;
-
-  for (index_s i = 1; i < spec_str.size; ++i) {
-    byte c = spec_str.begin[i];
-
-    // prefix options (sign, alignment)
-    if (!width_start) {
-
-      if (isdigit(c)) {
-        width_start = i;
-
-      }
-      else if (c == '<') {
-        spec.alignment = _Str_FmtSpec_Left;
-
-      }
-      else if (c == '>') {
-        spec.alignment = _Str_FmtSpec_Right;
-
-      }
-      else if (c == '^') {
-        spec.alignment = _Str_FmtSpec_Center;
-
-      }
-      else if (c == '+') {
-        spec.sign = 1;
-
-      }
-      else if (c == '-') {
-        spec.sign = 0;
-      }
-
-      // seek for decimal precision marker
-    }
-    else if (!width_end && !prec_start) {
-
-      if (c == '.') {
-        width_end = i;
-        prec_start = i + 1;
-      }
-
-      // post 
-    }
-    else if (prec_start) {
-
-      // mark the end of the precision field
-      if (!isdigit(c)) {
-        if (!prec_end) {
-          prec_end = i;
+        if (c == '!') {
+          read_state = _Str_FmtState_Style;
+          break;
         }
 
-        // post-precision flags
+        if (c == ':') {
+          read_state = _Str_FmtState_Flags;
+          break;
+        }
+
+        // invalid if index is over 99 or contains non-digit
+        if (i >= 2 || !isdigit(c)) {
+          goto invalid_spec;
+        }
+
+        if (i == 0) spec.index = 0;
+        spec.index *= 10;
+        spec.index += c - '0';
+
+      } break;
+
+      // reading conversions: "{!x}", "{1!c}", "{!M:10}"
+      case _Str_FmtState_Style: {
+
+        switch (c) {
+          case ':': read_state = _Str_FmtState_Flags; break;
+          case 'x': spec.representation = _Str_FmtRep_Hex; break;
+          case 'X': spec.representation = _Str_FmtRep_HEX; break;
+          case 'b': spec.representation = _Str_FmtRep_Binary; break;
+          case 'c': spec.representation = _Str_FmtRep_Char; break;
+          case 'D': spec.representation = _Str_FmtRep_Day; break;
+          case 'd': spec.representation = _Str_FmtRep_DayShort; break;
+          case 'M': spec.representation = _Str_FmtRep_Month; break;
+          case 'm': spec.representation = _Str_FmtRep_MonthShort; break;
+          default: goto invalid_spec;
+        }
+
+      } break;
+
+      // reading the pad character in the flags section "{:#X10}"
+      case _Str_FmtState_Padch: {
+
+        if (spec.padding) {
+          goto invalid_spec;
+        }
+
+        spec.padding = c;
+        read_state = _Str_FmtState_Flags;
+
+      } break;
+
+      // reading the prefix flag chars: "{:+<^>#_}"
+      case _Str_FmtState_Flags: {
+
+        switch (c) {
+          case '+': spec.sign = 1; break;
+          case '<': spec.alignment = _Str_FmtAlign_Left; break;
+          case '^': spec.alignment = _Str_FmtAlign_Center; break;
+          case '>': spec.alignment = _Str_FmtAlign_Right; break;
+          case '=': spec.alignment = _Str_FmtAlign_Right_LeftSign; break;
+          case '#': read_state = _Str_FmtState_Padch; break;
+          case '.': read_state = _Str_FmtState_Preci; break;
+          default: {
+            if (!isdigit(c)) {
+              goto invalid_spec;
+            }
+            read_state = _Str_FmtState_Width;
+          }
+        }
+
+        if (read_state != _Str_FmtState_Width) break;
+
+      } SWITCH_FALLTHROUGH; // fallthrough for digits
+
+      // reading width specifier: "{:10}", "{:010}", "{:10.5}"
+      case _Str_FmtState_Width: {
+
+        if (c == '.') {
+          read_state = _Str_FmtState_Preci;
+          break;
+        }
+
+        if (!isdigit(c)) {
+          goto invalid_spec;
+        }
+
+        if (c == '0' && spec.width == 0) {
+          if (!spec.padding) spec.padding = '0';
+          spec.alignment = _Str_FmtAlign_Right_LeftSign;
+          break;
+        }
+
+        spec.width *= 10;
+        spec.width += c - '0';
+
+      } break;
+
+      // precision for decimals: "{:10.5}", "{:10.5+}", "{:.4e}"
+      case _Str_FmtState_Preci: {
+
         if (c == '+') {
-          spec.trailing_zeroes = 1;
+          spec.trailing = 1;
+          read_state = _Str_FmtState_Final;
+          break;
         }
 
+        if (spec.sci_notation == 0) {
+          if (c == 'e') { spec.sci_notation = 1; break; }
+          if (c == 'E') { spec.sci_notation = 2; break; }
+        }
+
+        if (!isdigit(c) || spec.sci_notation != 0) {
+          goto invalid_spec;
+        }
+
+        spec.precision *= 10;
+        spec.precision += c - '0';
+
+      } break;
+
+      // in this state, we've read all of the format, it's } or bust.
+      case _Str_FmtState_Final: {
+        goto invalid_spec;
       }
 
     }
 
   }
 
-  if (!width_end) {
-    width_end = spec_str.size;
-  }
+invalid_spec:
 
-  if (!prec_end) {
-    prec_end = spec_str.size;
-  }
-
-
-  spec_str = istr_substring(spec_str, 1, spec_str.size);
-
-  // handle specifier prefix
-  switch (*spec_str.begin) {
-  }
-
-  // handle sign (+) suffix
-  if (spec_str.begin[spec_str.size - 1] == '+') {
-    spec.sign = 1;
-  }
-  //*/
+  spec.index = _str_fmtarg_invalid_spec;
   return spec;
+}
+
+static void format_print_arg_align_number(
+  Array_byte out, _Str_FmtSpec spec, index_s excess, index_s start, index_s msd
+) {
+  if (!excess) return;
+
+  switch (spec.alignment) {
+
+    case _Str_FmtAlign_Left: {
+      byte* pad = arr_byte_emplace_back_range(out, excess);
+      memset(pad, spec.padding, excess);
+    } break;
+
+    case _Str_FmtAlign_Center: {
+      index_s half = (excess + 1) / 2;
+      index_s back_size = excess - half;
+      byte* pad = arr_byte_emplace_range(out, start, half);
+      memset(pad, spec.padding, half);
+      pad = arr_byte_emplace_back_range(out, back_size);
+      memset(pad, spec.padding, back_size);
+    } break;
+
+    case _Str_FmtAlign_Right: {
+      byte* pad = arr_byte_emplace_range(out, start, excess);
+      memset(pad, spec.padding, excess);
+    } break;
+
+    case _Str_FmtAlign_Right_LeftSign: {
+      byte* pad = arr_byte_emplace_range(out, msd, excess);
+      memset(pad, spec.padding, excess);
+    } break;
+
+  }
+
 }
 
 static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
   if (spec.index >= params->size) {
+
+    // special case for padding an out-of-bounds argument
+    if (spec.width) {
+      byte* bytes = arr_byte_emplace_back_range(out, spec.width);
+      memset(bytes, spec.padding, spec.width);
+    }
+
     return;
   }
 
@@ -515,8 +635,69 @@ static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
     case _Str_FmtArg_StringRange: {
 
-      byte* bytes = arr_byte_emplace_back_range(out, (uint)arg->range.size);
-      memcpy(bytes, arg->range.begin, arg->range.size);
+      index_s width = MAX(spec.width, arg->range.size);
+      index_s excess = width - arg->range.size;
+
+      byte* bytes = arr_byte_emplace_back_range(out, width);
+
+      index_s pos = 0;
+      if (excess) {
+
+        switch (spec.alignment) {
+
+          case _Str_FmtAlign_Left: {
+            memset(bytes + arg->range.size, spec.padding, excess);
+          } break;
+
+          case _Str_FmtAlign_Center: {
+            pos = (excess + 1) / 2;
+            index_s back_size = width - arg->range.size - pos;
+            memset(bytes, spec.padding, pos);
+            memset(bytes + pos + arg->range.size, spec.padding, back_size);
+          } break;
+
+          case _Str_FmtAlign_Right:
+          case _Str_FmtAlign_Right_LeftSign: {
+            pos = excess;
+            memset(bytes, spec.padding, excess);
+          } break;
+
+        }
+
+      }
+
+      memcpy(bytes + pos, arg->range.begin, arg->range.size);
+
+    } break;
+
+    case _Str_FmtArg_Int: {
+
+      ptrdiff_t i = arg->i;
+      index_s start = out->size;
+
+      if (i < 0) {
+        arr_byte_push_back(out, '-');
+        i *= -1;
+      }
+      else if (spec.sign) {
+        arr_byte_push_back(out, '+');
+      }
+
+      index_s msd = out->size;
+
+      do {
+        ptrdiff_t digit = i % 10;
+        arr_byte_push_back(out, (byte)(digit + '0'));
+        i /= 10;
+      } while (i);
+
+      byte* digits = arr_byte_get_ref(out, msd);
+      memrev(digits, (uint)(out->size - msd));
+
+      index_s width = MAX(spec.width, out->size - start);
+      index_s excess = width - (out->size - start);
+
+      format_print_arg_align_number(out, spec, excess, start, msd);
 
     } break;
 
@@ -598,24 +779,22 @@ String istr_format(StringRange fmt, ...) {
       continue;
     }
 
-    // get format specifier contents
-    index_s spec_end = istr_index_of(fmt, R("}"), i+1);
+    index_s spec_end;
+    StringRange spec_str = istr_substring(fmt, i + 1, fmt.size);
+    _Str_FmtSpec spec = format_read_spec(spec_str, arg_index, &spec_end);
 
-    // case for un-closed brace
-    if (spec_end == fmt.size) {
+    if (spec.index == _str_fmtarg_invalid_spec) {
       section_start = i;
-      section_size = fmt.size - section_start;
-      break;
+      section_size = 1;
+      continue;
     }
 
-    StringRange spec_str = istr_substring(fmt, i + 1, spec_end);
-    _Str_FmtSpec spec = format_read_spec(spec_str, arg_index);
     arg_index = spec.index + 1;
 
     format_print_arg(output, params, spec);
 
-    i = spec_end;
-    section_start = spec_end + 1;
+    i = i + spec_end;
+    section_start = i + 1;
   }
 
   if (section_size) {
@@ -628,6 +807,7 @@ String istr_format(StringRange fmt, ...) {
   header->size = output->size - sizeof(struct _Str_Base);
   arr_byte_push_back(output, '\0');
   header->begin = &header->head;
+  arr_byte_truncate(output, output->size);
   String ret = (String)arr_byte_release(&output);
 
   return ret;
