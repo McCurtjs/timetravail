@@ -608,7 +608,7 @@ bool anim_is_hangtime_2(uint animation) {
 bool anim_finished(uint animation, index_s frame) {
   Animation* anim = &player_animations[animation];
   if (anim->repeat > 0)
-    return frame / anim->rate >= (uint)anim->repeat;
+    return frame / anim->rate >= anim->repeat;
   return frame / anim->rate >= anim->count - anim->repeat;
 }
 

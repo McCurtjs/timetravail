@@ -247,7 +247,7 @@ static void model_render_sprites(Model_Sprites* sprites) {
   glBindBuffer(GL_ARRAY_BUFFER, sprites->buffer);
 
   index_s size_bytes = sprites->verts->size_bytes;
-  void* data_start = array_get_front_ref(sprites->verts);
+  void* data_start = array_ref_front(sprites->verts);
   glBufferData(GL_ARRAY_BUFFER, size_bytes, data_start, GL_DYNAMIC_DRAW);
 
   glEnable(GL_BLEND);
@@ -345,7 +345,7 @@ static int model_build_obj(Model_Obj* obj) {
 
   glBindBuffer(GL_ARRAY_BUFFER, obj->vert_buffer);
   glBufferData(GL_ARRAY_BUFFER, obj->verts->size_bytes,
-               array_get_front_ref(obj->verts), GL_STATIC_DRAW);
+               array_ref_front(obj->verts), GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, v3floats, GL_FLOAT, GL_FALSE,
                         sizeof(ObjVertex), &((ObjVertex*)0)->pos);
@@ -361,7 +361,7 @@ static int model_build_obj(Model_Obj* obj) {
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->indices->size_bytes,
-               array_get_front_ref(obj->indices), GL_STATIC_DRAW);
+               array_ref_front(obj->indices), GL_STATIC_DRAW);
 
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -476,14 +476,14 @@ void model_load_obj(Model* model, File* file) {
 
   for (index_s i = 0; i < faces->size; ++i) {
     // -1's to account for obj's 1-indexing
-    ObjFaceElem* f = array_get_ref(faces, i);
-    ObjVertexPart* partial = array_get_ref(verts, f->vert-1);
+    ObjFaceElem* f = array_ref(faces, i);
+    ObjVertexPart* partial = array_ref(verts, f->vert-1);
 
     array_write_back(model->obj.verts, &(ObjVertex) {
       .pos = partial->pos,
       .color = partial->color,
-      .norm = *((vec3*)array_get_ref(norms, f->norm-1)),
-      .uv = *((vec2*)array_get_ref(uvs, f->uv-1)),
+      .norm = *((vec3*)array_ref(norms, f->norm-1)),
+      .uv = *((vec2*)array_ref(uvs, f->uv-1)),
     });
 
     // TODO: make this actually make sense, lol. This should put the faces

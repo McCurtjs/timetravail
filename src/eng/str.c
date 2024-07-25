@@ -672,7 +672,7 @@ static void format_print_arg_float(
     arr_byte_push_back(out, (byte)(digit + '0'));
   } while (f >= 1.0);
 
-  byte* digits = arr_byte_get_ref(out, start);
+  byte* digits = arr_byte_ref(out, start);
   memrev(digits, (uint)(out->size - start));
 
   f = f_val - floor(f_val);
@@ -710,7 +710,7 @@ static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
     return;
   }
 
-  _Str_FmtArg* arg = array_get_ref(params, spec.index);
+  _Str_FmtArg* arg = array_ref(params, spec.index);
 
   switch (arg->type) {
 
@@ -767,7 +767,7 @@ static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
       format_print_arg_int(out, spec, i);
 
-      byte* digits = arr_byte_get_ref(out, msd);
+      byte* digits = arr_byte_ref(out, msd);
       memrev(digits, (uint)(out->size - msd));
 
       index_s width = MAX(spec.width, out->size - start);

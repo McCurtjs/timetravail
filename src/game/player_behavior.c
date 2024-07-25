@@ -55,7 +55,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // Store a a pointer to this player entity along with the current frame
     // to mark it as the "active" player for its frame set
-    arr_PlayerRef_get_back_ref(game->timeguys)->end_frame = game_frame;
+    arr_PlayerRef_ref_back(game->timeguys)->end_frame = game_frame;
     arr_PlayerRef_push_back(game->timeguys, (PlayerRef) {
       .start_frame = game_frame,
       .e = e,
@@ -76,7 +76,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
   // Handle input event recording
   if (!e->playback) {
-    ReplayNode* prev_node = arr_ReplayNode_get_back_ref(e->replay);
+    ReplayNode* prev_node = arr_ReplayNode_ref_back(e->replay);
     bool hit_max_node_time = game_frame - prev_node->frame >= max_replay_temp;
 
     if (hit_max_node_time
@@ -209,7 +209,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
     node.data.pos = v2lerp(node.data.pos, next.data.pos, frame_t);
 
     // At this point, "node" should be set to the correct current frame
-    temp = arr_ReplayNode_get_back_ref(e->replay);
+    temp = arr_ReplayNode_ref_back(e->replay);
     if (game_frame != node.frame && game_frame < temp->frame_until) { // sanity check
       print("Node frame numbers mismatch! ! ! ! ! ! ! ! ! ! ! ! ");
       print_ptr(e); print_int(node.frame); print_int(game_frame);
@@ -220,7 +220,7 @@ void behavior_player(Entity* e, Game* game, float _dt) {
 
     // And change the warp animations for the "ghosts"
     if (anim_is_warp(e->fd.animation)) {
-      if (e != arr_ety_get_back_ref(game->entities)) {
+      if (e != arr_ety_ref_back(game->entities)) {
         e->fd.animation += 1;
       }
     }

@@ -11,11 +11,6 @@ typedef struct {
   void* const arr;
 }* Array;
 
-// todo: change all array_ prefixes to arr_ ?
-// todo: add array_emplace_back or array_push_back_ref for pointer ops?
-//    (generic versions use arr_typ_push_back(arr, non_ptr_obj); )
-// todo: replace all "if (!a) return _;" checks with asserts
-
 #define array_new(TYPE) _array_new_(sizeof(TYPE))
 #define array_new_reserve(TYPE, capacity) _array_new_reserve_(sizeof(TYPE), capacity)
 Array   _array_new_(index_s elemenet_size);
@@ -29,18 +24,78 @@ void*   array_release(Array* array);
 index_s array_write(Array array, index_s position, const void* in_element);
 index_s array_write_back(Array array, const void* in_element);
 void*   array_emplace(Array array, index_s position);
-void*   array_emplace_range(Array array, index_s position, index_s count);
 void*   array_emplace_back(Array array);
+void*   array_emplace_range(Array array, index_s position, index_s count);
 void*   array_emplace_back_range(Array array, index_s count);
 index_s array_remove(Array array, index_s position);
+index_s array_remove_range(Array array, index_s position, index_s count);
 index_s array_remove_unstable(Array array, index_s position);
 index_s array_pop_back(Array array);
-void*   array_get_ref(Array array, index_s index);
-void*   array_get_front_ref(Array array);
-void*   array_get_back_ref(Array array);
+void*   array_ref(Array array, index_s index);
+void*   array_ref_front(Array array);
+void*   array_ref_back(Array array);
 bool    array_read(const Array array, index_s index, void* out_element);
 bool    array_read_front(const Array array, void* out_element);
 bool    array_read_back(const Array array, void* out_element);
+//void    array_sort(Array array, bool (*cmp)(const void* lhs, const void* rhs));
+//void*   array_ref_find(Array array, bool (*predicate)(const void* el));
+//void    array_filter(Array array, bool (*filter)(const void* el));
+
+// In order to define type-specific continers, include or re-include the header
+// after #defining con_type with the desired type, and optionally con_prefix to
+// set the prefix type specifier (if not set, the type will be used directly).
+//
+// When defined, the following will be created (inline, with no overhead):
+//
+// #define con_type T
+// #define con_prefix t
+// #include "array.h"
+// #undef con_type
+// #undef con_prefix
+//
+// // Create, Setup, Delete
+// Array_T  arr_t_new();
+// Array_T  arr_t_new_reserve(index_s capacity);
+// void     arr_t_reserve(Array_T, index_s capacity);
+// void     arr_t_truncate(Array_T, index_s capacity);
+// void     arr_t_clear(Array_T);
+// void     arr_t_free(Array_T);
+// void     arr_t_delete(Array_T*);
+// T*       arr_t_release(Array_T*);
+//
+// // Item Addition
+// index_s  arr_t_insert(Array_T, index_s position, T element);
+// index_s  arr_t_push_back(Array_T, T element);
+// index_s  arr_t_write(Array_T, index_s position, const T* element);
+// index_s  arr_t_write_back(Array_T, const T* element);
+// T[1]     arr_t_emplace(Array_T, index_s position);
+// T[1]     arr_t_emplace_back(Array_T);
+// T[n]     arr_t_emplace_range(Array_T, index_s position, index_s count);
+// T[n]     arr_t_emplace_back_range(Array_T, index_s count);
+//
+// // Item Removal
+// index_s  arr_t_remove(Array_T, position);
+// index_s  arr_t_remove_range(Array_T, position);
+// index_s  arr_t_remove_unstable(Array_T, position);
+// index_s  arr_t_pop_back(Array_T);
+//
+// // Accessors
+// T        arr_t_get(Array_T, index_s index);
+// T        arr_t_get_front(Array_T);
+// T        arr_t_get_back(Array_T);
+// T*       arr_t_ref(Array_T, index_s index);
+// T*       arr_t_ref_front(Array_T);
+// T*       arr_t_ref_back(Array_T);
+// bool     arr_t_read(Array_T, index_s index, T* out);
+// bool     arr_t_read_front(Array_T, T* out);
+// bool     arr_t_read_back(Array_T, T* out);
+//
+// // Algorithm
+// void     arr_t_filter(Array_T, predicate);
+// void     arr_t_sort(Array_T, compare_fn cmp);
+// T        arr_t_find(Array_T, predicate);
+// T*       arr_t_ref_find(Array_T, predicate);
+//
 
 // \brief A macro shorthand to write foreach loops with any dynamic Array or
 //    Array-based sub-types.
@@ -234,6 +289,15 @@ static inline con_type* _prefix(_emplace)
   return array_emplace((Array)arr, position);
 }
 
+// \brief Inserts space for an element at the back of the array and returns a
+//    pointer to it without performing any initialization.
+//
+// \returns A pointer to the newly added and uninitialized element.
+static inline con_type* _prefix(_emplace_back)
+(_arr_type arr) {
+  return array_emplace_back((Array)arr);
+}
+
 // \brief Inserts space for count elements in the array and returns a pointer to
 //    the first without performing any initialization or copying into the range.
 //
@@ -245,15 +309,6 @@ static inline con_type* _prefix(_emplace)
 static inline con_type* _prefix(_emplace_range)
 (_arr_type arr, index_s position, index_s count) {
   return array_emplace_range((Array)arr, position, count);
-}
-
-// \brief Inserts space for an element at the back of the array and returns a
-//    pointer to it without performing any initialization.
-//
-// \returns A pointer to the newly added and uninitialized element.
-static inline con_type* _prefix(_emplace_back)
-(_arr_type arr) {
-  return array_emplace_back((Array)arr);
 }
 
 // \brief Inserts space for a number of elements at the back of the array and
@@ -318,7 +373,7 @@ static inline index_s _prefix(_pop_back)
 // \returns A copy of the indexed element.
 static inline con_type _prefix(_get)
 (const _arr_type arr, index_s index) {
-  con_type* element = array_get_ref((Array)arr, index);
+  con_type* element = array_ref((Array)arr, index);
   assert(element != NULL);
   return *element;
 }
@@ -330,7 +385,7 @@ static inline con_type _prefix(_get)
 static inline con_type _prefix(_get_front)
 (const _arr_type arr) {
   assert(arr->size > 0);
-  return *(con_type*)array_get_front_ref((Array)arr);
+  return *arr->arr;
 }
 
 // \brief Returns a copy of the last element in the array.
@@ -340,7 +395,7 @@ static inline con_type _prefix(_get_front)
 static inline con_type _prefix(_get_back)
 (const _arr_type arr) {
   assert(arr->size > 0);
-  return *(con_type*)array_get_back_ref((Array)arr);
+  return *(con_type*)array_ref_back((Array)arr);
 }
 
 // \brief Returns a reference to the element at the given position, or NULL if
@@ -350,21 +405,22 @@ static inline con_type _prefix(_get_back)
 // \param index - the index at which to retrieve the item from
 //
 // \returns A pointer to the indexed element.
-static inline con_type* _prefix(_get_ref)
+static inline con_type* _prefix(_ref)
 (_arr_type arr, index_s index) {
-  return (con_type*)array_get_ref((Array)arr, index);
+  return (con_type*)array_ref((Array)arr, index);
 }
 
 // \returns A pointer to the first element in the array, or NULL if empty.
-static inline con_type* _prefix(_get_front_ref)
+static inline con_type* _prefix(_ref_front)
 (_arr_type arr) {
-  return (con_type*)array_get_front_ref((Array)arr);
+  assert(arr);
+  return arr->arr;
 }
 
 // \returns A pointer to the last element in the array, or NULL if empty.
-static inline con_type* _prefix(_get_back_ref)
+static inline con_type* _prefix(_ref_back)
 (_arr_type arr) {
-  return (con_type*)array_get_back_ref((Array)arr);
+  return (con_type*)array_ref_back((Array)arr);
 }
 
 // \brief Copies the value at the given index into the referenced output object.
@@ -386,7 +442,11 @@ static inline bool _prefix(_read)
 // \returns True if an element is written, false otherwise.
 static inline bool _prefix(_read_front)
 (const _arr_type arr, con_type* out_element) {
-  return array_read_front((Array)arr, out_element);
+  assert(arr);
+  assert(out_element);
+  if (arr->size <= 0) return false;
+  *out_element = *arr->arr;
+  return true;
 }
 
 // \brief Writes a copy of the last element in the array into the memory

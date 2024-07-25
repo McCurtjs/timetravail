@@ -178,7 +178,7 @@ void level_load_editor_test(Game* game) {
   game->timeguys = arr_PlayerRef_new();
   arr_PlayerRef_push_back(game->timeguys, (PlayerRef){
     .start_frame = 0,
-    .e = arr_ety_get_back_ref(game->entities)
+    .e = arr_ety_ref_back(game->entities)
   });
 
 }
