@@ -265,7 +265,6 @@ enum _Str_FmtArg_Type {
   _Str_FmtArg_End,
   _Str_FmtArg_StringRange,
   _Str_FmtArg_Int,
-  _Str_FmtArg_Unsigned,
   _Str_FmtArg_Float,
 };
 
@@ -274,7 +273,6 @@ typedef struct {
   union {
     StringRange range;
     ptrdiff_t i;
-    size_t ui;
     double f;
   };
 } _Str_FmtArg;
@@ -301,7 +299,7 @@ static inline _Str_FmtArg _sarg_int(long long int i) {
 }
 
 static inline _Str_FmtArg _sarg_unsigned(long long unsigned int i) {
-  return (_Str_FmtArg) { .type = _Str_FmtArg_Unsigned, .ui = i };
+  return (_Str_FmtArg) { .type = _Str_FmtArg_Int, .i = (ptrdiff_t)i };
 }
 
 static inline _Str_FmtArg _sarg_float(double f) {
@@ -318,13 +316,5 @@ static inline _Str_FmtArg _sarg_float(double f) {
   unsigned int: _sarg_unsigned,   \
   double:       _sarg_float       \
 )(arg)                            //
-
-/*
-
-#define _str_format(str, ...) istr_format(str, _va_exp(_s2r, __VA_ARGS__), str_va_end)
-#define str_format(str, ...) _str_format(_s2r(str), __VA_ARGS__)
-
-
-//*/
 
 #endif

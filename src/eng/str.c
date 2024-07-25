@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "utility.h"
 
@@ -616,6 +617,86 @@ static void format_print_arg_align_number(
 
 }
 
+static void format_print_arg_int(
+  Array_byte out, _Str_FmtSpec spec, ptrdiff_t i
+) {
+
+  switch (spec.representation) {
+
+    case _Str_FmtRep_Char: {
+      arr_byte_push_back(out,
+        (i <= 0x1F || i == 0x7F || i > 127) ? '.' : (byte)i
+      );
+    } break;
+
+    case _Str_FmtRep_Default: {
+      do {
+        ptrdiff_t digit = i % 10;
+        arr_byte_push_back(out, (byte)(digit + '0'));
+        i /= 10;
+      } while (i);
+    } break;
+
+    case _Str_FmtRep_Hex:
+    case _Str_FmtRep_HEX: {
+      do {
+        ptrdiff_t digit = i % 16;
+        byte c = spec.representation == _Str_FmtRep_HEX ? 'A' : 'a';
+        byte b = (byte)digit + (digit >= 10 ? c-10 : '0');
+        arr_byte_push_back(out, b);
+        i /= 16;
+      } while (i);
+    } break;
+
+    case _Str_FmtRep_Binary: {
+      do {
+        ptrdiff_t digit = i % 2;
+        arr_byte_push_back(out, (byte)(digit + '0'));
+        i /= 2;
+      } while (i);
+    } break;
+
+  }
+
+}
+
+static void format_print_arg_float(
+  Array_byte out, _Str_FmtSpec spec, double f_val, index_s start
+) {
+
+  double f = f_val;
+  do {
+    ptrdiff_t digit = (int)f;
+    digit %= 10;
+    f /= 10;
+    arr_byte_push_back(out, (byte)(digit + '0'));
+  } while (f >= 1.0);
+
+  byte* digits = arr_byte_get_ref(out, start);
+  memrev(digits, (uint)(out->size - start));
+
+  f = f_val - floor(f_val);
+  byte p = spec.precision;
+
+  if (f != 0.0 && spec.precision) {
+    arr_byte_push_back(out, '.');
+    for (; p && f > 0.00000000001; --p) {
+      f *= 10.0;
+      int int_part = (int)f;
+      arr_byte_push_back(out, (byte)(int_part + '0'));
+      f -= int_part;
+    }
+  } else if (spec.precision && spec.trailing) {
+    arr_byte_push_back(out, '.');
+  }
+
+  while (p && spec.trailing) {
+    arr_byte_push_back(out, '0');
+    --p;
+  }
+
+}
+
 static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
   if (spec.index >= params->size) {
@@ -678,18 +759,13 @@ static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
       if (i < 0) {
         arr_byte_push_back(out, '-');
         i *= -1;
-      }
-      else if (spec.sign) {
+      } else if (spec.sign) {
         arr_byte_push_back(out, '+');
       }
 
       index_s msd = out->size;
 
-      do {
-        ptrdiff_t digit = i % 10;
-        arr_byte_push_back(out, (byte)(digit + '0'));
-        i /= 10;
-      } while (i);
+      format_print_arg_int(out, spec, i);
 
       byte* digits = arr_byte_get_ref(out, msd);
       memrev(digits, (uint)(out->size - msd));
@@ -701,10 +777,33 @@ static void format_print_arg(Array_byte out, Array params, _Str_FmtSpec spec) {
 
     } break;
 
+    case _Str_FmtArg_Float: {
+
+      double f = arg->f;
+      index_s start = out->size;
+
+      if (f < 0) {
+        arr_byte_push_back(out, '-');
+        f *= -1;
+      } else if (spec.sign) {
+        arr_byte_push_back(out, '+');
+      }
+
+      index_s msd = out->size;
+
+      format_print_arg_float(out, spec, f, msd);
+
+      index_s width = MAX(spec.width, out->size - start);
+      index_s excess = width - (out->size - start);
+
+      format_print_arg_align_number(out, spec, excess, start, msd);
+
+    } break;
+
     default: {
 
-      arr_byte_push_back(out, ':');
-      arr_byte_push_back(out, '(');
+      byte* bytes = arr_byte_emplace_back_range(out, 22);
+      memcpy(bytes, " <can't resolve type> ", 22);
 
     } break;
 
@@ -783,6 +882,8 @@ String istr_format(StringRange fmt, ...) {
     StringRange spec_str = istr_substring(fmt, i + 1, fmt.size);
     _Str_FmtSpec spec = format_read_spec(spec_str, arg_index, &spec_end);
 
+    // rather than error on invalid spec, just print the characters
+    // this means we don't need to worry about escaping braces most of the time
     if (spec.index == _str_fmtarg_invalid_spec) {
       section_start = i;
       section_size = 1;
@@ -793,10 +894,11 @@ String istr_format(StringRange fmt, ...) {
 
     format_print_arg(output, params, spec);
 
-    i = i + spec_end;
+    i += spec_end;
     section_start = i + 1;
   }
 
+  // if we reach the end and we were reading chars for output, print them here
   if (section_size) {
     byte* bytes = arr_byte_emplace_back_range(output, section_size);
     memcpy(bytes, fmt.begin + section_start, section_size);

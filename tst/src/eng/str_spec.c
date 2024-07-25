@@ -905,50 +905,46 @@ describe(str_format) {
 
   }
 
-  context("formatting for strings") {
+  context("alignment and padding") {
 
-    context("alignment and padding") {
+    it("can set a minimum width for an argument") {
+      result = str_format("|{:10}|", "test");
+      expect(result to match("|test      |", str_eq));
+    }
 
-      it("can set a minimum width for an argument") {
-        result = str_format("|{:10}|", "test");
-        expect(result to match("|test      |", str_eq));
-      }
+    it("can take an alignment specifier (left default)") {
+      result = str_format("|{:<10}|", "test");
+      expect(result to match("|test      |", str_eq));
+    }
 
-      it("can take an alignment specifier (left default)") {
-        result = str_format("|{:<10}|", "test");
-        expect(result to match("|test      |", str_eq));
-      }
+    it("can take an alignment specifier (right)") {
+      result = str_format("|{:>10}|", "test");
+      expect(result to match("|      test|", str_eq));
+    }
 
-      it("can take an alignment specifier (right)") {
-        result = str_format("|{:>10}|", "test");
-        expect(result to match("|      test|", str_eq));
-      }
+    it("can take an alignment specifier (center)") {
+      result = str_format("|{:^10}|", "test");
+      expect(result to match("|   test   |", str_eq));
+    }
 
-      it("can take an alignment specifier (center)") {
-        result = str_format("|{:^10}|", "test");
-        expect(result to match("|   test   |", str_eq));
-      }
+    it("can handle an odd width center alignment") {
+      result = str_format("|{:^9}|", "test");
+      expect(result to match("|   test  |", str_eq));
+    }
 
-      it("can handle an odd width center alignment") {
-        result = str_format("|{:^9}|", "test");
-        expect(result to match("|   test  |", str_eq));
-      }
+    it("uses a given char for padding") {
+      result = str_format("|{:#-10}|", "test");
+      expect(result to match("|test------|", str_eq));
+    }
 
-      it("uses a given char for padding") {
-        result = str_format("|{:#-10}|", "test");
-        expect(result to match("|test------|", str_eq));
-      }
+    it("combines alignment and padding char") {
+      result = str_format("|{:>#-10}|", "test");
+      expect(result to match("|------test|", str_eq));
+    }
 
-      it("combines alignment and padding char") {
-        result = str_format("|{:>#-10}|", "test");
-        expect(result to match("|------test|", str_eq));
-      }
-
-      it("allows combining of positional arguments and alignments") {
-        result = str_format("|{1:>#`5}|{0:<#,5}|", "a", "b");
-        expect(result to match("|````b|a,,,,|", str_eq));
-      }
-
+    it("allows combining of positional arguments and alignments") {
+      result = str_format("|{1:>#`5}|{0:<#,5}|", "a", "b");
+      expect(result to match("|````b|a,,,,|", str_eq));
     }
 
   }
@@ -1070,10 +1066,158 @@ describe(str_format) {
 
     context("representation styles") {
 
+      it("prints a regular number") {
+        result = str_format("{}", 65);
+        expect(result to match("65", str_eq));
+      }
+
+      it("prints a hex number") {
+        result = str_format("{!x}", 65);
+        expect(result to match("41", str_eq));
+      }
+
+      it("prints hex zero") {
+        result = str_format("{!x}", 0);
+        expect(result to match("0", str_eq));
+      }
+
+      it("prints a hex number containing letters") {
+        result = str_format("{!x}", 64206);
+        expect(result to match("face", str_eq));
+      }
+
+      it("prints a large mixed hex number") {
+        result = str_format("{!x}", 2048397);
+        expect(result to match("1f418d", str_eq));
+      }
+
+      it("prints capitalized hex letters") {
+        result = str_format("{!X}", 64206);
+        expect(result to match("FACE", str_eq));
+      }
+
+      it("prints using binary") {
+        result = str_format("{!b:08}", 109);
+        expect(result to match("01101101", str_eq));
+      }
+
+      it("prints a character") {
+        result = str_format("{!c}", 65);
+        expect(result to match("A", str_eq));
+      }
+
+      it("prints a character with padding") {
+        result = str_format("{!c:^7}", 65);
+        expect(result to match("   A   ", str_eq));
+      }
+
     }
+
   }
 
-  if (result) test_log_memory(result->begin);
+  context("formatting for floating point values") {
+
+    it("prints a float with default formatting") {
+      result = str_format("{}", 123.456);
+      expect(result to match("123.4", str_eq));
+    }
+
+    it("prints a float zero") {
+      result = str_format("{}", 0.0);
+      expect(result to match("0", str_eq));
+    }
+
+    it("doesn't include a decimal for whole numbers") {
+      result = str_format("{}", 234.0);
+      expect(result to match("234", str_eq));
+    }
+
+    it("can print negative numbers") {
+      result = str_format("{}", -34.28);
+      expect(result to match("-34.2", str_eq));
+    }
+
+    context("precision controls") {
+
+      it("goes beyond a precision level of 1") {
+        result = str_format("{:.2}", 123.456);
+        expect(result to match("123.45", str_eq));
+      }
+
+      it("goes beyond a precision level of 2") {
+        result = str_format("{:.05}", 123.456);
+        expect(result to match("123.456", str_eq));
+      }
+
+      it("prints a double with fixed precision and trailing zeroes") {
+        result = str_format("|{:+10.3+}|", 5.4);
+        expect(result to match("|+5.400    |", str_eq));
+      }
+
+    }
+
+    context("alignment and padding") {
+
+      it("prints a left aligned double with padding") {
+        result = str_format("|{:10}|", 15.54321);
+        expect(result to match("|15.5      |", str_eq));
+      }
+
+      it("prints a left aligned double with higher precision with padding") {
+        result = str_format("|{:10.3}|", 15.54321);
+        expect(result to match("|15.543    |", str_eq));
+      }
+
+      it("prints a right aligned double") {
+        result = str_format("|{:>10.3}|", 15.54321);
+        expect(result to match("|    15.543|", str_eq));
+      }
+
+      it("prints a right aligned double with sign") {
+        result = str_format("|{:>+10.3}|", 15.54321);
+        expect(result to match("|   +15.543|", str_eq));
+      }
+
+      it("prints a ledger aligned double with sign") {
+        result = str_format("|{:=+10.3}|", 15.54321);
+        expect(result to match("|+   15.543|", str_eq));
+      }
+
+      it("prints a ledger aligned double with negative value") {
+        result = str_format("|{:=+10.3}|", -15.54321);
+        expect(result to match("|-   15.543|", str_eq));
+      }
+
+      it("prints a double with fixed precision") {
+        result = str_format("|{:+10.5}|", 5.4);
+        expect(result to match("|+5.4      |", str_eq));
+      }
+
+      it("prints a double with fixed precision and trailing zeroes") {
+        result = str_format("|{:+10.5+}|", 5.4);
+        expect(result to match("|+5.40000  |", str_eq));
+      }
+
+      it("prints ledger-aligned with always 2 decimals") {
+        result = str_format("|{:=+10.2+}|", 23.634);
+        expect(result to match("|+    23.63|", str_eq));
+      }
+
+      it("prints ledger-aligned with always 2 decimals, given a whole number") {
+        result = str_format("|{:=+10.2+}|", 23.0);
+        expect(result to match("|+    23.00|", str_eq));
+      }
+
+      it("prints ledger-aligned with trailing zeroes and zero-fill") {
+        result = str_format("|{:+010.2+}|", 23.0);
+        expect(result to match("|+000023.00|", str_eq));
+      }
+
+    }
+
+  }
+
+  //if (result) test_log_memory(result->begin);
   if (result) str_delete(&result);
 
 }
